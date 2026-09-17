@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://cyoisfxnnt6x1"]
+
+[ext_resource type="Texture2D" uid="uid://dqocf11xxdlkm" path="res://Player/Taylor (Megaman)-Sheet.png" id="1_3qydi"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_7s2tu"]
+
+[node name="Player" type="Node2D" unique_id=2035421722]
+
+[node name="Taylor" type="CharacterBody2D" parent="." unique_id=1065469375]
+
+[node name="Taylor(megaman)Sheet" type="Sprite2D" parent="Taylor" unique_id=1118344629]
+texture = ExtResource("1_3qydi")
+hframes = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Taylor" unique_id=612103635]
+shape = SubResource("CircleShape2D_7s2tu")
