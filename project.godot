@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="TaylorSimulator"
-run/main_scene="uid://cfy7uiqa3ufgo"
+run/main_scene="res://scenes/ui/main_menu.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 
@@ -33,5 +33,6 @@ renderer/rendering_method.mobile="gl_compatibility"
 
 [autoload]
 
+ModeManager="*res://scripts/modes/mode_manager.gd"
 GameState="*res://scripts/autoload/game_state.gd"
 MinigameLauncher="*res://scripts/minigames/minigame_launcher.gd"
