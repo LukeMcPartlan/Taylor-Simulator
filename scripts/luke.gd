@@ -36,7 +36,7 @@ const NAG_RESPONSES: Array[String] = [
 	"you're right. you're right. putting the headset down.",
 ]
 
-enum State { IDLE, WALK, GAMING }
+enum State { IDLE, WALK, GAMING, DELEGATED }
 
 var _state: int = State.IDLE
 var _idle_timer: float = 1.0
@@ -47,11 +47,35 @@ var _game_cooldown: float = 20.0  # seconds before he may start gaming again
 var _nagged_today: bool = false
 var _player_near: bool = false
 
+# --- DELEGATION mode state --------------------------------------------------
+# When Taylor presses Q at a chore station (DELEGATION mode only), Luke walks
+# to the station and works it at HALF SPEED (2x work_seconds) — delegating is
+# never free. station.gd calls assign_delegation(); ModeDelegation owns the
+# break-chance/fix-task logic.
+var _delegated_task_id: String = ""
+var _delegated_station_title: String = ""
+var _delegated_work_left: float = 0.0
+var _delegated_arrived: bool = false
+
+
+func _is_delegation_mode() -> bool:
+	# Every mode file implements mode_id() -> ModeManager.Mode.X.
+	var m := GameState.mode_node()
+	return m != null and m.has_method("mode_id") and m.mode_id() == ModeManager.Mode.DELEGATION
+
+
+func _is_meltdown_mode() -> bool:
+	var m := GameState.mode_node()
+	return m != null and m.has_method("mode_id") and m.mode_id() == ModeManager.Mode.MELTDOWN
+
 var _sprite: AnimatedSprite2D
 var _prompt: Label
 
 
 func _ready() -> void:
+	# Stations find Luke through this group when Taylor delegates a chore
+	# (DELEGATION mode).
+	add_to_group("luke")
 	# Sprite: the Gojo walk sheet (8 frames of 32x32). Built in code from
 	# AtlasTextures so we don't need a SpriteFrames resource file.
 	var tex: Texture2D = load("res://Player/GojoWalk-Sheet.png")
@@ -118,6 +142,14 @@ func _physics_process(delta: float) -> void:
 		State.GAMING:
 			velocity.x = move_toward(velocity.x, 0.0, SPEED * 4.0 * delta)
 			# He games indefinitely until nagged — see _physics note in _pick_action.
+		State.DELEGATED:
+			# DELEGATION mode: he walked to the station (via WALK); now he
+			# stands there doing the chore at half speed. Nagging won't help.
+			velocity.x = move_toward(velocity.x, 0.0, SPEED * 4.0 * delta)
+			if _delegated_arrived:
+				_delegated_work_left -= delta
+				if _delegated_work_left <= 0.0:
+					_finish_delegation()
 
 	move_and_slide()
 	_sprite.play(&"walk" if absf(velocity.x) > 10.0 else &"idle")
@@ -139,6 +171,12 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _talk() -> void:
+	# MELTDOWN mode: when cortisol is over 70 he drops the act and goes mean.
+	var m := GameState.mode_node()
+	if _is_meltdown_mode() and GameState.cortisol > 70.0 and m.has_method("mean_line"):
+		GameState.say("LUKE", String(m.mean_line()))
+		GameState.interact_luke_mean()
+		return
 	# The core Luke interaction: unhinged wisdom, +10 joy AND +10 stress.
 	GameState.say("LUKE", LINES[randi_range(0, LINES.size() - 1)])
 	GameState.interact_luke()
@@ -166,6 +204,11 @@ func _arrive() -> void:
 	if _going_to_game:
 		_going_to_game = false
 		_start_gaming()
+	elif _is_delegation_mode() and _delegated_task_id != "":
+		# Reached the chore station — start the (slow) work phase.
+		_state = State.DELEGATED
+		_delegated_arrived = true
+		GameState.say("LUKE", "ok ok i'm here. this better not take long.")
 	else:
 		_state = State.IDLE
 		_idle_timer = randf_range(1.0, 3.5)
@@ -198,16 +241,89 @@ func _remind_task_active() -> bool:
 	return false
 
 
+# --- Delegation API (DELEGATION mode; called by station.gd on Q) ---------------
+## Returns {"ok": bool, "reason": String}. Refuses while mid-match — nag him
+## off the games first, THEN put him to work. That's the management loop.
+
+func is_available_for_delegation() -> bool:
+	# Busy = gaming, or already holding a delegated job (even while walking).
+	return _state != State.GAMING and _delegated_task_id == ""
+
+
+func assign_delegation(task_id: String, station_x: float, station_title: String, work_seconds: float) -> Dictionary:
+	if _state == State.GAMING:
+		return {"ok": false, "reason": "he's mid-match (nag him first)"}
+	if _delegated_task_id != "":
+		return {"ok": false, "reason": "he's already working"}
+	_delegated_task_id = task_id
+	_delegated_station_title = station_title
+	# Luke works at half speed: the real cost of delegation.
+	_delegated_work_left = work_seconds * 2.0
+	_delegated_arrived = false
+	_going_to_game = false
+	_target_x = station_x
+	_state = State.WALK
+	GameState.say("LUKE", "ughhh FINE. i'll do the %s. but i'm doing it MY way." % station_title.to_lower())
+	return {"ok": true, "reason": ""}
+
+
+func delegation_status() -> String:
+	## Short status line for the HUD's Luke widget (DELEGATION mode).
+	if _delegated_task_id != "":
+		if _delegated_arrived:
+			return "🔧 Luke: working (%s)" % _delegated_station_title
+		return "🔧 Luke: walking to %s" % _delegated_station_title
+	if _state == State.GAMING:
+		return "🎮 Luke: gaming (nag him!)"
+	return "💤 Luke: vibing"
+
+
+func _finish_delegation() -> void:
+	var task_id := _delegated_task_id
+	var title := _delegated_station_title
+	_delegated_task_id = ""
+	_delegated_station_title = ""
+	_delegated_arrived = false
+	_state = State.IDLE
+	_idle_timer = randf_range(1.5, 3.5)
+	var m := GameState.mode_node()
+	if GameState.complete_task(task_id, "luke"):
+		var broke := false
+		if m != null and m.has_method("maybe_spawn_break"):
+			broke = bool(m.maybe_spawn_break(title))
+		var world := get_parent()
+		if broke:
+			GameState.say("LUKE", "ok it's done. ...don't look too close at it.")
+			if world.has_method("spawn_float_text"):
+				world.spawn_float_text(global_position + Vector2(0, -80),
+					"Luke broke something!", Color(1.0, 0.4, 0.3))
+		else:
+			GameState.say("LUKE", "done. you're welcome. i'm going back to doing nothing.")
+			if world.has_method("spawn_float_text"):
+				world.spawn_float_text(global_position + Vector2(0, -80),
+					"Luke did a chore!", Color(0.6, 1.0, 0.6))
+
+
 func _on_tasks_changed(tasks: Array) -> void:
-	# A new day clears the task list — reset the nag flag so he can game again.
+	# A new day clears the task list — reset the nag flag so he can game again,
+	# and drop any in-progress delegation (its task no longer exists).
 	var found := false
+	var delegation_alive := false
 	for t in tasks:
 		if t["id"] == String(GameState.REMIND_LUKE_TASK["id"]):
 			found = true
-			break
+		if t["id"] == _delegated_task_id and not t["done"]:
+			delegation_alive = true
 	if not found:
 		_nagged_today = false
 		if _state == State.GAMING:
+			_state = State.IDLE
+			_idle_timer = 2.0
+	if _is_delegation_mode() and _delegated_task_id != "" and not delegation_alive:
+		_delegated_task_id = ""
+		_delegated_station_title = ""
+		_delegated_arrived = false
+		if _state == State.DELEGATED or (_state == State.WALK and not _going_to_game):
 			_state = State.IDLE
 			_idle_timer = 2.0
 

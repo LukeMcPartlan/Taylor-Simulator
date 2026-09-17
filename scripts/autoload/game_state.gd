@@ -1,14 +1,34 @@
 extends Node
-## Taylor Simulator — global simulation state (Autoload singleton).
+## Taylor Simulator (UNIFIED) — global simulation state (Autoload singleton).
+##
+## This is the base day-loop sim (meters, clock, tasks) PLUS a mode-hook
+## system: each of the 5 game modes is a "mode node" (see scripts/modes/)
+## created by ModeManager. GameState asks the mode node for tuning values
+## through small hook methods; when no mode is active (CLASSIC) the base
+## defaults apply, so this file behaves exactly like the original base game.
+##
+## Hook methods a mode node MAY implement (all optional; GameState checks
+## with has_method() and falls back to the base default):
+##   seconds_per_game_hour() -> float      default 30.0
+##   neglect_cortisol_rate() -> float      default 6.0
+##   neglect_serotonin_rate() -> float     default 3.0
+##   baseline_decay_rate() -> float        default 1.0
+##   cortisol_gain_mult() -> float         default 1.0
+##   minigame_speed_mult() -> float        default 1.0
+##   minigame_fail_cortisol() -> float     default 0.0
+##   minigame_fail_text() -> String        default "Failed! Press E to retry."
+##   day_summary_extras() -> Dictionary    default {}
+##   hud_tag() -> String                   default "" (shown under the clock)
+## Mode nodes can also connect to GameState's signals for their own logic
+## (e.g. babysitter ticks, meltdown checks, combo scoring). Note: GameState
+## _ready() runs start_new_day() BEFORE the mode node's _ready() connects, so
+## mode nodes must initialize day-1 state explicitly (see combo-mom's scorer).
 ##
 ## Godot conventions used in this file:
-## - Autoload: this script is registered in project.godot under [autoload], so
-##   Godot instantiates it once at startup before the main scene loads. It is
-##   reachable from any other script by its name, `GameState` — like a singleton.
-## - Signals: Godot's observer pattern. Nodes call `GameState.meters_changed.connect(_on_meters_changed)`
-##   and Godot invokes that method whenever we call `meters_changed.emit(...)`.
-## - `_ready()` runs once when the node enters the tree; `_process(delta)` runs
-##   every rendered frame, with `delta` = real seconds since the previous frame.
+## - Autoload: registered in project.godot under [autoload]; instantiated once
+##   at startup. Reachable everywhere by its name, `GameState`.
+## - Signals: Godot's observer pattern. `x.connect(_on_x)` subscribes;
+##   `x.emit(...)` notifies.
 ## - `clampf` clamps a float; `%` string formatting works like printf.
 
 # --- Signals ----------------------------------------------------------------
@@ -18,9 +38,17 @@ signal task_list_changed(tasks: Array)
 signal day_ended
 ## Emitted when Luke (or anyone) says something; the HUD shows it in the dialogue box.
 signal luke_said(speaker: String, line: String)
+## Arcade/extended hooks. Emitted in every mode; only some modes listen.
+signal task_completed(task_id: String, cortisol_relief: float, by: String)
+signal fun_used(amount: float)
+signal day_started(day: int)
+signal minigame_failed
+## Emitted when a mode ends the whole run (night-shift meltdown at 100
+## cortisol, meltdown mode's third strike). The HUD shows the overlay with
+## this title/stats instead of the normal day-over panel.
+signal run_ended(title: String, stats: String, restart_kind: String)
 
-# --- Tuning -----------------------------------------------------------------
-# One in-game hour = this many real seconds. A full 16h day = 16 * 30 = 480s (8 min).
+# --- Tuning (base defaults; modes override via hooks) -----------------------
 const SECONDS_PER_GAME_HOUR: float = 30.0
 const DAY_START_HOUR: float = 7.0    # 7:00 AM
 const DAY_END_HOUR: float = 23.0     # 11:00 PM
@@ -29,19 +57,12 @@ const METER_MAX: float = 100.0
 const START_SEROTONIN: float = 60.0
 const START_CORTISOL: float = 30.0
 
-# Neglect pressure, per incomplete task, per in-game hour.
-# With 4 starter tasks: cortisol +24/h, serotonin -12/h while everything is ignored.
 const CORTISOL_PER_TASK_PER_HOUR: float = 6.0
 const SEROTONIN_DRAIN_PER_TASK_PER_HOUR: float = 3.0
-# Serotonin always decays a little even with zero open tasks — living is hard.
 const SEROTONIN_BASELINE_DECAY_PER_HOUR: float = 1.0
 
-# How often the HUD gets meter updates (real seconds). Throttled so we don't
-# redraw UI every frame; completion/fun/Luke events emit immediately anyway.
 const METER_EMIT_THROTTLE: float = 0.25
 
-# Task definitions. `day_min` = the first day this task can appear — later days
-# add chores (escalation), so the sim gets harder the longer you survive.
 const TASK_DEFS: Array = [
 	{"id": "laundry", "label": "Do the laundry", "relief": 15.0, "day_min": 1},
 	{"id": "dishes", "label": "Wash the dishes", "relief": 12.0, "day_min": 1},
@@ -52,7 +73,6 @@ const TASK_DEFS: Array = [
 	{"id": "take_out_trash", "label": "Take out the trash", "relief": 8.0, "day_min": 3},
 	{"id": "microwave", "label": "Clean the microwave", "relief": 10.0, "day_min": 2},
 ]
-# Registered dynamically when Luke starts gaming (see luke.gd).
 const REMIND_LUKE_TASK: Dictionary = {
 	"id": "remind_luke", "label": "Remind Luke to get back to work", "relief": 12.0,
 }
@@ -60,29 +80,43 @@ const REMIND_LUKE_TASK: Dictionary = {
 # --- State ------------------------------------------------------------------
 var serotonin: float = START_SEROTONIN
 var cortisol: float = START_CORTISOL
-var time_hours: float = DAY_START_HOUR  # float hours, 7.0 -> 23.0
-var day_number: int = 0                 # incremented by start_new_day(); first day is 1
-var tasks: Array = []                   # Array of Dictionaries: {id, label, cortisol_relief, done}
+var time_hours: float = DAY_START_HOUR
+var day_number: int = 0
+# Task dicts: {id, label, cortisol_relief, done, delegated, completed_by}.
+# `delegated`/`completed_by` only matter in DELEGATION mode; harmless elsewhere.
+var tasks: Array = []
 var sim_running: bool = true
-# Escalation: each new day multiplies neglect pressure a little.
 var day_pressure_mult: float = 1.0
-# Serotonin integrated over game-hours — divided by day length for the day average.
 var day_serotonin_integral: float = 0.0
+## The active mode node (null in CLASSIC). Created from ModeManager.
+var mode_hook: Node = null
 
 var _meter_emit_cooldown: float = 0.0
 var _last_clock_string: String = ""
 
 
 func _ready() -> void:
+	# ModeManager is autoloaded BEFORE GameState, so current_mode is valid here.
+	mode_hook = ModeManager.create_mode()
+	if mode_hook != null:
+		add_child(mode_hook)
 	start_new_day()
+
+
+## Returns the active mode node (null in CLASSIC). Mode UIs and NPCs use
+## this to reach mode-specific APIs, e.g.:
+##   var m := GameState.mode_node()
+##   if m is ModeDelegation: m.try_delegate(id)
+func mode_node() -> Node:
+	return mode_hook
 
 
 func _process(delta: float) -> void:
 	if not sim_running:
 		return
 
-	# Advance the clock.
-	time_hours += delta / SECONDS_PER_GAME_HOUR
+	var sec_per_hour: float = get_seconds_per_game_hour()
+	time_hours += delta / sec_per_hour
 	if time_hours >= DAY_END_HOUR:
 		time_hours = DAY_END_HOUR
 		_emit_clock_if_changed()
@@ -90,33 +124,130 @@ func _process(delta: float) -> void:
 		return
 	_emit_clock_if_changed()
 
-	# Neglect pressure: each open task pushes cortisol up and serotonin down.
-	var game_hours: float = delta / SECONDS_PER_GAME_HOUR
-	var incomplete: int = 0
+	var game_hours: float = delta / sec_per_hour
+	var pressure: float = 0.0
 	for t in tasks:
 		if not t["done"]:
-			incomplete += 1
-	if incomplete > 0:
-		cortisol += CORTISOL_PER_TASK_PER_HOUR * day_pressure_mult * incomplete * game_hours
-		serotonin -= SEROTONIN_DRAIN_PER_TASK_PER_HOUR * day_pressure_mult * incomplete * game_hours
-	serotonin -= SEROTONIN_BASELINE_DECAY_PER_HOUR * game_hours
+			pressure += get_neglect_weight(String(t["id"]))
+	if pressure > 0.0:
+		cortisol += get_neglect_cortisol_rate() * get_cortisol_gain_mult() \
+			* day_pressure_mult * pressure * game_hours
+		serotonin -= get_neglect_serotonin_rate() * get_serotonin_drain_mult() \
+			* day_pressure_mult * pressure * game_hours
+	serotonin -= get_baseline_decay_rate() * get_serotonin_drain_mult() * game_hours
 
 	serotonin = clampf(serotonin, 0.0, METER_MAX)
 	cortisol = clampf(cortisol, 0.0, METER_MAX)
 	day_serotonin_integral += serotonin * game_hours
 
-	# Throttled broadcast.
 	_meter_emit_cooldown -= delta
 	if _meter_emit_cooldown <= 0.0:
 		_meter_emit_cooldown = METER_EMIT_THROTTLE
 		meters_changed.emit(serotonin, cortisol)
 
 
+# --- Mode hook queries (base defaults; mode nodes override) -----------------
+
+func _hook(method: String, args: Array = []):
+	if mode_hook != null and mode_hook.has_method(method):
+		return mode_hook.callv(method, args)
+	return null
+
+
+func get_seconds_per_game_hour() -> float:
+	var v = _hook("seconds_per_game_hour")
+	return float(v) if v != null else SECONDS_PER_GAME_HOUR
+
+
+func get_neglect_cortisol_rate() -> float:
+	var v = _hook("neglect_cortisol_rate")
+	return float(v) if v != null else CORTISOL_PER_TASK_PER_HOUR
+
+
+func get_neglect_serotonin_rate() -> float:
+	var v = _hook("neglect_serotonin_rate")
+	return float(v) if v != null else SEROTONIN_DRAIN_PER_TASK_PER_HOUR
+
+
+func get_baseline_decay_rate() -> float:
+	var v = _hook("baseline_decay_rate")
+	return float(v) if v != null else SEROTONIN_BASELINE_DECAY_PER_HOUR
+
+
+func get_cortisol_gain_mult() -> float:
+	var v = _hook("cortisol_multiplier")
+	return float(v) if v != null else 1.0
+
+
+func get_last_award() -> Dictionary:
+	## Combo-mom's last points award {"points", "mult"} for "+N PTS (xM)" popups.
+	var v = _hook("get_last_award")
+	if v is Dictionary:
+		return v
+	return {"points": 0, "mult": 1}
+
+
+func record_minigame_clear(game_id: String, elapsed_seconds: float) -> int:
+	## Clear-time scoring (combo-mom): beating a minigame's par time extends
+	## the combo window and awards Taylor Points. Returns bonus points.
+	var v = _hook("record_minigame_clear", [game_id, elapsed_seconds])
+	return int(v) if v != null else 0
+
+
+func get_move_speed_mult() -> float:
+	## Scales Taylor's move speed (combo-mom's Comfy Shoes 1.15x).
+	var v = _hook("move_speed_multiplier")
+	return float(v) if v != null else 1.0
+
+
+func get_neglect_weight(task_id: String) -> float:
+	## How much neglect pressure one open task exerts (delegation mode halves
+	## some with upgrades). Queried per task every frame.
+	var v = _hook("neglect_weight", [task_id])
+	return float(v) if v != null else 1.0
+
+
+func get_task_relief_mult() -> float:
+	## Scales chore cortisol relief (meltdown's Gym Membership 1.25x).
+	var v = _hook("task_relief_multiplier")
+	return float(v) if v != null else 1.0
+
+
+func get_fun_mult() -> float:
+	## Scales serotonin gains from fun stations (night-shift Gremlin Mode 2x).
+	var v = _hook("fun_multiplier")
+	return float(v) if v != null else 1.0
+
+
+func get_serotonin_drain_mult() -> float:
+	## Scales serotonin DRAINS (night-shift Weighted Blanket 0.75x).
+	var v = _hook("serotonin_drain_multiplier")
+	return float(v) if v != null else 1.0
+
+
+func get_minigame_speed_mult() -> float:
+	var v = _hook("minigame_speed_mult")
+	return float(v) if v != null else 1.0
+
+
+func get_minigame_fail_cortisol() -> float:
+	var v = _hook("minigame_fail_cortisol")
+	return float(v) if v != null else 0.0
+
+
+func minigame_fail_text() -> String:
+	var v = _hook("minigame_fail_text")
+	return String(v) if v != null else "Failed! Press E to retry."
+
+
+func get_hud_tag() -> String:
+	var v = _hook("hud_tag")
+	return String(v) if v != null else ""
+
+
 # --- Public API -------------------------------------------------------------
 
 func register_task(id: String, label: String, cortisol_relief: float) -> void:
-	## Adds a task, or updates it if `id` is already registered (idempotent, so
-	## day restarts can re-register safely). Emits task_list_changed.
 	for t in tasks:
 		if t["id"] == id:
 			t["label"] = label
@@ -128,41 +259,68 @@ func register_task(id: String, label: String, cortisol_relief: float) -> void:
 		"label": label,
 		"cortisol_relief": cortisol_relief,
 		"done": false,
+		"delegated": false,
+		"completed_by": "",
 	})
 	task_list_changed.emit(tasks)
 
 
-func complete_task(id: String) -> bool:
-	## Marks a task done and applies its cortisol relief. Returns false if the
-	## id is unknown or already done.
+func complete_task(id: String, by: String = "taylor") -> bool:
+	## Marks a task done, records WHO did it, applies cortisol relief.
 	for t in tasks:
 		if t["id"] == id and not t["done"]:
 			t["done"] = true
-			cortisol = clampf(cortisol - float(t["cortisol_relief"]), 0.0, METER_MAX)
+			t["delegated"] = false
+			t["completed_by"] = by
+			var relief: float = float(t["cortisol_relief"]) * get_task_relief_mult()
+			cortisol = clampf(cortisol - relief, 0.0, METER_MAX)
 			task_list_changed.emit(tasks)
 			meters_changed.emit(serotonin, cortisol)
+			task_completed.emit(id, relief, by)
 			return true
 	return false
 
 
 func add_serotonin(amount: float) -> void:
-	## Phase 2 hook: fun stations (reading, TikTok) call this.
 	serotonin = clampf(serotonin + amount, 0.0, METER_MAX)
+	meters_changed.emit(serotonin, cortisol)
+	fun_used.emit(amount)
+
+
+func add_cortisol(amount: float) -> void:
+	## All cortisol GAINS route through here so modes can scale them
+	## (e.g. night-shift Headphones, meltdown coping items).
+	cortisol = clampf(cortisol + amount * get_cortisol_gain_mult(), 0.0, METER_MAX)
 	meters_changed.emit(serotonin, cortisol)
 
 
 func interact_luke() -> void:
-	## Phase 3 stub. Real Luke gets wander AI + a dialogue tree; for now,
-	## talking to him is equal parts joy and stress: both meters jump.
-	serotonin = clampf(serotonin + 10.0, 0.0, METER_MAX)
-	cortisol = clampf(cortisol + 10.0, 0.0, METER_MAX)
-	meters_changed.emit(serotonin, cortisol)
+	## Talking to Luke: +10 joy AND +10 stress.
+	add_serotonin(10.0)
+	add_cortisol(10.0)
+
+
+func interact_luke_mean() -> void:
+	## MELTDOWN mode: when cortisol is over 70 Luke drops the act and roasts
+	## you. Still funny (+10 serotonin) but it stings (+15 cortisol).
+	add_serotonin(10.0)
+	add_cortisol(15.0)
+
+
+func apply_minigame_fail() -> void:
+	var penalty: float = get_minigame_fail_cortisol()
+	if penalty > 0.0:
+		cortisol = clampf(cortisol + penalty, 0.0, METER_MAX)
+		meters_changed.emit(serotonin, cortisol)
+	minigame_failed.emit()
 
 
 func start_new_day() -> void:
-	## Resets everything for a fresh 7am start and resumes the sim.
-	## Later days hit harder: more tasks and a pressure multiplier.
 	day_number += 1
+	_begin_day()
+
+
+func _begin_day() -> void:
 	time_hours = DAY_START_HOUR
 	serotonin = START_SEROTONIN
 	cortisol = START_CORTISOL
@@ -177,44 +335,18 @@ func start_new_day() -> void:
 	clock_changed.emit(get_time_string())
 	task_list_changed.emit(tasks)
 	meters_changed.emit(serotonin, cortisol)
+	day_started.emit(day_number)
 
 
 func get_time_string() -> String:
-	## Public read of the formatted clock ("7:00 AM", "11:00 PM", ...).
 	return _format_time()
 
 
-# Minigame variant hooks. Stations call these so variants can tune the
-# minigame experience without touching station.gd:
-# - get_minigame_speed_mult(): night-shift returns >1.0 with buffs (timers
-#   get more forgiving). Base game: 1.0.
-# - MINIGAME_FAIL_CORTISOL / minigame_fail_text(): meltdown punishes failed
-#   minigames with +5 cortisol and a meaner message. Base: no punishment.
-const MINIGAME_FAIL_CORTISOL: float = 0.0
-
-
-func get_minigame_speed_mult() -> float:
-	return 1.0
-
-
-func minigame_fail_text() -> String:
-	return "Failed! Press E to retry."
-
-
-func apply_minigame_fail() -> void:
-	if MINIGAME_FAIL_CORTISOL > 0.0:
-		cortisol = clampf(cortisol + MINIGAME_FAIL_CORTISOL, 0.0, METER_MAX)
-		meters_changed.emit(serotonin, cortisol)
-
-
 func say(speaker: String, line: String) -> void:
-	## Route a line of dialogue through GameState so the HUD can display it.
-	## Keeps NPCs decoupled from UI: they don't need a reference to the HUD.
 	luke_said.emit(speaker, line)
 
 
 func get_day_summary() -> Dictionary:
-	## End-of-day report card, read by the HUD when day_ended fires.
 	var done: int = 0
 	for t in tasks:
 		if t["done"]:
@@ -228,27 +360,30 @@ func get_day_summary() -> Dictionary:
 		rating = "Held it together"
 	elif avg_serotonin >= 30.0:
 		rating = "Rough one"
-	return {
+	var summary := {
 		"day": day_number,
 		"tasks_done": done,
 		"tasks_total": tasks.size(),
 		"avg_serotonin": avg_serotonin,
 		"rating": rating,
 	}
+	# Modes can inject extra lines (e.g. combo-mom's score).
+	var extras = _hook("day_summary_extras")
+	if extras is Dictionary:
+		for k in (extras as Dictionary).keys():
+			summary[k] = (extras as Dictionary)[k]
+	return summary
 
 
 # --- Internal ---------------------------------------------------------------
 
 func _register_default_tasks() -> void:
-	# Day 1 starts with the core five; mop and trash join on days 2 and 3.
 	for def in TASK_DEFS:
 		if day_number >= int(def["day_min"]):
 			register_task(String(def["id"]), String(def["label"]), float(def["relief"]))
 
 
 func _emit_clock_if_changed() -> void:
-	# Only broadcast when the displayed minute actually changes (~2/sec at
-	# default speed), not every frame.
 	var clock_string := _format_time()
 	if clock_string != _last_clock_string:
 		_last_clock_string = clock_string
@@ -259,6 +394,31 @@ func _end_day() -> void:
 	sim_running = false
 	set_process(false)
 	day_ended.emit()
+
+
+func end_run(title: String, stats: String, restart_kind: String = "run") -> void:
+	## A mode ends the whole RUN (not just the day). Same freeze as _end_day,
+	## but the HUD shows the run-over panel instead of the day-over one.
+	## restart_kind: "run" = R starts a fresh run from day 1 (night-shift
+	## meltdown, meltdown x3); "day" = R retries the SAME day (meltdown's
+	## non-fatal meltdowns, lives and coping kept).
+	sim_running = false
+	set_process(false)
+	run_ended.emit(title, stats, restart_kind)
+
+
+func new_run() -> void:
+	## Start a fresh run in the current mode: reset the day counter, let the
+	## mode clear its run-long state, then start day 1.
+	day_number = 0
+	_hook("reset_run")
+	start_new_day()
+
+
+func retry_day() -> void:
+	## Restart the CURRENT day (meltdown mode): clock/tasks/meters reset,
+	## day_number kept, mode keeps its run-long state (lives, coping items).
+	_begin_day()
 
 
 func _format_time() -> String:

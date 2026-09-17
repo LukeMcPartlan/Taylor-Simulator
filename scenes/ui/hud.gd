@@ -1,5 +1,7 @@
 extends CanvasLayer
-## HUD: serotonin/cortisol bars, day clock, task list, day-over overlay.
+## HUD (UNIFIED): serotonin/cortisol bars, day clock, task list, day-over
+## overlay — plus a mode dock where the active game mode adds its own widgets
+## (sanity pips, combo readout, Luke status, buff icons...).
 ##
 ## Godot conventions used here:
 ## - `GameState` is the autoload singleton from scripts/autoload/game_state.gd,
@@ -14,6 +16,8 @@ extends CanvasLayer
 @onready var serotonin_bar: ProgressBar = $TopLeft/Panel/Margin/VBox/SerotoninBar
 @onready var cortisol_bar: ProgressBar = $TopLeft/Panel/Margin/VBox/CortisolBar
 @onready var clock_label: Label = $ClockLabel
+@onready var mode_tag: Label = $ModeTag
+@onready var mode_dock: VBoxContainer = $ModeDock
 @onready var task_list: VBoxContainer = $TaskPanel/Margin/VBox/TaskList
 @onready var day_over_overlay: Control = $DayOverOverlay
 @onready var day_over_label: Label = $DayOverOverlay/Center/Panel/Margin/VBox/DayOverLabel
@@ -24,6 +28,8 @@ extends CanvasLayer
 @onready var line_label: Label = $DialogueBox/Margin/VBox/LineLabel
 
 var _dialogue_timer: float = 0.0
+## "day" or "run": which overlay is showing. R continues the right thing.
+var _overlay_kind: String = "day"
 
 
 func _ready() -> void:
@@ -31,6 +37,7 @@ func _ready() -> void:
 	GameState.clock_changed.connect(_on_clock_changed)
 	GameState.task_list_changed.connect(_on_task_list_changed)
 	GameState.day_ended.connect(_on_day_ended)
+	GameState.run_ended.connect(_on_run_ended)
 	GameState.luke_said.connect(_on_luke_said)
 	# Autoloads finish _ready() before scenes do, so day 1 has already started.
 	# Pull the current state instead of waiting for the next signal tick.
@@ -39,6 +46,18 @@ func _ready() -> void:
 	_on_task_list_changed(GameState.tasks)
 	day_over_overlay.hide()
 	dialogue_box.hide()
+	# Mode tag under the clock (empty in CLASSIC) and mode-specific widgets.
+	mode_tag.text = GameState.get_hud_tag()
+	_build_mode_widgets()
+
+
+func _build_mode_widgets() -> void:
+	## Asks the active mode node to populate the right-side dock. Modes add
+	## their own Labels/bars here and update them by connecting to GameState
+	## signals themselves — the HUD stays dumb about mode internals.
+	var m := GameState.mode_node()
+	if m != null and m.has_method("build_hud_widgets"):
+		m.build_hud_widgets(mode_dock)
 
 
 func _process(delta: float) -> void:
@@ -50,10 +69,21 @@ func _process(delta: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
-		# R restarts the day from the day-over screen.
 		if event.keycode == KEY_R and day_over_overlay.visible:
 			day_over_overlay.hide()
-			GameState.start_new_day()
+			match _overlay_kind:
+				"run":
+					GameState.new_run()
+				"meltdown_day":
+					GameState.retry_day()
+				_:
+					GameState.start_new_day()
+		elif event.keycode == KEY_M and day_over_overlay.visible:
+			# Back to the main menu. GameState is an autoload, so it survives
+			# the scene change — but a fresh mode means fresh state, so stop
+			# the sim before leaving (the menu rebuilds everything on return).
+			GameState.sim_running = false
+			get_tree().change_scene_to_file("res://scenes/ui/main_menu.tscn")
 
 
 func _on_meters_changed(serotonin: float, cortisol: float) -> void:
@@ -67,7 +97,8 @@ func _on_clock_changed(time_string: String) -> void:
 
 func _on_task_list_changed(tasks: Array) -> void:
 	# Rebuild the list from scratch — simple and always correct for a handful
-	# of tasks. Completed ones are dimmed with a checkmark.
+	# of tasks. Completed ones are dimmed with a checkmark; delegated ones
+	# (DELEGATION mode) get a wrench.
 	for child in task_list.get_children():
 		child.queue_free()
 	for t in tasks:
@@ -75,6 +106,9 @@ func _on_task_list_changed(tasks: Array) -> void:
 		if t["done"]:
 			label.text = "✓ " + t["label"]
 			label.modulate = Color(0.45, 0.45, 0.45)
+		elif bool(t.get("delegated", false)):
+			label.text = "🔧 " + t["label"]
+			label.modulate = Color(1.0, 0.8, 0.4)
 		else:
 			label.text = "• " + t["label"]
 		task_list.add_child(label)
@@ -83,13 +117,32 @@ func _on_task_list_changed(tasks: Array) -> void:
 func _on_day_ended() -> void:
 	var summary: Dictionary = GameState.get_day_summary()
 	day_over_label.text = "Day %d complete" % int(summary["day"])
-	stats_label.text = "Tasks: %d/%d\nAvg serotonin: %d\nRating: %s" % [
+	var stats := "Tasks: %d/%d\nAvg serotonin: %d\nRating: %s" % [
 		int(summary["tasks_done"]),
 		int(summary["tasks_total"]),
 		int(round(float(summary["avg_serotonin"]))),
 		String(summary["rating"]),
 	]
-	restart_hint.text = "Press R for Day %d" % (int(summary["day"]) + 1)
+	# Modes can append extra lines (e.g. combo-mom's score).
+	if summary.has("extra_lines"):
+		stats += "\n" + String(summary["extra_lines"])
+	stats_label.text = stats
+	restart_hint.text = "Press R for Day %d · M for menu" % (int(summary["day"]) + 1)
+	_overlay_kind = "day"
+	day_over_overlay.show()
+
+
+func _on_run_ended(title: String, stats: String, restart_kind: String) -> void:
+	## A mode ended the run (or a meltdown ended the day). Same overlay,
+	## different text: R restarts per restart_kind, M always goes to menu.
+	day_over_label.text = title
+	stats_label.text = stats
+	if restart_kind == "day":
+		restart_hint.text = "Press R to redo the day · M for menu"
+		_overlay_kind = "meltdown_day"
+	else:
+		restart_hint.text = "Press R for a new run · M for menu"
+		_overlay_kind = "run"
 	day_over_overlay.show()
 
 

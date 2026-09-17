@@ -41,7 +41,8 @@ func _physics_process(delta: float) -> void:
 	elif Input.is_key_pressed(KEY_D):
 		direction = 1.0
 	if direction:
-		velocity.x = direction * SPEED
+		# Combo-mom's Comfy Shoes perk can raise move speed via the mode hook.
+		velocity.x = direction * SPEED * GameState.get_move_speed_mult()
 
 		if direction < 0:
 			sprite_2d.flip_h = true
