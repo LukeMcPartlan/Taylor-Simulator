@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://clk0q10xhpkv7"
-path="res://.godot/imported/Grass9Tile.png-355473619379f2e7074d2459115f509a.ctex"
+uid="uid://crdam1wuiqinc"
+path="res://.godot/imported/GojoWalk-Sheet.png-b0b2832bdc736208d69f97201579e295.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Tiles/Grass9Tile.png"
-dest_files=["res://.godot/imported/Grass9Tile.png-355473619379f2e7074d2459115f509a.ctex"]
+source_file="res://Player/GojoWalk-Sheet.png"
+dest_files=["res://.godot/imported/GojoWalk-Sheet.png-b0b2832bdc736208d69f97201579e295.ctex"]
 
 [params]
 
