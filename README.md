@@ -40,6 +40,38 @@ Win a station's minigame to complete its task (chores) or earn serotonin
 | Book | Reading Focus | Hold SPACE to read, release before restlessness maxes |
 | Phone | TikTok Swipe | Hit the matching arrow key in time; 10 hits |
 
+## Game modes
+
+This is the **unified playtest build**: one repo, five games behind a single
+menu. Pick a mode card (arrow keys / mouse, Enter to start) and the same house,
+stations, and minigames get re-skinned by that mode's rules. **M** at any time
+returns to the menu; **R** on a day-over / run-over screen starts the next day
+(or a new run / retries the day, depending on the mode).
+
+| Mode | Twist |
+|---|---|
+| **Classic** | The original game. Survive 7am–11pm, keep cortisol down, serotonin up. |
+| **🌙 Night-Shift** | 30-second game hours, 1.5× neglect pressure, cortisol 100 = run over. Spend serotonin at the night store on permanent buffs (Espresso, Weighted Blanket…) and one-day trades (Sugar Rush, Panic Clean…). Babysitter buff auto-completes baby tasks. Best days-survived and run score persist. |
+| **😱 Meltdown** | You have 3 sanity lives. Cortisol 100 = instant meltdown: lose a life, retry the same day; lose all 3 and the run ends. Failed minigames +5 cortisol, Luke gets mean above 70. The night store sells coping mechanisms (permanent) and venting trades (cooldown-based cortisol dumps). No save — every run is fresh. |
+| **🤝 Delegation** | Press **Q** near a chore station to make Luke do it (2× station time, 30% chance he takes a break instead). He refuses the basement toilet ("the pond") and won't stop gaming. Hold **E** to repair him when he breaks. The store sells persistent upgrades: Dishwasher, Robot Mop, Baby Monitor (these auto-complete their tasks daily). Day summary breaks down who did what. |
+| **⚡ Combo-Mom** | 15-second game hours — a 4-minute day. Chain chores for a ×1–×8 combo multiplier and Taylor Points; fast minigame clears extend the combo window and pay speed bonuses. Spend points at the store (Second Wind, Advil, Coffee IV, Comfy Shoes). High score and best combo persist. |
+
+Save files (per-mode, in the Godot user folder): `user://nightshift_save.cfg`,
+`user://delegation_save.cfg`, `user://combo_save.cfg`. Meltdown deliberately
+saves nothing.
+
+## Controls
+
+| Input | Action |
+|---|---|
+| ←/→ or A/D | Move |
+| Space / Enter / W | Jump |
+| E (near a station) | Play that station's minigame |
+| Q (Delegation, near a chore) | Delegate the chore to Luke |
+| E (Delegation, near broken Luke) | Repair Luke |
+| R (on a day-over / run-over screen) | Next day / new run / retry day (mode-dependent) |
+| M (anytime) | Back to the mode menu |
+
 ## How to run
 
 You need a Godot 4.7+ editor or headless binary:
@@ -60,22 +92,38 @@ Or open the project folder in the Godot editor and press Play.
 
 - `scripts/autoload/game_state.gd` — GameState singleton: meters, 7am–11pm clock,
   task list, day loop, scoring. Tuning constants (drain rates, clock speed) live
-  at the top.
-- `scripts/world.gd` — spawns stations + Luke into the tilemap level.
+  at the top. Optional **mode hooks** (queried with `has_method`, so Classic
+  implements nothing): `seconds_per_game_hour()`, `neglect_cortisol_rate()`,
+  `cortisol_multiplier()`, `hud_tag()`, `day_summary_extras()`, etc. — the full
+  contract is documented at the top of the file.
+- `scripts/modes/mode_manager.gd` — ModeManager autoload: the five mode ids,
+  creates the mode node for the selected mode.
+- `scripts/modes/mode_night_shift.gd`, `mode_meltdown.gd`, `mode_delegation.gd`,
+  `mode_combo_mom.gd` — the four variant rule sets, each a plain Node child of
+  GameState that overrides only the hooks it needs.
+- `scripts/modes/store_base.gd` + `store_night_shift.gd`, `store_meltdown.gd`,
+  `store_combo_mom.gd` — walk-up night stores (Delegation reuses the
+  station-based store).
+- `scripts/modes/main_menu.gd` + `scenes/ui/main_menu.tscn` — the mode-select
+  menu (main scene).
+- `scripts/world.gd` — spawns stations + Luke into the tilemap level, plus the
+  mode's store when it has one.
 - `scripts/station.gd` — walk-up interactable (chore with hold-E progress bar,
   or fun with press-E serotonin).
 - `scripts/luke.gd` — Luke NPC: wander AI, gaming/nagging, verbatim voice lines.
 - `scenes/ui/hud.tscn` + `hud.gd` — meters, clock, task list, dialogue box,
-  day-over report.
+  mode tag + mode widget dock, day-over / run-over report (R/M shortcuts).
 - `taylor.gd` — player controller. `Main.tscn` — main scene + hand-built tilemap.
 
 ## Pushing to GitHub
 
-This repo already exists as `LukeMcPartlan/Taylor-Simulator` (remote `origin`).
+This repo is meant to live at `LukeMcPartlan/Taylor-Simulator-Unified`
+(suggested name; no remote is configured yet and nothing has been pushed).
 Once GitHub auth is set up on your machine:
 
 ```
-git push origin main
+git remote add origin git@github.com:LukeMcPartlan/Taylor-Simulator-Unified.git
+git push -u origin main
 ```
 
 ## Known issues
