@@ -1,0 +1,121 @@
+class_name MicrowaveWipe
+extends Minigame
+## Microwave station — "Microwave Wipe". A grime layer covers the microwave;
+## drag the mouse to wipe it away. Win at 90%+ cleaned. 45-second timer.
+##
+## Controls: hold left mouse button and drag to wipe.
+
+const GRID_W: int = 14
+const GRID_H: int = 10
+const BRUSH_RADIUS: float = 34.0
+const WIN_FRACTION: float = 0.9
+const TIME_LIMIT: float = 45.0
+
+var _dirty: Array = []   # GRID_H x GRID_W of bool
+var _dirty_count: int = 0
+var _total: int = GRID_W * GRID_H
+var _rect := Rect2()
+var _time_left: float = TIME_LIMIT
+var _was_down: bool = false
+
+
+func start() -> void:
+	super.start()
+	title_text = "Microwave Wipe"
+	help_text = "Drag with the mouse to wipe the grime. Clean %d%% to win!" % int(WIN_FRACTION * 100.0)
+	_dirty.clear()
+	_dirty_count = 0
+	for _r in GRID_H:
+		var row: Array = []
+		for _c in GRID_W:
+			# Sprinkle grime; leave a few cells clean so it's not uniform.
+			var d := randf() < 0.82
+			row.append(d)
+			if d:
+				_dirty_count += 1
+		_dirty.append(row)
+	_rect = Rect2(Vector2((size.x - 560) / 2.0, 100), Vector2(560, 400))
+
+
+func _process(delta: float) -> void:
+	if _over:
+		return
+	_time_left -= delta
+	if _time_left <= 0.0:
+		_end(false)
+		return
+	var down := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+	if down:
+		_wipe_at(get_local_mouse_position())
+	_was_down = down
+	queue_redraw()
+
+
+func _wipe_at(pos: Vector2) -> void:
+	var cell := Vector2(_rect.size.x / GRID_W, _rect.size.y / GRID_H)
+	var changed := false
+	for r in GRID_H:
+		for c in GRID_W:
+			if not bool(_dirty[r][c]):
+				continue
+			var center := _rect.position + Vector2((c + 0.5) * cell.x, (r + 0.5) * cell.y)
+			if center.distance_to(pos) <= BRUSH_RADIUS:
+				_dirty[r][c] = false
+				_dirty_count -= 1
+				changed = true
+	if changed and _clean_fraction() >= WIN_FRACTION:
+		_end(true)
+
+
+func _clean_fraction() -> float:
+	return 1.0 - float(_dirty_count) / float(maxi(_total, 1))
+
+
+# --- Test hooks ----------------------------------------------------------
+func test_wipe_all() -> void:
+	for r in GRID_H:
+		for c in GRID_W:
+			if bool(_dirty[r][c]):
+				_dirty[r][c] = false
+				_dirty_count -= 1
+	if _clean_fraction() >= WIN_FRACTION:
+		_end(true)
+
+
+func test_timeout() -> void:
+	_end(false)
+
+
+func _draw_game() -> void:
+	var font := ThemeDB.fallback_font
+	# The clean microwave underneath: body, door window, keypad.
+	draw_rect(_rect.grow(10), Color(0.25, 0.25, 0.3))
+	draw_rect(_rect, Color(0.75, 0.76, 0.8))
+	var door := Rect2(_rect.position + Vector2(24, 40), Vector2(360, 320))
+	draw_rect(door, Color(0.55, 0.62, 0.7))
+	draw_rect(door, Color(0.2, 0.2, 0.25), false, 4.0)
+	var pad := Rect2(_rect.position + Vector2(410, 40), Vector2(120, 320))
+	draw_rect(pad, Color(0.3, 0.3, 0.35))
+	for i in 3:
+		for j in 3:
+			draw_rect(Rect2(pad.position + Vector2(14 + j * 34, 20 + i * 44), Vector2(24, 32)),
+				Color(0.6, 0.62, 0.68))
+	# Grime layer: brown splotches over the still-dirty cells.
+	var cell := Vector2(_rect.size.x / GRID_W, _rect.size.y / GRID_H)
+	for r in GRID_H:
+		for c in GRID_W:
+			if bool(_dirty[r][c]):
+				var center := _rect.position + Vector2((c + 0.5) * cell.x, (r + 0.5) * cell.y)
+				var radius := minf(cell.x, cell.y) * (0.42 + 0.08 * float((r * 7 + c * 13) % 5) / 4.0)
+				draw_circle(center, radius, Color(0.32, 0.22, 0.12, 0.92))
+	# Progress + timer.
+	var frac := _clean_fraction()
+	draw_rect(Rect2(20, size.y - 46, (size.x - 40) * frac, 20), Color(0.45, 0.9, 0.5))
+	draw_rect(Rect2(20, size.y - 46, size.x - 40, 20), Color(0.8, 0.8, 0.8), false, 2.0)
+	draw_string(font, Vector2(20, size.y - 56),
+		"Clean: %d%%   Time: %ds" % [int(frac * 100.0), int(_time_left)],
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.9, 0.9, 0.9))
+	# Brush cursor.
+	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		draw_arc(get_local_mouse_position(), BRUSH_RADIUS, 0, TAU, 24,
+			Color(1, 1, 1, 0.6), 2.0)

@@ -1,0 +1,42 @@
+[gd_scene format=3 uid="uid://3tdyxdjt81sp"]
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_fos0i"]
+load_path = "res://.godot/imported/Grass9Tile.png-355473619379f2e7074d2459115f509a.ctex"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_27r4s"]
+texture = SubResource("CompressedTexture2D_fos0i")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/terrain_set = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+1:0/0 = 0
+1:0/0/terrain_set = 0
+1:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+2:0/0 = 0
+2:0/0/terrain_set = 0
+0:1/0 = 0
+0:1/0/terrain_set = 0
+0:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+1:1/0 = 0
+1:1/0/terrain_set = 0
+1:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+2:1/0 = 0
+2:1/0/terrain_set = 0
+0:2/0 = 0
+0:2/0/terrain_set = 0
+0:2/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+1:2/0 = 0
+1:2/0/terrain_set = 0
+1:2/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+2:2/0 = 0
+2:2/0/terrain_set = 0
+
+[sub_resource type="TileSet" id="TileSet_op4ah"]
+tile_size = Vector2i(32, 32)
+physics_layer_0/collision_layer = 1
+terrain_set_0/mode = 0
+sources/0 = SubResource("TileSetAtlasSource_27r4s")
+
+[node name="TileMap" type="TileMap" unique_id=1077809094]
+tile_set = SubResource("TileSet_op4ah")
+format = 2
