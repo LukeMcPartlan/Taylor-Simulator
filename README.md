@@ -25,6 +25,15 @@ day (7am–11pm) by balancing two meters — **serotonin** and **cortisol**.
 Win a station's minigame to complete its task (chores) or earn serotonin
 (fun). Losing costs nothing — just press E and retry.
 
+Chores don't all start active: each task procs on its own random schedule
+through the day, up to 5 times per day. New tasks can be added modularly
+with `GameState.register_task_def()` (+ `World.register_station_def()`).
+
+Each day one random bird (robin, crow, bluejay, pigeon, or owl) appears
+somewhere in the world — walk into it for +50 serotonin, once per day.
+The five birds live in Main.tscn under World: drag them around the editor
+and swap their sprites in the inspector.
+
 ## Minigames
 
 | Station | Minigame | How it works |

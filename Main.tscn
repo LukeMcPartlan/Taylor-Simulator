@@ -7,6 +7,12 @@
 [ext_resource type="Texture2D" uid="uid://duf6v327uokon" path="res://Tiles/Housetileset.png" id="6_3dxm6"]
 [ext_resource type="PackedScene" uid="uid://44ndkpd8sa6f8" path="res://scenes/ui/hud.tscn" id="7_hud0"]
 [ext_resource type="Script" path="res://scripts/world.gd" id="8_world"]
+[ext_resource type="Script" path="res://scripts/bird.gd" id="9_bird"]
+[ext_resource type="Texture2D" path="res://Birds/bird_robin.png" id="10_bird"]
+[ext_resource type="Texture2D" path="res://Birds/bird_crow.png" id="11_bird"]
+[ext_resource type="Texture2D" path="res://Birds/bird_bluejay.png" id="12_bird"]
+[ext_resource type="Texture2D" path="res://Birds/bird_pigeon.png" id="13_bird"]
+[ext_resource type="Texture2D" path="res://Birds/bird_owl.png" id="14_bird"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_trn2v"]
 
@@ -599,3 +605,38 @@ tile_set = SubResource("TileSet_cm0pq")
 
 [node name="World" type="Node2D" parent="."]
 script = ExtResource("8_world")
+
+[node name="BirdRobin" type="Area2D" parent="World"]
+position = Vector2(-300, -96)
+script = ExtResource("9_bird")
+bird_id = "robin"
+bird_name = "Robin"
+sprite_texture = ExtResource("10_bird")
+
+[node name="BirdCrow" type="Area2D" parent="World"]
+position = Vector2(-900, -96)
+script = ExtResource("9_bird")
+bird_id = "crow"
+bird_name = "Crow"
+sprite_texture = ExtResource("11_bird")
+
+[node name="BirdBluejay" type="Area2D" parent="World"]
+position = Vector2(-1500, -96)
+script = ExtResource("9_bird")
+bird_id = "bluejay"
+bird_name = "Bluejay"
+sprite_texture = ExtResource("12_bird")
+
+[node name="BirdPigeon" type="Area2D" parent="World"]
+position = Vector2(-600, 64)
+script = ExtResource("9_bird")
+bird_id = "pigeon"
+bird_name = "Pigeon"
+sprite_texture = ExtResource("13_bird")
+
+[node name="BirdOwl" type="Area2D" parent="World"]
+position = Vector2(-1850, -96)
+script = ExtResource("9_bird")
+bird_id = "owl"
+bird_name = "Owl"
+sprite_texture = ExtResource("14_bird")
