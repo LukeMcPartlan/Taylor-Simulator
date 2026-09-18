@@ -32,6 +32,11 @@ func _draw() -> void:
 	draw_circle(Vector2(1, wobble + 4), 3.0, Color(0.55, 0.55, 0.52))
 
 
+func vacuum() -> void:
+	## Sucked up by the Roomba: no cortisol relief, the robot keeps the joy.
+	queue_free()
+
+
 func _on_body_entered(body: Node2D) -> void:
 	if not body.is_in_group("player"):
 		return

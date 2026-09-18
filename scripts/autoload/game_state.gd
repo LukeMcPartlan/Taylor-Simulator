@@ -35,6 +35,7 @@ extends Node
 
 # --- Signals ----------------------------------------------------------------
 signal meters_changed(serotonin: float, cortisol: float)
+signal dollars_changed(dollars: float)
 signal clock_changed(time_string: String)
 signal task_list_changed(tasks: Array)
 signal day_ended
@@ -133,6 +134,7 @@ const REMIND_LUKE_TASK: Dictionary = {
 # --- State ------------------------------------------------------------------
 var serotonin: float = START_SEROTONIN
 var cortisol: float = START_CORTISOL
+var dollars: float = 0.0  # earned at the work laptop (night-shift), kept across days, reset on new run
 var time_hours: float = DAY_START_HOUR
 var day_number: int = 0
 # Task dicts: {id, label, cortisol_relief, done, delegated, completed_by}.
@@ -512,6 +514,12 @@ func add_cortisol(amount: float) -> void:
 	meters_changed.emit(serotonin, cortisol)
 
 
+func add_dollars(amount: float) -> void:
+	## Work-laptop earnings (night-shift). No cap; kept across days.
+	dollars = maxf(dollars + amount, 0.0)
+	dollars_changed.emit(dollars)
+
+
 ## Daily bird: touch the active bird for a flat serotonin reward, once per
 ## day. Returns true if this was the first touch today (the bird plays its
 ## fly-away); false if already collected.
@@ -640,6 +648,8 @@ func new_run() -> void:
 	## Start a fresh run in the current mode: reset the day counter, let the
 	## mode clear its run-long state, then start day 1.
 	day_number = 0
+	dollars = 0.0
+	dollars_changed.emit(dollars)
 	_hook("reset_run")
 	start_new_day()
 

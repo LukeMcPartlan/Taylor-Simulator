@@ -6,9 +6,10 @@ extends Node
 ## What makes Night-Shift different:
 ## - Tighter clock: 30s per game hour (vs 45), neglect pressure x1.5,
 ##   cortisol gains x1.25. Days are short and mean.
-## - The Night Store (walk-up kiosk, scripts/modes/store_night_shift.gd) opens
-##   9pm–11pm: permanent buffs bought with serotonin, plus one-day trades that
-##   pay cortisol NOW for a buff that expires at the next morning.
+## - The LAPTOP (walk-up, scripts/modes/store_night_shift.gd), open any time:
+##   WORK tab = manage deranged employee emails (FIRE/HIRE: -10 serotonin,
+##   +$10 each, new email every press); AMAZON tab = spend dollars on
+##   one-per-game buffs (Roomba, Moon Shoes, Box Breaker upgrades...).
 ## - Babysitter buff: baby tasks grind themselves out in the background.
 ## - Sugar Rush trade: +30 serotonin now, then a 3-hour cortisol crash.
 ## - Cortisol hits 100: the RUN is over (not just the day). Bests persist in
@@ -46,6 +47,26 @@ const TRADE_DEFS: Array = [
 		"desc": "+15 cortisol NOW, fun gives 2x serotonin today. 3am energy."},
 ]
 
+# Amazon store inventory: bought with DOLLARS (earned at the work laptop),
+# one per game, kept across days AND runs. Each one tweaks a minigame or
+# spawns a helper.
+const AMAZON_DEFS: Array = [
+	{"id": "roomba", "short": "Roomba", "label": "Roomba",
+		"desc": "A little guy patrols the floor and vacuums Chris's garbage on touch.", "cost": 60},
+	{"id": "moon_shoes", "short": "Moon Shoes", "label": "2000s Moon Shoes",
+		"desc": "Jump 35% higher. Pure playground technology.", "cost": 50},
+	{"id": "extra_ball", "short": "Extra Hand", "label": "Extra \"Hand\"",
+		"desc": "Box Breaker: TWO balls in play. Twice the chaos.", "cost": 40},
+	{"id": "pipes", "short": "Stronger Pipes", "label": "Stronger Pipes",
+		"desc": "Whack-a-Leak: leaks spread every 4s instead of 2s.", "cost": 40},
+	{"id": "sponge", "short": "Big Sponge", "label": "Larger Sponge",
+		"desc": "Microwave Wipe: 50% bigger wiping brush.", "cost": 30},
+	{"id": "paddle", "short": "Paddle Ext.", "label": "Paddle Extender",
+		"desc": "Box Breaker: 40% wider tape-gun paddle.", "cost": 25},
+	{"id": "hamper", "short": "Hamper Magnets", "label": "Hamper Magnets",
+		"desc": "Laundry Hoops: a noticeably wider hamper.", "cost": 25},
+]
+
 const BABY_TASK_IDS: Array = ["feed_baby", "change_baby"]
 const BABYSITTER_PROGRESS_PER_GAME_HOUR: float = 0.5  # a baby task self-completes in ~2h
 const BABYSITTER_LINES: Array = [
@@ -57,6 +78,7 @@ const SUGAR_RUSH_CRASH_HOURS: float = 3.0
 const SUGAR_RUSH_CRASH_CORTISOL_PER_HOUR: float = 6.0
 
 var owned_buffs: Array = []        # buff ids, permanent across days and runs
+var owned_amazon: Array = []       # amazon item ids, one per game, permanent
 var active_trades: Dictionary = {} # trade id -> true, wiped every morning
 var sugar_rush_crash_until: float = -1.0
 var run_tasks_done: int = 0        # run-long (not reset each day)
@@ -230,6 +252,39 @@ func _run_score() -> int:
 	return days_survived * 100 + run_tasks_done * 10
 
 
+# --- Amazon store API (used by store_night_shift.gd, the laptop) ----------------
+
+func amazon_def(id: String) -> Dictionary:
+	for def in AMAZON_DEFS:
+		if String(def["id"]) == id:
+			return def
+	return {}
+
+
+func owns_amazon_item(id: String) -> bool:
+	# Queried by minigames / Taylor / the world. has_method-guarded at call sites.
+	return id in owned_amazon
+
+
+func buy_amazon_item(id: String) -> Dictionary:
+	## Spend DOLLARS on a one-per-game Amazon item. Persists to disk.
+	var gs := get_parent()
+	var def := amazon_def(id)
+	if def.is_empty():
+		return {"ok": false, "msg": "Unknown item?!"}
+	if owned_amazon.has(id):
+		return {"ok": false, "msg": "Already owned!"}
+	var cost: float = float(def["cost"])
+	if gs.dollars < cost:
+		return {"ok": false, "msg": "Need $%d" % int(cost)}
+	gs.add_dollars(-cost)
+	owned_amazon.append(id)
+	_save()
+	buffs_changed.emit()
+	_refresh_hud_label()
+	return {"ok": true, "msg": "Delivered! %s" % String(def["label"])}
+
+
 # --- Store API (used by store_night_shift.gd) ----------------------------------
 
 func store_open_now() -> bool:
@@ -316,6 +371,8 @@ func _refresh_hud_label() -> void:
 	var parts: Array = []
 	for id in owned_buffs:
 		parts.append(String(buff_def(String(id)).get("short", id)))
+	for id in owned_amazon:
+		parts.append(String(amazon_def(String(id)).get("short", id)))
 	for id in active_trades.keys():
 		parts.append(String(trade_def(String(id)).get("short", id)) + "*")
 	_hud_buff_label.text = "Buffs: " + (", ".join(parts) if not parts.is_empty() else "none (*=today)")
@@ -327,6 +384,8 @@ func _save() -> void:
 	var cfg := ConfigFile.new()
 	for id in owned_buffs:
 		cfg.set_value("buffs", String(id), true)
+	for id in owned_amazon:
+		cfg.set_value("amazon", String(id), true)
 	cfg.set_value("meta", "best_days", best_days_survived)
 	cfg.set_value("meta", "best_score", best_score)
 	cfg.save(SAVE_PATH)
@@ -334,6 +393,7 @@ func _save() -> void:
 
 func _load_save() -> void:
 	owned_buffs.clear()
+	owned_amazon.clear()
 	var cfg := ConfigFile.new()
 	if cfg.load(SAVE_PATH) != OK:
 		return  # no save yet — fresh player
@@ -341,5 +401,9 @@ func _load_save() -> void:
 		var id := String(def["id"])
 		if bool(cfg.get_value("buffs", id, false)):
 			owned_buffs.append(id)
+	for def in AMAZON_DEFS:
+		var aid := String(def["id"])
+		if bool(cfg.get_value("amazon", aid, false)):
+			owned_amazon.append(aid)
 	best_days_survived = int(cfg.get_value("meta", "best_days", 0))
 	best_score = int(cfg.get_value("meta", "best_score", 0))

@@ -12,6 +12,16 @@ extends CharacterBody2D
 
 const SPEED = 300.0
 const JUMP_VELOCITY = -400.0
+const MOON_SHOES_MULT: float = 1.35
+
+
+func _jump_velocity() -> float:
+	# Amazon Moon Shoes (night-shift): 35% higher jumps.
+	var m = GameState.mode_node()
+	if m != null and m.has_method("owns_amazon_item") \
+			and bool(m.call("owns_amazon_item", "moon_shoes")):
+		return JUMP_VELOCITY * MOON_SHOES_MULT
+	return JUMP_VELOCITY
 
 @onready var sprite_2d: AnimatedSprite2D = $AnimatedSprite2D
 
@@ -32,7 +42,7 @@ func _physics_process(delta: float) -> void:
 		velocity += get_gravity() * delta
 
 	if (Input.is_action_just_pressed("ui_accept") or _jump_queued) and is_on_floor():
-		velocity.y = JUMP_VELOCITY
+		velocity.y = _jump_velocity()
 	_jump_queued = false
 
 	var direction := Input.get_axis("ui_left", "ui_right")

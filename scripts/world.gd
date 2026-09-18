@@ -11,7 +11,9 @@ extends Node2D
 ##   interior, so the design was adapted: the leaking toilet flooded the low
 ##   yard, and Taylor cleans it up there.
 ##
-## Night stores (one per mode, x=-700 on the ground floor, open 9pm-11pm):
+## Night stores (one per mode, x=-700 on the ground floor):
+##   NIGHT_SHIFT: Taylor's laptop — WORK emails for dollars + AMAZON store,
+##     open any time (scripts/modes/store_night_shift.gd).
 ##   NIGHT_SHIFT / MELTDOWN / COMBO_MOM: a walk-up Area2D kiosk script
 ##     (scripts/modes/store_*.gd), each with its own inventory and currency.
 ##   DELEGATION: a Station of Kind.STORE (see station.gd) — same spot.
@@ -84,6 +86,7 @@ func _ready() -> void:
 	_spawn_store()
 	_spawn_luke()
 	_spawn_chris()
+	spawn_roomba()
 
 
 func spawn_float_text(world_pos: Vector2, text: String, color: Color) -> void:
@@ -142,3 +145,22 @@ func _spawn_chris() -> void:
 	var chris = CHRIS_SCRIPT.new()
 	chris.position = Vector2(-1700.0, -110.0)
 	add_child(chris)
+
+
+const ROOMBA_SCRIPT: Script = preload("res://scripts/roomba.gd")
+
+
+func spawn_roomba() -> void:
+	## Amazon purchase (night-shift): the little guy patrols and vacuums
+	## garbage. Idempotent — buying twice is impossible, but day reloads call
+	## this too.
+	if get_tree().get_nodes_in_group("roomba").size() > 0:
+		return
+	var m = GameState.mode_node()
+	if m == null or not m.has_method("owns_amazon_item"):
+		return
+	if not bool(m.call("owns_amazon_item", "roomba")):
+		return
+	var roomba = ROOMBA_SCRIPT.new()
+	roomba.add_to_group("roomba")
+	add_child(roomba)

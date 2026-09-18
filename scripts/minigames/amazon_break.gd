@@ -18,8 +18,8 @@ var _boxes: Array = []  # BOX_ROWS x BOX_COLS of bool (true = still boxed)
 var _boxes_left: int = 0
 var _boxes_broken: int = 0
 var _paddle_x: float = 0.0
-var _ball_pos := Vector2.ZERO
-var _ball_vel := Vector2.ZERO
+var _pw: float = PADDLE_W  # paddle width; Paddle Extender buff widens it
+var _balls: Array = []  # Dictionaries {pos: Vector2, vel: Vector2}
 var _respawn_timer: float = 0.0
 var _lives: int = MAX_LIVES
 var _time_left: float = TIME_LIMIT
@@ -27,10 +27,29 @@ var _top := Vector2.ZERO
 var _box_cols: Array = []
 
 
+func _owns_amazon(id: String) -> bool:
+	var gs := get_node_or_null("/root/GameState")
+	if gs == null:
+		return false
+	var m = gs.mode_node()
+	return m != null and m.has_method("owns_amazon_item") \
+		and bool(m.call("owns_amazon_item", id))
+
+
+func _ball_count() -> int:
+	return 2 if _owns_amazon("extra_ball") else 1
+
+
 func start() -> void:
 	super.start()
 	title_text = "Box Breaker"
-	help_text = "Break down every Amazon box! A/D or mouse. 3 missed balls = the boxes win."
+	var extra := ""
+	if _owns_amazon("extra_ball"):
+		extra += " TWO balls!"
+	if _owns_amazon("paddle"):
+		extra += " Wider paddle!"
+	help_text = "Break down every Amazon box! A/D or mouse. 3 missed balls = the boxes win.%s" % extra
+	_pw = PADDLE_W * (1.4 if _owns_amazon("paddle") else 1.0)
 	_boxes.clear()
 	_boxes_left = 0
 	_boxes_broken = 0
@@ -57,9 +76,13 @@ func _ball_speed() -> float:
 
 
 func _serve_ball() -> void:
-	_ball_pos = Vector2(size.x / 2.0, size.y - 170.0)
-	var ang := deg_to_rad(randf_range(-60.0, -120.0))
-	_ball_vel = Vector2(cos(ang), sin(ang)) * _ball_speed()
+	_balls.clear()
+	for i in _ball_count():
+		var ang := deg_to_rad(randf_range(-60.0, -120.0))
+		_balls.append({
+			"pos": Vector2(size.x / 2.0 + (i * 60.0 - 30.0), size.y - 170.0),
+			"vel": Vector2(cos(ang), sin(ang)) * _ball_speed(),
+		})
 	_respawn_timer = 0.0
 
 
@@ -78,62 +101,79 @@ func _process(delta: float) -> void:
 		dir += 1.0
 	if dir != 0.0:
 		_paddle_x = clampf(_paddle_x + dir * 560.0 * delta,
-			PADDLE_W / 2.0 + 16.0, size.x - PADDLE_W / 2.0 - 16.0)
+			_pw / 2.0 + 16.0, size.x - _pw / 2.0 - 16.0)
 	else:
 		var mx := get_local_mouse_position().x
 		if mx > 0.0 and mx < size.x:
-			_paddle_x = clampf(mx, PADDLE_W / 2.0 + 16.0, size.x - PADDLE_W / 2.0 - 16.0)
-	# Ball.
+			_paddle_x = clampf(mx, _pw / 2.0 + 16.0, size.x - _pw / 2.0 - 16.0)
+	# Balls.
 	if _respawn_timer > 0.0:
 		_respawn_timer -= delta
 		if _respawn_timer <= 0.0:
 			_serve_ball()
 	else:
-		_ball_pos += _ball_vel * delta * _speed
-		_bounce_walls()
-		_bounce_paddle()
-		_hit_boxes()
+		for ball in _balls.duplicate():
+			ball["pos"] = (ball["pos"] as Vector2) + (ball["vel"] as Vector2) * delta * _speed
+			if _bounce_walls(ball):
+				continue  # missed the paddle: ball is gone
+			_bounce_paddle(ball)
+			_hit_boxes(ball)
 	queue_redraw()
 
 
-func _bounce_walls() -> void:
-	if _ball_pos.x < 16.0 + BALL_R:
-		_ball_pos.x = 16.0 + BALL_R
-		_ball_vel.x = absf(_ball_vel.x)
-	elif _ball_pos.x > size.x - 16.0 - BALL_R:
-		_ball_pos.x = size.x - 16.0 - BALL_R
-		_ball_vel.x = -absf(_ball_vel.x)
-	if _ball_pos.y < 84.0 + BALL_R:
-		_ball_pos.y = 84.0 + BALL_R
-		_ball_vel.y = absf(_ball_vel.y)
-	if _ball_pos.y > size.y + 40.0:
-		# Missed the paddle: lose a ball.
+## Returns true if the ball missed the paddle (caller skips it).
+func _bounce_walls(ball: Dictionary) -> bool:
+	var pos: Vector2 = ball["pos"]
+	var vel: Vector2 = ball["vel"]
+	if pos.x < 16.0 + BALL_R:
+		pos.x = 16.0 + BALL_R
+		vel.x = absf(vel.x)
+	elif pos.x > size.x - 16.0 - BALL_R:
+		pos.x = size.x - 16.0 - BALL_R
+		vel.x = -absf(vel.x)
+	if pos.y < 84.0 + BALL_R:
+		pos.y = 84.0 + BALL_R
+		vel.y = absf(vel.y)
+	if pos.y > size.y + 40.0:
+		# Missed the paddle: lose a ball (a life).
+		_balls.erase(ball)
 		_lives -= 1
 		if _lives <= 0:
 			_end(false)
-		else:
+		elif _balls.is_empty():
 			_respawn_timer = 0.8
+		return true
+	ball["pos"] = pos
+	ball["vel"] = vel
+	return false
 
 
-func _bounce_paddle() -> void:
+func _bounce_paddle(ball: Dictionary) -> void:
+	var pos: Vector2 = ball["pos"]
+	var vel: Vector2 = ball["vel"]
 	var py := size.y - 70.0
-	if _ball_vel.y > 0.0 and absf(_ball_pos.y - py) <= BALL_R + 6.0 \
-			and absf(_ball_pos.x - _paddle_x) <= PADDLE_W / 2.0:
-		_ball_pos.y = py - BALL_R - 6.0
-		var offset := clampf((_ball_pos.x - _paddle_x) / (PADDLE_W / 2.0), -1.0, 1.0)
+	if vel.y > 0.0 and absf(pos.y - py) <= BALL_R + 6.0 \
+			and absf(pos.x - _paddle_x) <= _pw / 2.0:
+		pos.y = py - BALL_R - 6.0
+		var offset := clampf((pos.x - _paddle_x) / (_pw / 2.0), -1.0, 1.0)
 		var ang := deg_to_rad(-90.0 + offset * 55.0)
-		_ball_vel = Vector2(cos(ang), sin(ang)) * _ball_speed()
+		vel = Vector2(cos(ang), sin(ang)) * _ball_speed()
+	ball["pos"] = pos
+	ball["vel"] = vel
 
 
-func _hit_boxes() -> void:
+func _hit_boxes(ball: Dictionary) -> void:
+	var pos: Vector2 = ball["pos"]
+	var vel: Vector2 = ball["vel"]
 	for r in BOX_ROWS:
 		for c in BOX_COLS:
 			if not bool(_boxes[r][c]):
 				continue
 			var rect := Rect2(_top + Vector2(c * BOX_SIZE.x, r * BOX_SIZE.y), BOX_SIZE)
-			if rect.grow(2.0).has_point(_ball_pos):
+			if rect.grow(2.0).has_point(pos):
 				_break_box(r, c)
-				_ball_vel.y = -_ball_vel.y
+				vel.y = -vel.y
+				ball["vel"] = vel
 				return
 
 
@@ -181,13 +221,15 @@ func _draw_game() -> void:
 				draw_rect(inset, Color(0.16, 0.18, 0.24))
 	# Tape-gun paddle: flattened box.
 	var py := size.y - 70.0
-	draw_rect(Rect2(_paddle_x - PADDLE_W / 2.0, py - 7, PADDLE_W, 14), Color(0.72, 0.53, 0.30))
-	draw_rect(Rect2(_paddle_x - PADDLE_W / 2.0, py - 7, PADDLE_W, 14), Color(0.35, 0.24, 0.12), false, 2.0)
+	draw_rect(Rect2(_paddle_x - _pw / 2.0, py - 7, _pw, 14), Color(0.72, 0.53, 0.30))
+	draw_rect(Rect2(_paddle_x - _pw / 2.0, py - 7, _pw, 14), Color(0.35, 0.24, 0.12), false, 2.0)
 	draw_rect(Rect2(_paddle_x - 10, py - 26, 20, 20), Color(0.55, 0.55, 0.58))  # tape gun
-	# Ball.
+	# Balls.
 	if _respawn_timer <= 0.0:
-		draw_circle(_ball_pos, BALL_R, Color(0.95, 0.85, 0.4))
-		draw_arc(_ball_pos, BALL_R, 0, TAU, 16, Color(0.6, 0.5, 0.2), 2.0)
+		for ball in _balls:
+			var bpos: Vector2 = ball["pos"]
+			draw_circle(bpos, BALL_R, Color(0.95, 0.85, 0.4))
+			draw_arc(bpos, BALL_R, 0, TAU, 16, Color(0.6, 0.5, 0.2), 2.0)
 	var balls := ""
 	for i in MAX_LIVES:
 		balls += "● " if i < _lives else "○ "

@@ -17,6 +17,7 @@ extends CanvasLayer
 @onready var cortisol_bar: ProgressBar = $TopLeft/Panel/Margin/VBox/CortisolBar
 @onready var serotonin_label: Label = $TopLeft/Panel/Margin/VBox/SerotoninLabel
 @onready var cortisol_label: Label = $TopLeft/Panel/Margin/VBox/CortisolLabel
+@onready var dollars_label: Label = $TopLeft/Panel/Margin/VBox/DollarsLabel
 @onready var clock_label: Label = $ClockLabel
 @onready var mode_tag: Label = $ModeTag
 @onready var mode_dock: VBoxContainer = $ModeDock
@@ -36,6 +37,7 @@ var _overlay_kind: String = "day"
 
 func _ready() -> void:
 	GameState.meters_changed.connect(_on_meters_changed)
+	GameState.dollars_changed.connect(_on_dollars_changed)
 	GameState.clock_changed.connect(_on_clock_changed)
 	GameState.task_list_changed.connect(_on_task_list_changed)
 	GameState.day_ended.connect(_on_day_ended)
@@ -44,6 +46,7 @@ func _ready() -> void:
 	# Autoloads finish _ready() before scenes do, so day 1 has already started.
 	# Pull the current state instead of waiting for the next signal tick.
 	_on_meters_changed(GameState.serotonin, GameState.cortisol)
+	_on_dollars_changed(GameState.dollars)
 	_on_clock_changed(GameState.get_time_string())
 	_on_task_list_changed(GameState.tasks)
 	day_over_overlay.hide()
@@ -95,6 +98,10 @@ func _on_meters_changed(serotonin: float, cortisol: float) -> void:
 	cortisol_bar.value = cortisol
 	serotonin_label.text = "SEROTONIN %d" % int(serotonin)
 	cortisol_label.text = "CORTISOL %d" % int(cortisol)
+
+
+func _on_dollars_changed(dollars: float) -> void:
+	dollars_label.text = "Dollars: $%d" % int(dollars)
 
 
 func _on_clock_changed(time_string: String) -> void:

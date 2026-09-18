@@ -8,6 +8,7 @@ extends Minigame
 const GRID_W: int = 14
 const GRID_H: int = 10
 const BRUSH_RADIUS: float = 34.0
+const BIG_SPONGE_MULT: float = 1.5
 const WIN_FRACTION: float = 0.9
 const TIME_LIMIT: float = 45.0
 
@@ -15,14 +16,27 @@ var _dirty: Array = []   # GRID_H x GRID_W of bool
 var _dirty_count: int = 0
 var _total: int = GRID_W * GRID_H
 var _rect := Rect2()
+var _brush_radius: float = BRUSH_RADIUS
 var _time_left: float = TIME_LIMIT
 var _was_down: bool = false
+
+
+func _owns_amazon(id: String) -> bool:
+	var gs := get_node_or_null("/root/GameState")
+	if gs == null:
+		return false
+	var m = gs.mode_node()
+	return m != null and m.has_method("owns_amazon_item") \
+		and bool(m.call("owns_amazon_item", id))
 
 
 func start() -> void:
 	super.start()
 	title_text = "Microwave Wipe"
-	help_text = "Drag with the mouse to wipe the grime. Clean %d%% to win!" % int(WIN_FRACTION * 100.0)
+	help_text = "Drag with the mouse to wipe the grime. Clean %d%% to win!%s" % [
+		int(WIN_FRACTION * 100.0),
+		" BIG sponge equipped!" if _owns_amazon("sponge") else ""]
+	_brush_radius = BRUSH_RADIUS * (BIG_SPONGE_MULT if _owns_amazon("sponge") else 1.0)
 	_dirty.clear()
 	_dirty_count = 0
 	for _r in GRID_H:
@@ -59,7 +73,7 @@ func _wipe_at(pos: Vector2) -> void:
 			if not bool(_dirty[r][c]):
 				continue
 			var center := _rect.position + Vector2((c + 0.5) * cell.x, (r + 0.5) * cell.y)
-			if center.distance_to(pos) <= BRUSH_RADIUS:
+			if center.distance_to(pos) <= _brush_radius:
 				_dirty[r][c] = false
 				_dirty_count -= 1
 				changed = true
@@ -117,5 +131,5 @@ func _draw_game() -> void:
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.9, 0.9, 0.9))
 	# Brush cursor.
 	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-		draw_arc(get_local_mouse_position(), BRUSH_RADIUS, 0, TAU, 24,
+		draw_arc(get_local_mouse_position(), _brush_radius, 0, TAU, 24,
 			Color(1, 1, 1, 0.6), 2.0)

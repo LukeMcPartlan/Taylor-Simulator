@@ -21,6 +21,15 @@ var _charging: bool = false
 var _power: float = 0.0
 var _shots: Array = []  # Dictionaries {pos: Vector2, vel: Vector2, col: Color}
 var _throws: int = 0
+
+
+func _owns_amazon(id: String) -> bool:
+	var gs := get_node_or_null("/root/GameState")
+	if gs == null:
+		return false
+	var m = gs.mode_node()
+	return m != null and m.has_method("owns_amazon_item") \
+		and bool(m.call("owns_amazon_item", id))
 var _throw_origin := Vector2.ZERO
 var _hamper := Rect2()
 
@@ -30,7 +39,11 @@ func start() -> void:
 	title_text = "Laundry Hoops"
 	help_text = "Hold SPACE to charge, release to shoot! Throw again mid-flight! %d baskets wins." % WIN_BASKETS
 	_throw_origin = Vector2(110, size.y - 90)
-	_hamper = Rect2(Vector2(size.x - 190, size.y - 170), Vector2(110, 90))
+	var magnets := _owns_amazon("hamper")
+	var hw := 150.0 if magnets else 110.0
+	_hamper = Rect2(Vector2(size.x - 190 - (hw - 110.0), size.y - 170), Vector2(hw, 90))
+	if magnets:
+		help_text += " Hamper magnets equipped!"
 	_shots.clear()
 	_throws = 0
 	_charging = false

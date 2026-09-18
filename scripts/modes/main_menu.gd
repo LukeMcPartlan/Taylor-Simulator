@@ -146,7 +146,7 @@ func _best_stat_line(mode: int) -> String:
 				var score := int(cfg.get_value("meta", "best_score", 0))
 				if days > 0 or score > 0:
 					return "Best run: %d days · %d pts" % [days, score]
-			return "No runs yet — the night store awaits"
+			return "No runs yet — the laptop awaits"
 		ModeManager.Mode.MELTDOWN:
 			return "3 lives. No mercy. No save scumming."
 		ModeManager.Mode.DELEGATION:
@@ -201,7 +201,7 @@ func _make_how_panel() -> CanvasLayer:
 	var lines := [
 		"HOW TO PLAY",
 		"",
-		"You are Taylor. The day runs 7:00 AM → 11:00 PM.",
+		"You are Taylor. The day runs 6:00 AM → 11:00 PM.",
 		"",
 		"• SEROTONIN (green): your happiness. Fun restores it —",
 		"  read the book, doomscroll TikTok on the phone.",

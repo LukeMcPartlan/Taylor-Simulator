@@ -16,12 +16,25 @@ var _leaks: Array = []  # Dictionaries {pos: Vector2, age: float}
 var _plugged: int = 0
 var _toilet_pos := Vector2.ZERO
 var _was_down: bool = false
+var _spread_interval: float = SPAWN_INTERVAL
+
+
+func _owns_amazon(id: String) -> bool:
+	var gs := get_node_or_null("/root/GameState")
+	if gs == null:
+		return false
+	var m = gs.mode_node()
+	return m != null and m.has_method("owns_amazon_item") \
+		and bool(m.call("owns_amazon_item", id))
 
 
 func start() -> void:
 	super.start()
 	title_text = "Whack-a-Leak"
-	help_text = "10 leaks at once! Plug EVERY leak — each one spawns a new leak every 2s!"
+	var pipes := _owns_amazon("pipes")
+	_spread_interval = 4.0 if pipes else SPAWN_INTERVAL
+	help_text = "10 leaks at once! Plug EVERY leak — each one spawns a new leak every %ds!%s" % [
+		int(_spread_interval), " Stronger pipes installed!" if pipes else ""]
 	_toilet_pos = Vector2(size.x / 2.0, size.y / 2.0 + 40.0)
 	_leaks.clear()
 	_plugged = 0
@@ -59,7 +72,7 @@ func _process(delta: float) -> void:
 	while i >= 0:
 		var leak: Dictionary = _leaks[i]
 		leak["age"] = float(leak["age"]) + delta
-		if float(leak["age"]) >= SPAWN_INTERVAL / _speed:
+		if float(leak["age"]) >= _spread_interval / _speed:
 			leak["age"] = 0.0
 			_leaks.append({"pos": _adjacent_leak_pos(leak["pos"]), "age": 0.0})
 		i -= 1
@@ -113,7 +126,7 @@ func _draw_game() -> void:
 	# Leaks: pulsing blue blobs, redder as they age.
 	for leak in _leaks:
 		var p: Vector2 = leak["pos"]
-		var age_frac: float = clampf(float(leak["age"]) / SPAWN_INTERVAL, 0.0, 1.0)
+		var age_frac: float = clampf(float(leak["age"]) / _spread_interval, 0.0, 1.0)
 		var col := Color(0.3, 0.6, 1.0).lerp(Color(1.0, 0.3, 0.2), age_frac)
 		var r := LEAK_RADIUS * (1.0 + 0.15 * sin(age_frac * 12.0))
 		draw_circle(p, r, col)

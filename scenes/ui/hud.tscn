@@ -58,6 +58,9 @@ show_percentage = false
 theme_override_styles/background = SubResource("StyleBoxFlat_bg")
 theme_override_styles/fill = SubResource("StyleBoxFlat_cort")
 
+[node name="DollarsLabel" type="Label" parent="TopLeft/Panel/Margin/VBox"]
+text = "Dollars: $0"
+
 [node name="ClockLabel" type="Label" parent="."]
 anchor_left = 0.5
 anchor_right = 0.5
