@@ -194,7 +194,7 @@ func buy_coping(item_id: String) -> Dictionary:
 			var cost := float(def["cost"])
 			if gs.serotonin < cost:
 				return {"ok": false, "msg": "Need %d serotonin" % int(cost)}
-			gs.serotonin = clampf(gs.serotonin - cost, 0.0, gs.METER_MAX)
+			gs.serotonin = maxf(gs.serotonin - cost, 0.0)  # uncapped: no METER_MAX clamp
 			coping_owned[item_id] = true
 			coping_changed.emit()
 			gs.meters_changed.emit(gs.serotonin, gs.cortisol)
@@ -214,7 +214,7 @@ func vent(vent_id: String) -> Dictionary:
 			var cost := float(def["serotonin_cost"])
 			if gs.serotonin < cost:
 				return {"ok": false, "msg": "Need %d serotonin" % int(cost)}
-			gs.serotonin = clampf(gs.serotonin - cost, 0.0, gs.METER_MAX)
+			gs.serotonin = maxf(gs.serotonin - cost, 0.0)  # uncapped: no METER_MAX clamp
 			gs.cortisol = clampf(gs.cortisol - float(def["cortisol_dump"]), 0.0, gs.METER_MAX)
 			vent_cooldowns[vent_id] = float(def["cooldown"])
 			gs.meters_changed.emit(gs.serotonin, gs.cortisol)

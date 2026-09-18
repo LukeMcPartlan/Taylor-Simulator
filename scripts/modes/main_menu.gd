@@ -11,6 +11,10 @@ extends Control
 ## picks a mode we tell it to rebuild with the new mode before switching.
 
 const GAME_SCENE := "res://Main.tscn"
+## Press Start 2P (OFL licensed, in assets/fonts/): the chunky pixel look.
+## It renders ~1.6x larger than the default font, so all sizes below are
+## scaled down to compensate.
+const PIXEL_FONT: Font = preload("res://assets/fonts/PressStart2P-Regular.ttf")
 
 var _cards: Array = []          # the 5 card PanelContainers, in MODE_CARDS order
 var _selected: int = 0
@@ -47,14 +51,16 @@ func _build() -> void:
 	var title := Label.new()
 	title.text = "TAYLOR SIMULATOR"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 64)
+	title.add_theme_font_override("font", PIXEL_FONT)
+	title.add_theme_font_size_override("font_size", 40)
 	title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
 	vbox.add_child(title)
 
 	var subtitle := Label.new()
 	subtitle.text = "16 hours. 2 meters. 1 unhinged husband. good luck."
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.add_theme_font_size_override("font_size", 20)
+	subtitle.add_theme_font_override("font", PIXEL_FONT)
+	subtitle.add_theme_font_size_override("font_size", 13)
 	subtitle.add_theme_color_override("font_color", Color(0.75, 0.7, 0.85))
 	vbox.add_child(subtitle)
 
@@ -71,7 +77,8 @@ func _build() -> void:
 	var footer := Label.new()
 	footer.text = "↑↓ / click to choose · Enter to start · H for how to play"
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	footer.add_theme_font_size_override("font_size", 16)
+	footer.add_theme_font_override("font", PIXEL_FONT)
+	footer.add_theme_font_size_override("font_size", 10)
 	footer.add_theme_color_override("font_color", Color(0.6, 0.6, 0.7))
 	vbox.add_child(footer)
 
@@ -100,20 +107,23 @@ func _make_card(card_def: Dictionary) -> PanelContainer:
 
 	var name_label := Label.new()
 	name_label.text = String(card_def["name"])
-	name_label.add_theme_font_size_override("font_size", 26)
+	name_label.add_theme_font_override("font", PIXEL_FONT)
+	name_label.add_theme_font_size_override("font_size", 16)
 	name_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.55))
 	vbox.add_child(name_label)
 
 	var desc := Label.new()
 	desc.text = String(card_def["desc"])
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.add_theme_font_size_override("font_size", 16)
+	desc.add_theme_font_override("font", PIXEL_FONT)
+	desc.add_theme_font_size_override("font_size", 10)
 	desc.add_theme_color_override("font_color", Color(0.85, 0.82, 0.92))
 	vbox.add_child(desc)
 
 	var best := Label.new()
 	best.text = _best_stat_line(mode)
-	best.add_theme_font_size_override("font_size", 15)
+	best.add_theme_font_override("font", PIXEL_FONT)
+	best.add_theme_font_size_override("font_size", 10)
 	best.add_theme_color_override("font_color", Color(0.55, 0.9, 0.6))
 	vbox.add_child(best)
 
@@ -207,7 +217,8 @@ func _make_how_panel() -> CanvasLayer:
 	for line in lines:
 		var label := Label.new()
 		label.text = line
-		label.add_theme_font_size_override("font_size", 26 if line == "HOW TO PLAY" else 18)
+		label.add_theme_font_override("font", PIXEL_FONT)
+		label.add_theme_font_size_override("font_size", 16 if line == "HOW TO PLAY" else 11)
 		vbox.add_child(label)
 	return layer
 

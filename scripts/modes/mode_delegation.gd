@@ -214,7 +214,7 @@ func buy_upgrade(id: String) -> Dictionary:
 			var cost := float(def["cost"])
 			if gs.serotonin < cost:
 				return {"ok": false, "reason": "Need %d serotonin" % int(cost)}
-			gs.serotonin = clampf(gs.serotonin - cost, 0.0, gs.METER_MAX)
+			gs.serotonin = maxf(gs.serotonin - cost, 0.0)  # uncapped: no METER_MAX clamp
 			owned_upgrades.append(id)
 			_save_upgrades()
 			gs.meters_changed.emit(gs.serotonin, gs.cortisol)

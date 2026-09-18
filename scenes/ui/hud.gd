@@ -15,6 +15,8 @@ extends CanvasLayer
 
 @onready var serotonin_bar: ProgressBar = $TopLeft/Panel/Margin/VBox/SerotoninBar
 @onready var cortisol_bar: ProgressBar = $TopLeft/Panel/Margin/VBox/CortisolBar
+@onready var serotonin_label: Label = $TopLeft/Panel/Margin/VBox/SerotoninLabel
+@onready var cortisol_label: Label = $TopLeft/Panel/Margin/VBox/CortisolLabel
 @onready var clock_label: Label = $ClockLabel
 @onready var mode_tag: Label = $ModeTag
 @onready var mode_dock: VBoxContainer = $ModeDock
@@ -87,8 +89,12 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _on_meters_changed(serotonin: float, cortisol: float) -> void:
+	# The bar visually caps at 100 (full); the numeric label shows the real
+	# value since serotonin is uncapped and can bank above 100.
 	serotonin_bar.value = serotonin
 	cortisol_bar.value = cortisol
+	serotonin_label.text = "SEROTONIN %d" % int(serotonin)
+	cortisol_label.text = "CORTISOL %d" % int(cortisol)
 
 
 func _on_clock_changed(time_string: String) -> void:

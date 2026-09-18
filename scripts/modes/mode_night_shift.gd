@@ -90,8 +90,7 @@ func _process(delta: float) -> void:
 	var game_hours: float = delta / GameState.get_seconds_per_game_hour()
 	# Sugar rush crash: the bill comes due for a few in-game hours.
 	if active_trades.has("sugar_rush") and gs.time_hours < sugar_rush_crash_until:
-		gs.serotonin = clampf(gs.serotonin - SUGAR_RUSH_CRASH_DRAIN_PER_HOUR * game_hours,
-			0.0, gs.METER_MAX)
+		gs.serotonin = maxf(gs.serotonin - SUGAR_RUSH_CRASH_DRAIN_PER_HOUR * game_hours, 0.0)
 	_update_babysitter(gs, game_hours)
 	_check_meltdown(gs)
 
@@ -257,7 +256,7 @@ func buy_buff(id: String) -> Dictionary:
 	var cost: float = float(def["cost"])
 	if gs.serotonin < cost:
 		return {"ok": false, "msg": "Need %d serotonin" % int(cost)}
-	gs.serotonin = clampf(gs.serotonin - cost, 0.0, gs.METER_MAX)
+	gs.serotonin = maxf(gs.serotonin - cost, 0.0)  # uncapped: no METER_MAX clamp
 	owned_buffs.append(id)
 	_save()
 	buffs_changed.emit()

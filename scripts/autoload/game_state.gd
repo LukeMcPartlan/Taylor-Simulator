@@ -52,7 +52,7 @@ signal run_ended(title: String, stats: String, restart_kind: String)
 const SECONDS_PER_GAME_HOUR: float = 30.0
 const DAY_START_HOUR: float = 7.0    # 7:00 AM
 const DAY_END_HOUR: float = 23.0     # 11:00 PM
-const METER_MAX: float = 100.0
+const METER_MAX: float = 100.0  # caps CORTISOL only; serotonin is intentionally uncapped
 
 const START_SEROTONIN: float = 60.0
 const START_CORTISOL: float = 30.0
@@ -136,7 +136,7 @@ func _process(delta: float) -> void:
 			* day_pressure_mult * pressure * game_hours
 	serotonin -= get_baseline_decay_rate() * get_serotonin_drain_mult() * game_hours
 
-	serotonin = clampf(serotonin, 0.0, METER_MAX)
+	serotonin = maxf(serotonin, 0.0)  # serotonin is UNCAPPED: bank it for expensive store items
 	cortisol = clampf(cortisol, 0.0, METER_MAX)
 	day_serotonin_integral += serotonin * game_hours
 
@@ -282,7 +282,8 @@ func complete_task(id: String, by: String = "taylor") -> bool:
 
 
 func add_serotonin(amount: float) -> void:
-	serotonin = clampf(serotonin + amount, 0.0, METER_MAX)
+	# No upper cap on serotonin (cortisol stays capped at METER_MAX).
+	serotonin = maxf(serotonin + amount, 0.0)
 	meters_changed.emit(serotonin, cortisol)
 	fun_used.emit(amount)
 
