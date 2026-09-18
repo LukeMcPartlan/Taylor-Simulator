@@ -1,21 +1,28 @@
 class_name DiaperCatch
 extends Minigame
 ## Change-baby station — "Diaper Catch". Slide the changing pad to catch
-## falling diapers. The baby is fighting back: dodge the poop, pee, and
-## vomit — catching any of them costs one diaper. Catch 8 diapers to win.
+## what the baby needs: exactly 1 diaper, 1 baby powder, 1 wipe, and
+## 1 change of clothes. Only items you still need ever spawn. The baby
+## fights back with poop, pee, and vomit — catching any of those knocks
+## one collected item back off your list. Collect all four to win.
 ## 60-second timer.
 ##
 ## Controls: A/D or Left/Right to slide the pad.
 
-const WIN_DIAPERS: int = 8
 const FALL_SPEED: float = 260.0
 const PAD_W: float = 120.0
 const TIME_LIMIT: float = 60.0
 const EW_TIME: float = 0.8
+const GROSS_CHANCE: float = 0.37
 
-var _diapers: int = 0
+const GOODS: Array[String] = ["diaper", "powder", "wipe", "clothes"]
+const GOOD_LABELS := {"diaper": "Diaper", "powder": "Powder",
+	"wipe": "Wipe", "clothes": "Outfit"}
+const GROSS_KINDS: Array[String] = ["poop", "pee", "vomit"]
+
+var _have := {"diaper": false, "powder": false, "wipe": false, "clothes": false}
 var _pad_x: float = 0.0
-var _items: Array = []  # Dictionaries {x, y, kind: "diaper"|"poop"|"pee"|"vomit"}
+var _items: Array = []  # Dictionaries {x, y, kind}
 var _spawn_timer: float = 0.0
 var _time_left: float = TIME_LIMIT
 var _ew_timer: float = 0.0   # "EW!" popup after catching something gross
@@ -25,24 +32,31 @@ var _ew_pos := Vector2.ZERO
 func start() -> void:
 	super.start()
 	title_text = "Diaper Catch"
-	help_text = "Catch diapers, DODGE the poop, pee & vomit! %d diapers wins." % WIN_DIAPERS
+	help_text = "Catch 1 diaper, 1 powder, 1 wipe, 1 fresh outfit. DODGE the gross stuff!"
 	_pad_x = size.x / 2.0
-	_diapers = 0
+	for k in GOODS:
+		_have[k] = false
 	_items.clear()
 	_spawn_timer = 0.5
 	_time_left = TIME_LIMIT
 	_ew_timer = 0.0
 
 
+func _missing_goods() -> Array:
+	var out: Array = []
+	for k in GOODS:
+		if not bool(_have[k]):
+			out.append(k)
+	return out
+
+
 func _roll_kind() -> String:
-	var roll := randf()
-	if roll < 0.13:
-		return "poop"
-	if roll < 0.25:
-		return "pee"
-	if roll < 0.37:
-		return "vomit"
-	return "diaper"
+	if randf() < GROSS_CHANCE:
+		return GROSS_KINDS[randi() % GROSS_KINDS.size()]
+	var missing := _missing_goods()
+	if missing.is_empty():
+		return GROSS_KINDS[randi() % GROSS_KINDS.size()]
+	return String(missing[randi() % missing.size()])
 
 
 func _process(delta: float) -> void:
@@ -85,13 +99,24 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
+func _all_collected() -> bool:
+	return _missing_goods().is_empty()
+
+
 func _catch_item(kind: String, pos: Vector2) -> void:
-	if kind == "diaper":
-		_diapers += 1
-		if _diapers >= WIN_DIAPERS:
-			_end(true)
+	if kind in GOODS:
+		if not bool(_have[kind]):
+			_have[kind] = true
+			if _all_collected():
+				_end(true)
 	else:
-		_diapers = maxi(0, _diapers - 1)  # gross stuff undoes your progress
+		# Gross stuff knocks one collected item back off the list.
+		var owned: Array = []
+		for k in GOODS:
+			if bool(_have[k]):
+				owned.append(k)
+		if not owned.is_empty():
+			_have[String(owned[randi() % owned.size()])] = false
 		_ew_timer = EW_TIME
 		_ew_pos = pos
 
@@ -99,6 +124,11 @@ func _catch_item(kind: String, pos: Vector2) -> void:
 # --- Test hooks ----------------------------------------------------------
 func test_catch_diaper() -> void:
 	_catch_item("diaper", Vector2.ZERO)
+
+
+func test_catch_all_goods() -> void:
+	for k in GOODS:
+		_catch_item(k, Vector2.ZERO)
 
 
 func test_catch_gross() -> void:
@@ -122,6 +152,25 @@ func _draw_game() -> void:
 			"diaper":
 				draw_rect(Rect2(p - Vector2(16, 12), Vector2(32, 24)), Color(1, 1, 1))
 				draw_rect(Rect2(p - Vector2(16, 12), Vector2(32, 24)), Color(0.6, 0.6, 0.7), false, 2.0)
+			"powder":
+				# Baby powder bottle.
+				draw_rect(Rect2(p - Vector2(10, 2), Vector2(20, 26)), Color(0.88, 0.82, 0.96))
+				draw_rect(Rect2(p - Vector2(10, 2), Vector2(20, 26)), Color(0.55, 0.45, 0.7), false, 2.0)
+				draw_rect(Rect2(p - Vector2(7, -10), Vector2(14, 8)), Color(0.55, 0.45, 0.7))
+				draw_circle(p + Vector2(0, 12), 3, Color(1, 1, 1))
+			"wipe":
+				# Wipe packet with dispenser opening.
+				draw_rect(Rect2(p - Vector2(17, 11), Vector2(34, 22)), Color(0.55, 0.78, 1.0))
+				draw_rect(Rect2(p - Vector2(17, 11), Vector2(34, 22)), Color(0.3, 0.5, 0.8), false, 2.0)
+				draw_circle(p, 7, Color(1, 1, 1))
+				draw_circle(p, 4, Color(0.75, 0.88, 1.0))
+			"clothes":
+				# A little onesie.
+				draw_rect(Rect2(p - Vector2(11, -13), Vector2(22, 26)), Color(0.65, 0.88, 0.65))
+				draw_rect(Rect2(p - Vector2(19, -13), Vector2(8, 10)), Color(0.6, 0.82, 0.6))
+				draw_rect(Rect2(p + Vector2(11, -13), Vector2(8, 10)), Color(0.6, 0.82, 0.6))
+				for s in 3:
+					draw_circle(p + Vector2(-6 + s * 6, 9), 1.8, Color(0.4, 0.6, 0.4))
 			"poop":
 				# A modest little pile, in browns.
 				draw_circle(p + Vector2(0, 6), 13, Color(0.35, 0.22, 0.1))
@@ -143,6 +192,11 @@ func _draw_game() -> void:
 		var a := clampf(_ew_timer / EW_TIME, 0.0, 1.0)
 		draw_string(font, _ew_pos + Vector2(-30, -24), "EW!",
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color(1.0, 0.4, 0.2, a))
-	draw_string(font, Vector2(24, 120),
-		"Diapers: %d/%d   Time: %ds" % [_diapers, WIN_DIAPERS, int(_time_left)],
+	# Checklist HUD.
+	var parts := PackedStringArray()
+	for k in GOODS:
+		parts.append("%s %s" % [String(GOOD_LABELS[k]), "v" if bool(_have[k]) else "x"])
+	draw_string(font, Vector2(24, 96), "   ".join(parts),
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(0.9, 0.9, 0.9))
+	draw_string(font, Vector2(24, 124), "Time: %ds" % int(_time_left),
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.9, 0.9, 0.9))
