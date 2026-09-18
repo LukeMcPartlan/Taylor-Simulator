@@ -65,18 +65,23 @@ const CORTISOL_PER_TASK_PER_HOUR: float = 6.0
 const SEROTONIN_DRAIN_PER_TASK_PER_HOUR: float = 3.0
 const SEROTONIN_BASELINE_DECAY_PER_HOUR: float = 1.0
 
-# --- Task proc scheduler tuning (base defaults; each def may override) --------
-# Chores no longer all start active at 7am. Instead each task def procs on its
-# own random schedule: the first proc lands first_min_h..first_max_h game-hours
-# after day start, later procs land gap_min_h..gap_max_h apart, and no task
-# procs more than max_procs times per day. Only successful activations count
-# against the cap — a proc that fires while the task is already open is
-# skipped and retried after a normal gap.
-const PROC_FIRST_MIN_H: float = 0.25
-const PROC_FIRST_MAX_H: float = 1.5
-const PROC_GAP_MIN_H: float = 1.5
-const PROC_GAP_MAX_H: float = 3.5
+# --- Task proc scheduler tuning ------------------------------------------------
+# One random chore procs every few REAL seconds (not game-hours, so pacing is
+# identical across modes). Each def has its own daily cap (max_procs); once a
+# task hits its cap it can't proc again until tomorrow. Ticks only activate a
+# task that isn't already open — an open chore just sits there accruing
+# neglect (see escalation below), it never double-procs.
+const PROC_TICK_MIN_S: float = 3.0
+const PROC_TICK_MAX_S: float = 8.0
 const PROC_MAX_PER_DAY: int = 5
+
+# --- Neglect escalation ---------------------------------------------------------
+# Ignoring a chore gets worse the longer it sits open. Each open task's
+# pressure weight grows by NEGLECT_ESCALATION_PER_HOUR for every game-hour it
+# stays uncompleted, up to NEGLECT_ESCALATION_MAX_MULT. The clock resets every
+# time the task procs — it's a new mess, not the old one.
+const NEGLECT_ESCALATION_PER_HOUR: float = 0.5
+const NEGLECT_ESCALATION_MAX_MULT: float = 5.0
 
 # --- Daily bird ---------------------------------------------------------------
 # One random bird (see scripts/bird.gd; the five live in Main.tscn) is active
@@ -87,9 +92,8 @@ const BIRD_REWARD_SEROTONIN: float = 50.0
 const METER_EMIT_THROTTLE: float = 0.25
 
 # Built-in chore defs. Each def is modular: id / label / relief / day_min plus
-# optional proc-scheduling overrides (max_procs, first_min_h, first_max_h,
-# gap_min_h, gap_max_h — see the PROC_* defaults above). New tasks are added
-# at runtime with register_task_def(); no core-logic edits needed.
+# optional overrides (max_procs — see the PROC_* defaults above). New tasks
+# are added at runtime with register_task_def(); no core-logic edits needed.
 const TASK_DEFS: Array = [
 	{"id": "laundry", "label": "Do the laundry", "relief": 15.0, "day_min": 1, "max_procs": 5},
 	{"id": "dishes", "label": "Wash the dishes", "relief": 12.0, "day_min": 1, "max_procs": 5},
@@ -117,8 +121,10 @@ var tasks: Array = []
 ## dynamically registered tasks (Luke's remind_luke, delegation's fix task)
 ## bypass the scheduler entirely.
 var task_defs: Array = TASK_DEFS.duplicate(true)
-## Per-def proc state: id -> {"procs": int, "next_h": float}. Reset every day.
+## Per-def successful proc counts today: id -> int. Reset every day.
 var _proc_state: Dictionary = {}
+## Countdown (real seconds) to the next global proc tick.
+var _next_proc_in_s: float = 0.0
 ## Today's randomly picked bird (one of BIRD_IDS); "" before the first day.
 var daily_bird_id: String = ""
 ## True once the daily bird has been touched today (reward is once per day).
@@ -162,13 +168,14 @@ func _process(delta: float) -> void:
 		return
 	_emit_clock_if_changed()
 
-	_update_task_procs()
+	_update_task_procs(delta)
 
 	var game_hours: float = delta / sec_per_hour
 	var pressure: float = 0.0
 	for t in tasks:
 		if not t["done"]:
-			pressure += get_neglect_weight(String(t["id"]))
+			pressure += get_neglect_weight(String(t["id"])) \
+				* get_task_neglect_mult(t)
 	if pressure > 0.0:
 		cortisol += get_neglect_cortisol_rate() * get_cortisol_gain_mult() \
 			* day_pressure_mult * pressure * game_hours
@@ -241,10 +248,22 @@ func get_move_speed_mult() -> float:
 
 
 func get_neglect_weight(task_id: String) -> float:
-	## How much neglect pressure one open task exerts (delegation mode halves
-	## some with upgrades). Queried per task every frame.
+	## BASE neglect weight of one open task (delegation mode halves some with
+	## upgrades). The live pressure is this times the escalation multiplier
+	## (get_task_neglect_mult), which grows the longer the task sits open.
+	## Queried per task every frame.
 	var v = _hook("neglect_weight", [task_id])
 	return float(v) if v != null else 1.0
+
+
+func get_task_neglect_mult(task: Dictionary) -> float:
+	## Escalation multiplier for one open task: 1.0 when it procs, growing by
+	## NEGLECT_ESCALATION_PER_HOUR per game-hour it stays uncompleted, capped
+	## at NEGLECT_ESCALATION_MAX_MULT. Resets whenever the task procs again.
+	var open_h: float = maxf(
+		time_hours - float(task.get("open_since_h", time_hours)), 0.0)
+	return minf(1.0 + NEGLECT_ESCALATION_PER_HOUR * open_h,
+		NEGLECT_ESCALATION_MAX_MULT)
 
 
 func get_task_relief_mult() -> float:
@@ -301,6 +320,9 @@ func register_task(id: String, label: String, cortisol_relief: float) -> void:
 		"done": false,
 		"delegated": false,
 		"completed_by": "",
+		# Fresh neglect clock: escalation (get_task_neglect_mult) counts from
+		# the moment the task appears.
+		"open_since_h": time_hours,
 	})
 	task_list_changed.emit(tasks)
 
@@ -308,12 +330,12 @@ func register_task(id: String, label: String, cortisol_relief: float) -> void:
 ## Modular task defs ---------------------------------------------------------
 ## A task def is a Dictionary with required keys "id" and "label", plus
 ## optional tuning (defaults shown):
-##   relief: 10.0        cortisol relief when the chore's minigame is won
-##   day_min: 1          first day this task may proc
-##   max_procs: 5        daily cap on successful activations
-##   first_min_h: 0.25 / first_max_h: 1.5   first proc window (game-hours
-##     after day start)
-##   gap_min_h: 1.5 / gap_max_h: 3.5        gap between procs (game-hours)
+##   relief: 10.0     cortisol relief when the chore's minigame is won
+##   day_min: 1       first day this task may proc
+##   max_procs: 5     daily cap on successful activations
+## The global proc tick (every PROC_TICK_MIN_S..PROC_TICK_MAX_S real seconds)
+## picks one random eligible def — day unlocked, under its daily cap, not
+## already open, not auto-covered by a mode — and activates it.
 ## Example:
 ##   GameState.register_task_def({"id": "walk_dog", "label": "Walk the dog",
 ##       "relief": 12.0, "max_procs": 3})
@@ -331,18 +353,14 @@ func register_task_def(def: Dictionary) -> bool:
 		"relief": float(def.get("relief", 10.0)),
 		"day_min": int(def.get("day_min", 1)),
 		"max_procs": int(def.get("max_procs", PROC_MAX_PER_DAY)),
-		"first_min_h": float(def.get("first_min_h", PROC_FIRST_MIN_H)),
-		"first_max_h": float(def.get("first_max_h", PROC_FIRST_MAX_H)),
-		"gap_min_h": float(def.get("gap_min_h", PROC_GAP_MIN_H)),
-		"gap_max_h": float(def.get("gap_max_h", PROC_GAP_MAX_H)),
 	}
 	for i in task_defs.size():
 		if String(task_defs[i]["id"]) == id:
 			task_defs[i] = full
-			_reset_proc_state_for(id)
+			_proc_state[id] = int(_proc_state.get(id, 0))
 			return true
 	task_defs.append(full)
-	_reset_proc_state_for(id)
+	_proc_state[id] = int(_proc_state.get(id, 0))
 	return true
 
 
@@ -366,55 +384,42 @@ func _is_task_open(id: String) -> bool:
 
 
 # --- Task proc scheduler ------------------------------------------------------
-# Runs every frame from _process(). Each eligible def rolls its own random
-# schedule; procs activate the task (fresh entry, or re-open a completed
-# one). Skipped procs (task already open, or mode auto-covers it) don't count
-# against the daily cap — they just push the next attempt out by one gap.
+# One global tick (every few real seconds) activates a single random eligible
+# task. Eligibility: day unlocked, under its daily cap, not already open, not
+# auto-covered by a mode. Only successful activations count against the cap.
 
 func _reset_proc_state() -> void:
 	_proc_state.clear()
 	for def in task_defs:
-		_reset_proc_state_for(String(def["id"]))
+		_proc_state[String(def["id"])] = 0
+	_next_proc_in_s = randf_range(PROC_TICK_MIN_S, PROC_TICK_MAX_S)
 
 
-func _reset_proc_state_for(id: String) -> void:
-	var def := _get_task_def(id)
-	if def.is_empty():
+func _update_task_procs(delta: float) -> void:
+	_next_proc_in_s -= delta
+	if _next_proc_in_s > 0.0:
 		return
-	_proc_state[id] = {
-		"procs": 0,
-		"next_h": DAY_START_HOUR + randf_range(
-			float(def.get("first_min_h", PROC_FIRST_MIN_H)),
-			float(def.get("first_max_h", PROC_FIRST_MAX_H))),
-	}
-
-
-func _update_task_procs() -> void:
+	_next_proc_in_s = randf_range(PROC_TICK_MIN_S, PROC_TICK_MAX_S)
+	var candidates: Array = []
 	for def in task_defs:
 		var id := String(def["id"])
 		if day_number < int(def.get("day_min", 1)):
 			continue
-		var st: Dictionary = _proc_state.get(id, {})
-		if st.is_empty():
+		if int(_proc_state.get(id, 0)) >= int(def.get("max_procs", PROC_MAX_PER_DAY)):
 			continue
-		if int(st["procs"]) >= int(def.get("max_procs", PROC_MAX_PER_DAY)):
+		if _is_task_open(id):
 			continue
-		if time_hours < float(st["next_h"]):
-			continue
-		var gap: float = randf_range(
-			float(def.get("gap_min_h", PROC_GAP_MIN_H)),
-			float(def.get("gap_max_h", PROC_GAP_MAX_H)))
 		# Optional mode hook: fully automated chores never proc.
 		var auto = _hook("task_auto_covered", [id])
 		if auto is bool and bool(auto):
-			st["next_h"] = time_hours + gap
 			continue
-		if _is_task_open(id):
-			st["next_h"] = time_hours + gap
-			continue
-		_activate_task(def)
-		st["procs"] = int(st["procs"]) + 1
-		st["next_h"] = time_hours + gap
+		candidates.append(def)
+	if candidates.is_empty():
+		return
+	var picked: Dictionary = candidates[randi_range(0, candidates.size() - 1)]
+	_activate_task(picked)
+	var picked_id := String(picked["id"])
+	_proc_state[picked_id] = int(_proc_state.get(picked_id, 0)) + 1
 
 
 func _activate_task(def: Dictionary) -> void:
@@ -423,11 +428,13 @@ func _activate_task(def: Dictionary) -> void:
 	var relief := float(def.get("relief", 10.0))
 	for t in tasks:
 		if String(t["id"]) == id:
-			# Re-proc: flip a completed task back open.
+			# Re-proc: flip a completed task back open with a FRESH neglect
+			# clock — the escalation multiplier restarts at 1.0.
 			t["done"] = false
 			t["delegated"] = false
 			t["completed_by"] = ""
 			t["cortisol_relief"] = relief
+			t["open_since_h"] = time_hours
 			task_list_changed.emit(tasks)
 			task_procced.emit(id)
 			return
@@ -438,6 +445,7 @@ func _activate_task(def: Dictionary) -> void:
 		"done": false,
 		"delegated": false,
 		"completed_by": "",
+		"open_since_h": time_hours,
 	})
 	task_list_changed.emit(tasks)
 	task_procced.emit(id)
