@@ -90,7 +90,26 @@ func open(game_id: String, on_done: Callable) -> void:
 	_game.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	panel.add_child(_game)
 	_game.finished.connect(_on_game_finished)
+	# Every minigame snapshots `size` in start() to place its playfield, but
+	# size is (0,0) until the container layout runs (end of this frame).
+	# Freeze the game and start it deferred, after one frame, so all
+	# playfields land on the real 700x560 panel instead of at the origin.
+	_game.set_process(false)
+	_game.set_process_input(false)
+	_game.set_process_unhandled_input(false)
+	_deferred_start()
+
+
+func _deferred_start() -> void:
+	await get_tree().process_frame
+	if _game == null:
+		return
 	_game.start()
+	_game._ready_to_draw = true
+	_game.set_process(true)
+	_game.set_process_input(true)
+	_game.set_process_unhandled_input(true)
+	_game.queue_redraw()
 
 
 func _on_game_finished(success: bool) -> void:

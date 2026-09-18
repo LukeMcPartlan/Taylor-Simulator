@@ -11,6 +11,10 @@ const ROWS: int = 10
 const CELL: float = 30.0
 const WIN_ROWS: int = 3
 const TIME_LIMIT: float = 75.0
+# Held left/right: move instantly on press, pause, then auto-repeat.
+# (Tapping gives single-cell precision; holding still travels.)
+const MOVE_FIRST_DELAY: float = 0.18
+const MOVE_REPEAT: float = 0.11
 # Two WarioWare-simple pieces: domino and square, as cell offsets.
 const PIECES: Array = [
 	[Vector2i(0, 0), Vector2i(1, 0)],
@@ -26,6 +30,8 @@ var _fall_interval: float = 0.7
 var _rows_cleared: int = 0
 var _time_left: float = TIME_LIMIT
 var _origin := Vector2.ZERO    # top-left of the grid in local coords
+var _move_cd: float = 0.0      # held-direction repeat timer
+var _move_dir: int = 0         # -1 / 0 / +1, last held horizontal direction
 
 
 func start() -> void:
@@ -49,11 +55,23 @@ func _process(delta: float) -> void:
 	if _time_left <= 0.0:
 		_end(false)
 		return
-	# Held movement with a small repeat delay feels right for tetris-likes.
+	# Horizontal movement with delayed auto-shift: a tap moves exactly one
+	# cell (precision), holding moves, pauses, then repeats.
+	var dir := 0
 	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
-		_try_move(-1, 0)
-	if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
-		_try_move(1, 0)
+		dir = -1
+	elif Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
+		dir = 1
+	if dir != 0:
+		if dir != _move_dir:
+			_try_move(dir, 0)
+			_move_cd = MOVE_FIRST_DELAY
+		else:
+			_move_cd -= delta
+			if _move_cd <= 0.0:
+				_move_cd = MOVE_REPEAT
+				_try_move(dir, 0)
+	_move_dir = dir
 	_fall_timer += delta
 	var interval: float = _fall_interval
 	if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN):
