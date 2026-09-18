@@ -41,7 +41,7 @@ and swap their sprites in the inspector.
 |---|---|---|
 | Dishes | Dish Tetris | Falling-block; clear 3 rows (A/D move, S drop, Z rotate) |
 | Microwave | Microwave Wipe | Drag the mouse to wipe grime; 90% clean wins |
-| Laundry | Laundry Hoops | Hold SPACE to charge, release to shoot; 5 baskets |
+| Laundry | Laundry Hoops | Rapid-fire: hold SPACE, release to shoot, throw again mid-flight; 5 baskets |
 | Mop closet | Mop Pong | Breakout with a mop; scrub all dirt tiles (A/D) |
 | Basement toilet | Whack-a-Leak | All 10 leaks at once; click to plug, don't flood (15+) |
 | Trash bins | Trash Sort | ← recycle / → trash while the item is in the zone; 10 right |
