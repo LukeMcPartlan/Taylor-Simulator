@@ -196,6 +196,11 @@ func is_auto_covered(task_id: String) -> bool:
 		and owned_upgrades.has(String(AUTO_TASK_UPGRADES[task_id]))
 
 
+## Proc-scheduler hook (see GameState): automated chores never proc.
+func task_auto_covered(task_id: String) -> bool:
+	return is_auto_covered(task_id)
+
+
 func get_upgrades() -> Array:
 	return UPGRADES
 

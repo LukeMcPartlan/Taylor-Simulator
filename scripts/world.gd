@@ -1,3 +1,4 @@
+class_name World
 extends Node2D
 ## Spawns the chore/fun stations, the mode's night store, and the Luke NPC
 ## into the hand-built tilemap level (Main.tscn). The level geometry and
@@ -35,6 +36,31 @@ const STATION_DEFS: Array = [
 	# DELEGATION mode only: the Night Store as a station (see station.gd).
 	{"id": "__store__", "title": "Night Store", "kind": 2, "x": -700.0, "floor_y": -96.0, "work": 0.0},
 ]
+
+## Modular station defs, appended at runtime via register_station_def().
+## Same shape as STATION_DEFS entries. A chore station's "id" must match its
+## task def id (see GameState.register_task_def) or E will do nothing.
+## Call before the world scene readies (e.g. from a mode node's _init):
+##   World.register_station_def({"id": "walk_dog", "title": "Dog leash",
+##       "kind": 0, "x": -2000.0, "floor_y": -96.0, "game": "walk_dog",
+##       "work": 3.0})
+static var extra_station_defs: Array = []
+
+
+## Adds a station def for this run. Returns false if required fields are
+## missing ("id", "title", "kind", "x", "floor_y"); same id twice replaces.
+static func register_station_def(def: Dictionary) -> bool:
+	for key in ["id", "title", "kind", "x", "floor_y"]:
+		if not def.has(key):
+			push_error("World.register_station_def: missing '%s'." % key)
+			return false
+	var id := String(def["id"])
+	for i in extra_station_defs.size():
+		if String(extra_station_defs[i]["id"]) == id:
+			extra_station_defs[i] = def.duplicate()
+			return true
+	extra_station_defs.append(def.duplicate())
+	return true
 
 # Walk-up store kiosk scripts for the modes that use them (DELEGATION uses a
 # Station instead; CLASSIC has none).
@@ -74,7 +100,7 @@ func spawn_float_text(world_pos: Vector2, text: String, color: Color) -> void:
 
 
 func _spawn_stations() -> void:
-	for def in STATION_DEFS:
+	for def in STATION_DEFS + extra_station_defs:
 		var kind: int = int(def["kind"])
 		# The __store__ station def only exists for DELEGATION mode.
 		if kind == 2 and ModeManager.current_mode != ModeManager.Mode.DELEGATION:
