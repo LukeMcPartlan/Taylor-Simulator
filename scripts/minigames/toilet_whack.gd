@@ -19,22 +19,25 @@ var _was_down: bool = false
 var _spread_interval: float = SPAWN_INTERVAL
 
 
-func _owns_amazon(id: String) -> bool:
+const _UPGRADE_DEFS = preload("res://scripts/upgrade_defs.gd")
+
+func _upgrade_tier(id: String) -> int:
 	var gs := get_node_or_null("/root/GameState")
 	if gs == null:
-		return false
-	var m = gs.mode_node()
-	return m != null and m.has_method("owns_amazon_item") \
-		and bool(m.call("owns_amazon_item", id))
+		return 0
+	return int(gs.call("upgrade_tier", id))
 
 
 func start() -> void:
 	super.start()
 	title_text = "Whack-a-Leak"
-	var pipes := _owns_amazon("pipes")
-	_spread_interval = 4.0 if pipes else SPAWN_INTERVAL
+	var pipes_tier := _upgrade_tier("pipes")
+	_spread_interval = _UPGRADE_DEFS.tier_fx("pipes", pipes_tier, "spread", SPAWN_INTERVAL)
+	var pipes_note := ""
+	if pipes_tier > 0:
+		pipes_note = " %s installed!" % String((_UPGRADE_DEFS.def("pipes")["tiers"] as Array)[pipes_tier - 1]["label"])
 	help_text = "10 leaks at once! Plug EVERY leak — each one spawns a new leak every %ds!%s" % [
-		int(_spread_interval), " Stronger pipes installed!" if pipes else ""]
+		int(_spread_interval), pipes_note]
 	_toilet_pos = Vector2(size.x / 2.0, size.y / 2.0 + 40.0)
 	_leaks.clear()
 	_plugged = 0

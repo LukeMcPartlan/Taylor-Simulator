@@ -92,11 +92,13 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _on_meters_changed(serotonin: float, cortisol: float) -> void:
-	# The bar visually caps at 100 (full); the numeric label shows the real
-	# value since serotonin is uncapped and can bank above 100.
+	# The bar fills against the current serotonin cap (base 200, raised by
+	# collectible upgrades).
+	var cap := GameState.get_serotonin_cap()
+	serotonin_bar.max_value = cap
 	serotonin_bar.value = serotonin
 	cortisol_bar.value = cortisol
-	serotonin_label.text = "SEROTONIN %d" % int(serotonin)
+	serotonin_label.text = "SEROTONIN %d / %d" % [int(serotonin), int(cap)]
 	cortisol_label.text = "CORTISOL %d" % int(cortisol)
 
 

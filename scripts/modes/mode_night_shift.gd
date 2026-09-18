@@ -50,22 +50,7 @@ const TRADE_DEFS: Array = [
 # Amazon store inventory: bought with DOLLARS (earned at the work laptop),
 # one per game, kept across days AND runs. Each one tweaks a minigame or
 # spawns a helper.
-const AMAZON_DEFS: Array = [
-	{"id": "roomba", "short": "Roomba", "label": "Roomba",
-		"desc": "A little guy patrols the floor and vacuums Chris's garbage on touch.", "cost": 60},
-	{"id": "moon_shoes", "short": "Moon Shoes", "label": "2000s Moon Shoes",
-		"desc": "Jump 35% higher. Pure playground technology.", "cost": 50},
-	{"id": "extra_ball", "short": "Extra Hand", "label": "Extra \"Hand\"",
-		"desc": "Box Breaker: TWO balls in play. Twice the chaos.", "cost": 40},
-	{"id": "pipes", "short": "Stronger Pipes", "label": "Stronger Pipes",
-		"desc": "Whack-a-Leak: leaks spread every 4s instead of 2s.", "cost": 40},
-	{"id": "sponge", "short": "Big Sponge", "label": "Larger Sponge",
-		"desc": "Microwave Wipe: 50% bigger wiping brush.", "cost": 30},
-	{"id": "paddle", "short": "Paddle Ext.", "label": "Paddle Extender",
-		"desc": "Box Breaker: 40% wider tape-gun paddle.", "cost": 25},
-	{"id": "hamper", "short": "Hamper Magnets", "label": "Hamper Magnets",
-		"desc": "Laundry Hoops: a noticeably wider hamper.", "cost": 25},
-]
+const _UPGRADE_DEFS = preload("res://scripts/upgrade_defs.gd")
 
 const BABY_TASK_IDS: Array = ["feed_baby", "change_baby"]
 const BABYSITTER_PROGRESS_PER_GAME_HOUR: float = 0.5  # a baby task self-completes in ~2h
@@ -78,7 +63,12 @@ const SUGAR_RUSH_CRASH_HOURS: float = 3.0
 const SUGAR_RUSH_CRASH_CORTISOL_PER_HOUR: float = 6.0
 
 var owned_buffs: Array = []        # buff ids, permanent across days and runs
-var owned_amazon: Array = []       # amazon item ids, one per game, permanent
+## In-run upgrade tiers: upgrade id -> tier (1-3). Bought with dollars at the
+## laptop; lasts the RUN only. (Old pre-tier saves migrated to permanent.)
+var run_upgrades: Dictionary = {}
+## Amazon items from the old one-per-game save format, migrated to permanent
+## tiers in _ready(). Cleared after migration.
+var _migrated_amazon: Array = []
 var active_trades: Dictionary = {} # trade id -> true, wiped every morning
 var sugar_rush_crash_until: float = -1.0
 var run_tasks_done: int = 0        # run-long (not reset each day)
@@ -92,6 +82,22 @@ var _hud_buff_label: Label = null
 
 func _ready() -> void:
 	_load_save()
+	# One-time migration: old one-per-game amazon items become permanent tier 1
+	# (they were sold as "kept across days AND runs"). Then drop the old save
+	# section so it never migrates twice.
+	if not _migrated_amazon.is_empty():
+		var gs_bank := get_parent()
+		for aid in _migrated_amazon:
+			var aid_s := String(aid)
+			if _UPGRADE_DEFS.def(aid_s).is_empty():
+				continue
+			var have := 0
+			if gs_bank.has_method("permanent_tier"):
+				have = int(gs_bank.call("permanent_tier", aid_s))
+			if have < 1 and gs_bank.has_method("grant_permanent_tier"):
+				gs_bank.call("grant_permanent_tier", aid_s, 1)
+		_migrated_amazon.clear()
+		_save()
 	var gs := get_parent()
 	gs.day_started.connect(_on_day_started)
 	gs.day_ended.connect(_on_day_ended)
@@ -205,6 +211,7 @@ func reset_run() -> void:
 	run_over = false
 	run_tasks_done = 0
 	days_survived = 0
+	run_upgrades.clear()  # in-run tiers last the run; permanent tiers live in GameState
 	set_process(true)
 
 
@@ -252,37 +259,43 @@ func _run_score() -> int:
 	return days_survived * 100 + run_tasks_done * 10
 
 
-# --- Amazon store API (used by store_night_shift.gd, the laptop) ----------------
+# --- Upgrade API (used by store_night_shift.gd, the laptop) ---------------------
 
-func amazon_def(id: String) -> Dictionary:
-	for def in AMAZON_DEFS:
-		if String(def["id"]) == id:
-			return def
-	return {}
+func run_tier(id: String) -> int:
+	## This run's tier for an upgrade (0 = not bought this run).
+	return int(run_upgrades.get(id, 0))
 
 
-func owns_amazon_item(id: String) -> bool:
-	# Queried by minigames / Taylor / the world. has_method-guarded at call sites.
-	return id in owned_amazon
-
-
-func buy_amazon_item(id: String) -> Dictionary:
-	## Spend DOLLARS on a one-per-game Amazon item. Persists to disk.
+func upgrade_tier(id: String) -> int:
+	## Effective tier = max(permanent, run). Mode-local view of GameState's.
 	var gs := get_parent()
-	var def := amazon_def(id)
+	return int(gs.call("upgrade_tier", id))
+
+
+func buy_run_upgrade(id: String) -> Dictionary:
+	## Spend DOLLARS on the next in-run tier. Lasts the run only.
+	var gs := get_parent()
+	var def := _UPGRADE_DEFS.def(id)
 	if def.is_empty():
 		return {"ok": false, "msg": "Unknown item?!"}
-	if owned_amazon.has(id):
-		return {"ok": false, "msg": "Already owned!"}
-	var cost: float = float(def["cost"])
+	var cur := run_tier(id)
+	if cur >= _UPGRADE_DEFS.max_tier():
+		return {"ok": false, "msg": "Already maxed!"}
+	# No point buying an in-run tier your permanent collection already covers.
+	var perm := 0
+	if gs.has_method("permanent_tier"):
+		perm = int(gs.call("permanent_tier", id))
+	if perm >= cur + 1:
+		return {"ok": false, "msg": "Your permanent T%d already covers this!" % perm}
+	var tier_def: Dictionary = (def["tiers"] as Array)[cur]
+	var cost := float(tier_def["run_cost"])
 	if gs.dollars < cost:
 		return {"ok": false, "msg": "Need $%d" % int(cost)}
 	gs.add_dollars(-cost)
-	owned_amazon.append(id)
-	_save()
+	run_upgrades[id] = cur + 1
 	buffs_changed.emit()
 	_refresh_hud_label()
-	return {"ok": true, "msg": "Delivered! %s" % String(def["label"])}
+	return {"ok": true, "msg": "Delivered! %s" % String(tier_def["label"])}
 
 
 # --- Store API (used by store_night_shift.gd) ----------------------------------
@@ -371,8 +384,14 @@ func _refresh_hud_label() -> void:
 	var parts: Array = []
 	for id in owned_buffs:
 		parts.append(String(buff_def(String(id)).get("short", id)))
-	for id in owned_amazon:
-		parts.append(String(amazon_def(String(id)).get("short", id)))
+	var gs := get_parent()
+	for def in _UPGRADE_DEFS.DEFS:
+		var uid := String(def["id"])
+		var t: int = 0
+		if gs.has_method("upgrade_tier"):
+			t = int(gs.call("upgrade_tier", uid))
+		if t > 0:
+			parts.append("%s T%d" % [String(def["name"]), t])
 	for id in active_trades.keys():
 		parts.append(String(trade_def(String(id)).get("short", id)) + "*")
 	_hud_buff_label.text = "Buffs: " + (", ".join(parts) if not parts.is_empty() else "none (*=today)")
@@ -384,8 +403,7 @@ func _save() -> void:
 	var cfg := ConfigFile.new()
 	for id in owned_buffs:
 		cfg.set_value("buffs", String(id), true)
-	for id in owned_amazon:
-		cfg.set_value("amazon", String(id), true)
+	# (Old "amazon" section is gone; pre-tier items migrated to permanent tiers.)
 	cfg.set_value("meta", "best_days", best_days_survived)
 	cfg.set_value("meta", "best_score", best_score)
 	cfg.save(SAVE_PATH)
@@ -393,7 +411,7 @@ func _save() -> void:
 
 func _load_save() -> void:
 	owned_buffs.clear()
-	owned_amazon.clear()
+	_migrated_amazon.clear()
 	var cfg := ConfigFile.new()
 	if cfg.load(SAVE_PATH) != OK:
 		return  # no save yet — fresh player
@@ -401,9 +419,10 @@ func _load_save() -> void:
 		var id := String(def["id"])
 		if bool(cfg.get_value("buffs", id, false)):
 			owned_buffs.append(id)
-	for def in AMAZON_DEFS:
-		var aid := String(def["id"])
-		if bool(cfg.get_value("amazon", aid, false)):
-			owned_amazon.append(aid)
+	# Old one-per-game amazon saves: collect ids for migration to permanent
+	# tiers in _ready(). The catalog ids are known; check the old section.
+	for section_id in cfg.get_section_keys("amazon"):
+		if bool(cfg.get_value("amazon", section_id, false)):
+			_migrated_amazon.append(String(section_id))
 	best_days_survived = int(cfg.get_value("meta", "best_days", 0))
 	best_score = int(cfg.get_value("meta", "best_score", 0))

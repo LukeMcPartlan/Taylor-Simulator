@@ -12,16 +12,13 @@ extends CharacterBody2D
 
 const SPEED = 300.0
 const JUMP_VELOCITY = -400.0
-const MOON_SHOES_MULT: float = 1.35
+const _UPGRADE_DEFS = preload("res://scripts/upgrade_defs.gd")
 
 
 func _jump_velocity() -> float:
-	# Amazon Moon Shoes (night-shift): 35% higher jumps.
-	var m = GameState.mode_node()
-	if m != null and m.has_method("owns_amazon_item") \
-			and bool(m.call("owns_amazon_item", "moon_shoes")):
-		return JUMP_VELOCITY * MOON_SHOES_MULT
-	return JUMP_VELOCITY
+	# Amazon Moon Shoes (night-shift): tiered jump boost.
+	var mult := _UPGRADE_DEFS.tier_fx("moon_shoes", GameState.upgrade_tier("moon_shoes"), "jump_mult", 1.0)
+	return JUMP_VELOCITY * mult
 
 @onready var sprite_2d: AnimatedSprite2D = $AnimatedSprite2D
 

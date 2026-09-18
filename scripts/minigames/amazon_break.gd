@@ -27,29 +27,32 @@ var _top := Vector2.ZERO
 var _box_cols: Array = []
 
 
-func _owns_amazon(id: String) -> bool:
+const _UPGRADE_DEFS = preload("res://scripts/upgrade_defs.gd")
+
+
+func _upgrade_tier(id: String) -> int:
 	var gs := get_node_or_null("/root/GameState")
 	if gs == null:
-		return false
-	var m = gs.mode_node()
-	return m != null and m.has_method("owns_amazon_item") \
-		and bool(m.call("owns_amazon_item", id))
+		return 0
+	return int(gs.call("upgrade_tier", id))
 
 
 func _ball_count() -> int:
-	return 2 if _owns_amazon("extra_ball") else 1
+	return int(_UPGRADE_DEFS.tier_fx("extra_ball", _upgrade_tier("extra_ball"), "balls", 1.0))
 
 
 func start() -> void:
 	super.start()
 	title_text = "Box Breaker"
+	var extra_tier := _upgrade_tier("extra_ball")
+	var paddle_tier := _upgrade_tier("paddle")
 	var extra := ""
-	if _owns_amazon("extra_ball"):
-		extra += " TWO balls!"
-	if _owns_amazon("paddle"):
-		extra += " Wider paddle!"
+	if extra_tier > 0:
+		extra += " %s!" % String((_UPGRADE_DEFS.def("extra_ball")["tiers"] as Array)[extra_tier - 1]["label"])
+	if paddle_tier > 0:
+		extra += " %s!" % String((_UPGRADE_DEFS.def("paddle")["tiers"] as Array)[paddle_tier - 1]["label"])
 	help_text = "Break down every Amazon box! A/D or mouse. 3 missed balls = the boxes win.%s" % extra
-	_pw = PADDLE_W * (1.4 if _owns_amazon("paddle") else 1.0)
+	_pw = PADDLE_W * _UPGRADE_DEFS.tier_fx("paddle", paddle_tier, "width_mult", 1.0)
 	_boxes.clear()
 	_boxes_left = 0
 	_boxes_broken = 0

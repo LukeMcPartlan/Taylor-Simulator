@@ -15,11 +15,17 @@ const GAME_SCENE := "res://Main.tscn"
 ## It renders ~1.6x larger than the default font, so all sizes below are
 ## scaled down to compensate.
 const PIXEL_FONT: Font = preload("res://assets/fonts/PressStart2P-Regular.ttf")
+const _UPGRADE_DEFS = preload("res://scripts/upgrade_defs.gd")
 
 var _cards: Array = []          # the 5 card PanelContainers, in MODE_CARDS order
 var _selected: int = 0
 var _how_layer: CanvasLayer
 var _how_visible: bool = false
+var _bank_layer: CanvasLayer
+var _bank_visible: bool = false
+var _bank_balance: Label
+var _bank_items: VBoxContainer
+var _bank_button: Button
 
 
 func _ready() -> void:
@@ -74,8 +80,18 @@ func _build() -> void:
 		vbox.add_child(card)
 		_cards.append(card)
 
+	# Savings account: leftover dollars sweep here at day end. Spend them on
+	# permanent (indestructible) upgrade tiers in the B menu.
+	_bank_button = Button.new()
+	_bank_button.text = _bank_button_text()
+	_bank_button.add_theme_font_override("font", PIXEL_FONT)
+	_bank_button.add_theme_font_size_override("font_size", 13)
+	_bank_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_bank_button.pressed.connect(_toggle_bank)
+	vbox.add_child(_bank_button)
+
 	var footer := Label.new()
-	footer.text = "↑↓ / click to choose · Enter to start · H for how to play"
+	footer.text = "↑↓ / click to choose · Enter to start · H for how to play · B for savings"
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	footer.add_theme_font_override("font", PIXEL_FONT)
 	footer.add_theme_font_size_override("font_size", 10)
@@ -85,6 +101,10 @@ func _build() -> void:
 	_how_layer = _make_how_panel()
 	_how_layer.hide()
 	add_child(_how_layer)
+
+	_bank_layer = _make_bank_panel()
+	_bank_layer.hide()
+	add_child(_bank_layer)
 
 
 func _make_card(card_def: Dictionary) -> PanelContainer:
@@ -241,6 +261,16 @@ func _on_card_gui_input(event: InputEvent, mode: int) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		var k := (event as InputEventKey).keycode
+		# The savings panel swallows its own keys while open.
+		if _bank_visible:
+			if k == KEY_B or k == KEY_ESCAPE:
+				_toggle_bank()
+			elif k >= KEY_1 and k <= KEY_9:
+				var idx := int(k - KEY_1)
+				var defs: Array = _UPGRADE_DEFS.DEFS
+				if idx < defs.size():
+					_buy_permanent(String((defs[idx] as Dictionary)["id"]))
+			return
 		match k:
 			KEY_UP, KEY_W:
 				_select((_selected - 1 + _cards.size()) % _cards.size())
@@ -253,6 +283,8 @@ func _unhandled_input(event: InputEvent) -> void:
 					_start_mode(int(ModeManager.MODE_CARDS[_selected]["mode"]))
 			KEY_H:
 				_toggle_how()
+			KEY_B:
+				_toggle_bank()
 			KEY_ESCAPE:
 				if _how_visible:
 					_toggle_how()
@@ -275,6 +307,137 @@ func _select(i: int) -> void:
 func _toggle_how() -> void:
 	_how_visible = not _how_visible
 	_how_layer.visible = _how_visible
+
+
+# --- Savings account ----------------------------------------------------------
+
+func _bank_button_text() -> String:
+	return "💰 SAVINGS — $%d (B)" % int(GameState.savings)
+
+
+func _toggle_bank() -> void:
+	_bank_visible = not _bank_visible
+	if _bank_visible:
+		_refresh_bank()
+	_bank_layer.visible = _bank_visible
+
+
+func _buy_permanent(id: String) -> void:
+	GameState.buy_permanent_upgrade(id)
+	_refresh_bank()
+
+
+func _make_bank_panel() -> CanvasLayer:
+	var layer := CanvasLayer.new()
+	layer.layer = 20
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.7)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(dim)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(center)
+
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(660, 0)
+	center.add_child(panel)
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 28)
+	margin.add_theme_constant_override("margin_right", 28)
+	margin.add_theme_constant_override("margin_top", 20)
+	margin.add_theme_constant_override("margin_bottom", 20)
+	panel.add_child(margin)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+	margin.add_child(vbox)
+
+	var title := Label.new()
+	title.text = "SAVINGS ACCOUNT"
+	title.add_theme_font_override("font", PIXEL_FONT)
+	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
+	vbox.add_child(title)
+
+	_bank_balance = Label.new()
+	_bank_balance.add_theme_font_override("font", PIXEL_FONT)
+	_bank_balance.add_theme_font_size_override("font_size", 12)
+	_bank_balance.add_theme_color_override("font_color", Color(0.55, 0.95, 0.6))
+	vbox.add_child(_bank_balance)
+
+	var note := Label.new()
+	note.text = "Leftover dollars sweep here at day end. Permanent upgrades are indestructible — they survive every run."
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.add_theme_font_override("font", PIXEL_FONT)
+	note.add_theme_font_size_override("font_size", 10)
+	note.add_theme_color_override("font_color", Color(0.75, 0.7, 0.85))
+	vbox.add_child(note)
+
+	_bank_items = VBoxContainer.new()
+	_bank_items.add_theme_constant_override("separation", 6)
+	vbox.add_child(_bank_items)
+
+	var hint := Label.new()
+	hint.text = "Number keys buy · B or Esc closes"
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.add_theme_font_override("font", PIXEL_FONT)
+	hint.add_theme_font_size_override("font_size", 10)
+	hint.add_theme_color_override("font_color", Color(0.6, 0.6, 0.7))
+	vbox.add_child(hint)
+	return layer
+
+
+func _refresh_bank() -> void:
+	_bank_balance.text = "Balance: $%d" % int(GameState.savings)
+	_bank_button.text = _bank_button_text()
+	for child in _bank_items.get_children():
+		child.queue_free()
+	var number := 0
+	for def in _UPGRADE_DEFS.DEFS:
+		number += 1
+		var id := String(def["id"])
+		var perm := GameState.permanent_tier(id)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+
+		var info := VBoxContainer.new()
+		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		info.add_theme_constant_override("separation", 2)
+		var line := Label.new()
+		line.add_theme_font_override("font", PIXEL_FONT)
+		line.add_theme_font_size_override("font_size", 11)
+		line.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
+		var desc := Label.new()
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		desc.add_theme_font_override("font", PIXEL_FONT)
+		desc.add_theme_font_size_override("font_size", 9)
+		desc.add_theme_color_override("font_color", Color(0.75, 0.75, 0.8))
+		if perm >= _UPGRADE_DEFS.max_tier():
+			line.text = "%d. %s — MAXED (permanent T3/3)" % [number, String(def["name"])]
+			line.modulate = Color(0.45, 0.45, 0.45)
+			desc.text = "Indestructible. The shelf salutes you."
+		else:
+			var next_td: Dictionary = (def["tiers"] as Array)[perm]
+			line.text = "%d. %s — next: %s — $%d" % [
+				number, String(def["name"]), String(next_td["label"]), int(float(next_td["perm_cost"]))]
+			desc.text = String(next_td["desc"])
+			if perm > 0:
+				desc.text += " (permanent T%d/3 already)" % perm
+		info.add_child(line)
+		info.add_child(desc)
+		row.add_child(info)
+
+		if perm < _UPGRADE_DEFS.max_tier():
+			var buy_td: Dictionary = (def["tiers"] as Array)[perm]
+			var cost := float(buy_td["perm_cost"])
+			var buy := Button.new()
+			buy.text = "BUY $%d" % int(cost)
+			buy.add_theme_font_override("font", PIXEL_FONT)
+			buy.add_theme_font_size_override("font_size", 10)
+			buy.disabled = GameState.savings < cost
+			buy.pressed.connect(_buy_permanent.bind(id))
+			row.add_child(buy)
+
+		_bank_items.add_child(row)
 
 
 func _start_mode(mode: int) -> void:

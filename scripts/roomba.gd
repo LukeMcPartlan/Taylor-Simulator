@@ -6,8 +6,7 @@ extends Node2D
 
 const MIN_X: float = -1500.0
 const MAX_X: float = 1500.0
-const SPEED: float = 110.0
-const VACUUM_RADIUS: float = 42.0
+const _UPGRADE_DEFS = preload("res://scripts/upgrade_defs.gd")
 
 var _dir: float = 1.0
 var _t: float = 0.0
@@ -19,7 +18,11 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	position.x += _dir * SPEED * delta
+	# Tiered stats: re-read each frame so a mid-run purchase takes effect.
+	var tier := GameState.upgrade_tier("roomba")
+	var speed := _UPGRADE_DEFS.tier_fx("roomba", tier, "speed", 110.0)
+	var radius := _UPGRADE_DEFS.tier_fx("roomba", tier, "radius", 42.0)
+	position.x += _dir * speed * delta
 	if position.x >= MAX_X:
 		_dir = -1.0
 	elif position.x <= MIN_X:
@@ -27,7 +30,7 @@ func _process(delta: float) -> void:
 	# Vacuum any garbage we roll over.
 	for g in get_tree().get_nodes_in_group("garbage"):
 		var node := g as Node2D
-		if node != null and node.global_position.distance_to(global_position) < VACUUM_RADIUS:
+		if node != null and node.global_position.distance_to(global_position) < radius:
 			if node.has_method("vacuum"):
 				node.vacuum()
 			else:

@@ -156,10 +156,8 @@ func spawn_roomba() -> void:
 	## this too.
 	if get_tree().get_nodes_in_group("roomba").size() > 0:
 		return
-	var m = GameState.mode_node()
-	if m == null or not m.has_method("owns_amazon_item"):
-		return
-	if not bool(m.call("owns_amazon_item", "roomba")):
+	# Night-shift Roomba: spawn if any effective tier is owned.
+	if GameState.upgrade_tier("roomba") < 1:
 		return
 	var roomba = ROOMBA_SCRIPT.new()
 	roomba.add_to_group("roomba")

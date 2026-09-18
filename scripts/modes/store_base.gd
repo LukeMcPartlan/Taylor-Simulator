@@ -167,13 +167,18 @@ func _refresh_menu() -> void:
 		child.queue_free()
 	_rows = get_rows()
 	_wallet_label.text = wallet_text()
+	var last_section := ""
 	for row in _rows:
+		var section := String(row.get("section", ""))
+		if section != "" and section != last_section:
+			last_section = section
+			_menu_items.add_child(_make_menu_label(section, Color(1.0, 0.8, 0.35)))
 		var status := String(row["status"])
 		var line := "%d. %s — %s%s" % [
 			int(row["number"]), String(row["name"]), String(row["price"]),
 			(" — " + status) if status != "" else ""]
 		var label := _make_menu_label(line, Color(1, 1, 1))
-		if status == "OWNED" or status.begins_with("ACTIVE"):
+		if status == "OWNED" or status.begins_with("MAXED") or status.begins_with("ACTIVE"):
 			label.modulate = Color(0.45, 0.45, 0.45)
 		elif not bool(row["affordable"]):
 			label.modulate = Color(1.0, 0.5, 0.5)

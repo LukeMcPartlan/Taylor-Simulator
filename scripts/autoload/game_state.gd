@@ -36,6 +36,7 @@ extends Node
 # --- Signals ----------------------------------------------------------------
 signal meters_changed(serotonin: float, cortisol: float)
 signal dollars_changed(dollars: float)
+signal savings_changed(savings: float)
 signal clock_changed(time_string: String)
 signal task_list_changed(tasks: Array)
 signal day_ended
@@ -134,7 +135,17 @@ const REMIND_LUKE_TASK: Dictionary = {
 # --- State ------------------------------------------------------------------
 var serotonin: float = START_SEROTONIN
 var cortisol: float = START_CORTISOL
-var dollars: float = 0.0  # earned at the work laptop (night-shift), kept across days, reset on new run
+var dollars: float = 0.0  # earned at the work laptop (night-shift); swept into savings at day end
+## Savings account: global, persists across days AND runs. Leftover dollars
+## sweep here at day end; spent in the main-menu shop on permanent upgrades.
+var savings: float = 0.0
+## Permanent upgrades owned forever: upgrade id -> tier (1-3). Bought with
+## savings in the main-menu shop. In-run tiers stack via upgrade_tier().
+var permanent_upgrades: Dictionary = {}
+const SAVINGS_PATH := "user://taylor_savings.cfg"
+## Base serotonin cap. Collectible upgrades (raquaza, kh_boxset) raise it.
+const BASE_SEROTONIN_CAP := 200.0
+const _UPGRADE_DEFS = preload("res://scripts/upgrade_defs.gd")
 var time_hours: float = DAY_START_HOUR
 var day_number: int = 0
 # Task dicts: {id, label, cortisol_relief, done, delegated, completed_by}.
@@ -166,6 +177,9 @@ var _last_clock_string: String = ""
 
 
 func _ready() -> void:
+	# Load the global savings account before the mode is created, so modes
+	# can migrate old saves against permanent_upgrades in their _ready().
+	load_bank()
 	# ModeManager is autoloaded BEFORE GameState, so current_mode is valid here.
 	mode_hook = ModeManager.create_mode()
 	if mode_hook != null:
@@ -207,7 +221,7 @@ func _process(delta: float) -> void:
 		cortisol += get_neglect_cortisol_rate() * get_cortisol_gain_mult() \
 			* day_pressure_mult * pressure * game_hours
 
-	serotonin = maxf(serotonin, 0.0)  # serotonin is UNCAPPED: bank it for expensive store items
+	serotonin = maxf(serotonin, 0.0)  # nothing drains serotonin passively
 	cortisol = clampf(cortisol, 0.0, METER_MAX)
 	# Standard rule, every mode: nothing drains serotonin any more — open
 	# tasks only ever push cortisol UP. But 100 cortisol ends the day on the
@@ -501,8 +515,8 @@ func complete_task(id: String, by: String = "taylor") -> bool:
 
 
 func add_serotonin(amount: float) -> void:
-	# No upper cap on serotonin (cortisol stays capped at METER_MAX).
-	serotonin = maxf(serotonin + amount, 0.0)
+	# Serotonin caps at get_serotonin_cap() (raised by collectible upgrades).
+	serotonin = clampf(serotonin + amount, 0.0, get_serotonin_cap())
 	meters_changed.emit(serotonin, cortisol)
 	fun_used.emit(amount)
 
@@ -515,9 +529,88 @@ func add_cortisol(amount: float) -> void:
 
 
 func add_dollars(amount: float) -> void:
-	## Work-laptop earnings (night-shift). No cap; kept across days.
+	## Work-laptop earnings (night-shift). No cap; swept to savings at day end.
 	dollars = maxf(dollars + amount, 0.0)
 	dollars_changed.emit(dollars)
+
+
+# --- Savings account + permanent upgrades -----------------------------------
+
+func get_serotonin_cap() -> float:
+	## Base cap plus collectible tier bonuses (permanent and in-run both count).
+	var cap := BASE_SEROTONIN_CAP
+	cap += _UPGRADE_DEFS.tier_fx("raquaza", upgrade_tier("raquaza"), "cap_bonus", 0.0)
+	cap += _UPGRADE_DEFS.tier_fx("kh_boxset", upgrade_tier("kh_boxset"), "cap_bonus", 0.0)
+	return cap
+
+
+func upgrade_tier(id: String) -> int:
+	## Effective tier of an upgrade: max(permanent tier, this run's tier).
+	## 0 = not owned. Works in every mode (run tier is night-shift only).
+	var perm := int(permanent_upgrades.get(id, 0))
+	var run := 0
+	var m := mode_node()
+	if m != null and m.has_method("run_tier"):
+		run = int(m.call("run_tier", id))
+	return maxi(perm, run)
+
+
+func permanent_tier(id: String) -> int:
+	return int(permanent_upgrades.get(id, 0))
+
+
+func grant_permanent_tier(id: String, tier: int) -> void:
+	## Set a permanent tier without charging (save migrations).
+	permanent_upgrades[id] = clampi(tier, 0, _UPGRADE_DEFS.max_tier())
+	savings_changed.emit(savings)
+	save_bank()
+
+
+func buy_permanent_upgrade(id: String) -> Dictionary:
+	## Spend SAVINGS on the next permanent tier. One-per-call, in order.
+	## Returns {"ok": bool, "reason": String, "tier": int}.
+	var def := _UPGRADE_DEFS.def(id)
+	if def.is_empty():
+		return {"ok": false, "reason": "no such upgrade", "tier": 0}
+	var cur := permanent_tier(id)
+	if cur >= _UPGRADE_DEFS.max_tier():
+		return {"ok": false, "reason": "already maxed", "tier": cur}
+	var tier_def: Dictionary = (def["tiers"] as Array)[cur]
+	var cost := float(tier_def["perm_cost"])
+	if savings < cost:
+		return {"ok": false, "reason": "not enough savings", "tier": cur}
+	savings -= cost
+	permanent_upgrades[id] = cur + 1
+	savings_changed.emit(savings)
+	save_bank()
+	return {"ok": true, "reason": "", "tier": cur + 1}
+
+
+func sweep_to_savings() -> void:
+	## Move all leftover dollars into savings. Called at day end and run end.
+	if dollars > 0.0:
+		savings += dollars
+		dollars = 0.0
+		savings_changed.emit(savings)
+		dollars_changed.emit(dollars)
+		save_bank()
+
+
+func save_bank() -> void:
+	var cfg := ConfigFile.new()
+	cfg.set_value("bank", "savings", savings)
+	cfg.set_value("bank", "permanent_upgrades", permanent_upgrades)
+	cfg.save(SAVINGS_PATH)
+
+
+func load_bank() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(SAVINGS_PATH) != OK:
+		return
+	savings = float(cfg.get_value("bank", "savings", 0.0))
+	var p: Variant = cfg.get_value("bank", "permanent_upgrades", {})
+	if p is Dictionary:
+		permanent_upgrades = p
 
 
 ## Daily bird: touch the active bird for a flat serotonin reward, once per
@@ -628,6 +721,8 @@ func _emit_clock_if_changed() -> void:
 
 
 func _end_day() -> void:
+	# Leftover dollars sweep into the savings account; spent days are broke.
+	sweep_to_savings()
 	sim_running = false
 	set_process(false)
 	day_ended.emit()
@@ -648,8 +743,8 @@ func new_run() -> void:
 	## Start a fresh run in the current mode: reset the day counter, let the
 	## mode clear its run-long state, then start day 1.
 	day_number = 0
-	dollars = 0.0
-	dollars_changed.emit(dollars)
+	# Run over: sweep any leftover dollars into savings, then reset.
+	sweep_to_savings()
 	_hook("reset_run")
 	start_new_day()
 

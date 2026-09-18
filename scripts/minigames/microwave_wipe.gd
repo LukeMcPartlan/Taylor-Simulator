@@ -8,7 +8,6 @@ extends Minigame
 const GRID_W: int = 14
 const GRID_H: int = 10
 const BRUSH_RADIUS: float = 34.0
-const BIG_SPONGE_MULT: float = 1.5
 const WIN_FRACTION: float = 0.9
 const TIME_LIMIT: float = 45.0
 
@@ -21,22 +20,25 @@ var _time_left: float = TIME_LIMIT
 var _was_down: bool = false
 
 
-func _owns_amazon(id: String) -> bool:
+const _UPGRADE_DEFS = preload("res://scripts/upgrade_defs.gd")
+
+func _upgrade_tier(id: String) -> int:
 	var gs := get_node_or_null("/root/GameState")
 	if gs == null:
-		return false
-	var m = gs.mode_node()
-	return m != null and m.has_method("owns_amazon_item") \
-		and bool(m.call("owns_amazon_item", id))
+		return 0
+	return int(gs.call("upgrade_tier", id))
 
 
 func start() -> void:
 	super.start()
 	title_text = "Microwave Wipe"
+	var sponge_tier := _upgrade_tier("sponge")
+	var sponge_note := ""
+	if sponge_tier > 0:
+		sponge_note = " %s equipped!" % String((_UPGRADE_DEFS.def("sponge")["tiers"] as Array)[sponge_tier - 1]["label"])
 	help_text = "Drag with the mouse to wipe the grime. Clean %d%% to win!%s" % [
-		int(WIN_FRACTION * 100.0),
-		" BIG sponge equipped!" if _owns_amazon("sponge") else ""]
-	_brush_radius = BRUSH_RADIUS * (BIG_SPONGE_MULT if _owns_amazon("sponge") else 1.0)
+		int(WIN_FRACTION * 100.0), sponge_note]
+	_brush_radius = BRUSH_RADIUS * _UPGRADE_DEFS.tier_fx("sponge", sponge_tier, "brush_mult", 1.0)
 	_dirty.clear()
 	_dirty_count = 0
 	for _r in GRID_H:

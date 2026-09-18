@@ -6,7 +6,10 @@ extends ModeStoreBase
 ## - WORK: manage the inbox. Deranged employee emails roll in; FIRE or HIRE
 ##   each one. Every press costs 10 serotonin and pays $10. New email each
 ##   press, forever. (F/H keys work too.)
-## - AMAZON: spend those dollars on one-per-game buffs.
+## - AMAZON: spend dollars on upgrade tiers (3 each). In-run only — they last
+##   the run, not the save. Permanent versions are sold in the main menu.
+
+const _UPGRADE_DEFS = preload("res://scripts/upgrade_defs.gd")
 
 const WORK_SEROTONIN_COST: float = 10.0
 const WORK_DOLLAR_PAY: float = 10.0
@@ -107,7 +110,7 @@ func is_open() -> bool:
 
 
 func wallet_text() -> String:
-	return "Your dollars: $%d" % int(GameState.dollars)
+	return "Your dollars: $%d (swept to savings at day end)" % int(GameState.dollars)
 
 
 func get_rows() -> Array:
@@ -116,16 +119,42 @@ func get_rows() -> Array:
 		return []
 	var rows: Array = []
 	var number := 0
-	for def in m.AMAZON_DEFS:
+	for def in _UPGRADE_DEFS.DEFS:
 		number += 1
 		var id := String(def["id"])
-		var owned: bool = m.owns_amazon_item(id)
+		var section := "UPGRADES — in-run tiers, last the run"
+		if String(def["kind"]) == "collectible":
+			section = "COLLECTIBLES — raise your serotonin cap"
+		var run_t := int(m.call("run_tier", id))
+		var perm_t := int(GameState.permanent_tier(id))
+		var maxed := run_t >= _UPGRADE_DEFS.max_tier()
+		var name := ""
+		var desc := ""
+		var price := ""
+		var status := ""
+		var affordable := true
+		if maxed:
+			var owned_td: Dictionary = (def["tiers"] as Array)[run_t - 1]
+			name = "%s — run T%d/3" % [String(owned_td["label"]), run_t]
+			desc = String(owned_td["desc"])
+			price = "—"
+			status = "MAXED"
+		else:
+			var next_td: Dictionary = (def["tiers"] as Array)[run_t]
+			var cost := float(next_td["run_cost"])
+			name = "next: %s — run T%d/3" % [String(next_td["label"]), run_t]
+			desc = String(next_td["desc"])
+			price = "$%d" % int(cost)
+			affordable = GameState.dollars >= cost
+		if perm_t > 0:
+			var perm_note := "PERM T%d" % perm_t
+			status = (status + " · " + perm_note) if status != "" else perm_note
 		rows.append({
-			"number": number, "kind": "amazon", "id": id,
-			"name": String(def["label"]), "desc": String(def["desc"]),
-			"price": "$%d" % int(def["cost"]),
-			"status": "OWNED" if owned else "",
-			"affordable": owned or GameState.dollars >= float(def["cost"]),
+			"number": number, "kind": "upgrade", "id": id, "section": section,
+			"name": name, "desc": desc,
+			"price": price,
+			"status": status,
+			"affordable": affordable,
 		})
 	return rows
 
@@ -134,9 +163,9 @@ func buy_row(kind: String, id: String) -> Dictionary:
 	var m := _mode()
 	if m == null:
 		return {"ok": false, "msg": "The laptop bluescreens."}
-	if kind != "amazon":
+	if kind != "upgrade":
 		return {"ok": false, "msg": "Click a tab, boss."}
-	var res: Dictionary = m.buy_amazon_item(id)
+	var res: Dictionary = m.buy_run_upgrade(id)
 	if bool(res.get("ok", false)) and id == "roomba":
 		var world := get_parent()
 		if world != null and world.has_method("spawn_roomba"):
