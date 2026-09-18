@@ -47,7 +47,7 @@ animations = [{
 }]
 
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_fos0i"]
-load_path = "res://.godot/imported/Grass9Tile.png-355473619379f2e7074d2459115f509a.ctex"
+load_path = "res://.godot/imported/Grass_48_tiles-Sheet.png-fc3fd2093f063f97937b065decb0d971.ctex"
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_r0du0"]
 texture = SubResource("CompressedTexture2D_fos0i")
