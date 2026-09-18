@@ -95,8 +95,8 @@ func open(game_id: String, on_done: Callable) -> void:
 	panel.add_child(_game)
 	_game.finished.connect(_on_game_finished)
 	# Every minigame snapshots `size` in start() to place its playfield, but
-	# size is (0,0) until the container layout runs (end of this frame).
-	# Freeze the game and start it deferred, after one frame, so all
+	# size is (0,0) until the container layout runs. Freeze the game and
+	# start it deferred once the layout assigns a real size, so all
 	# playfields land on the real 700x560 panel instead of at the origin.
 	_game.set_process(false)
 	_game.set_process_input(false)
@@ -105,9 +105,19 @@ func open(game_id: String, on_done: Callable) -> void:
 
 
 func _deferred_start() -> void:
-	await get_tree().process_frame
+	# Every minigame snapshots `size` in start() to place its playfield, but
+	# size is (0,0) until the container layout runs (CenterContainer >
+	# PanelContainer nesting can need more than one frame to settle on some
+	# frames). Wait for real layout instead of a blind one-frame delay, so a
+	# slow sort can never leave playfields stranded at the origin.
+	var frames := 0
+	while _game != null and (_game.size.x <= 0.0 or _game.size.y <= 0.0) and frames < 60:
+		await get_tree().process_frame
+		frames += 1
 	if _game == null:
 		return
+	if frames > 1:
+		push_warning("MinigameLauncher: playfield layout took %d frames" % frames)
 	_game.start()
 	_game._ready_to_draw = true
 	_game.set_process(true)
