@@ -1,21 +1,19 @@
 class_name ToiletWhack
 extends Minigame
-## Basement toilet station — "Whack-a-Leak". Leaks spring up around the
-## toilet; click them to plug them before they spread. Plug 10 to win.
-## An unplugged leak (3s lifetime) bursts into 2 new leaks. 9+ active
-## leaks at once = flooded = fail.
+## Basement toilet station — "Whack-a-Leak". All 10 leaks spring up at
+## once around the toilet; click them to plug them before they spread.
+## Plug 10 to win. An unplugged leak (3s lifetime) bursts into 2 new
+## leaks. 15+ active leaks at once = flooded = fail.
 ##
 ## Controls: click leaks with the mouse.
 
 const WIN_PLUGGED: int = 10
 const LEAK_LIFETIME: float = 3.0
-const FLOOD_LIMIT: int = 9
-const SPAWN_INTERVAL: float = 1.1
+const FLOOD_LIMIT: int = 15
 const LEAK_RADIUS: float = 22.0
 
 var _leaks: Array = []  # Dictionaries {pos: Vector2, age: float}
 var _plugged: int = 0
-var _spawn_timer: float = 0.0
 var _toilet_pos := Vector2.ZERO
 var _was_down: bool = false
 
@@ -23,11 +21,13 @@ var _was_down: bool = false
 func start() -> void:
 	super.start()
 	title_text = "Whack-a-Leak"
-	help_text = "Click leaks to plug them! Plug %d. Don't let them flood!" % WIN_PLUGGED
+	help_text = "10 leaks at once! Click them all before they spread! Plug %d." % WIN_PLUGGED
 	_toilet_pos = Vector2(size.x / 2.0, size.y / 2.0 + 40.0)
 	_leaks.clear()
 	_plugged = 0
-	_spawn_timer = 0.4
+	# All ten leaks spring at once.
+	for _i in WIN_PLUGGED:
+		_leaks.append({"pos": _random_leak_pos(), "age": 0.0})
 
 
 func _random_leak_pos() -> Vector2:
@@ -42,11 +42,6 @@ func _random_leak_pos() -> Vector2:
 func _process(delta: float) -> void:
 	if _over:
 		return
-	# Spawn.
-	_spawn_timer -= delta
-	if _spawn_timer <= 0.0:
-		_spawn_timer = SPAWN_INTERVAL / _speed
-		_leaks.append({"pos": _random_leak_pos(), "age": 0.0})
 	# Age + spread.
 	var i := _leaks.size() - 1
 	while i >= 0:
