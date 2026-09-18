@@ -53,7 +53,7 @@ signal task_procced(task_id: String)
 signal run_ended(title: String, stats: String, restart_kind: String)
 
 # --- Tuning (base defaults; modes override via hooks) -----------------------
-const SECONDS_PER_GAME_HOUR: float = 30.0
+const SECONDS_PER_GAME_HOUR: float = 15.0
 const DAY_START_HOUR: float = 7.0    # 7:00 AM
 const DAY_END_HOUR: float = 23.0     # 11:00 PM
 const METER_MAX: float = 100.0  # caps CORTISOL only; serotonin is intentionally uncapped

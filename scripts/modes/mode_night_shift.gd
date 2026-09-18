@@ -102,7 +102,7 @@ func mode_id() -> int:
 
 
 func seconds_per_game_hour() -> float:
-	return 30.0
+	return 15.0
 
 
 func neglect_cortisol_rate() -> float:

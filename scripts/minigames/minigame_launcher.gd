@@ -69,6 +69,10 @@ func open(game_id: String, on_done: Callable) -> void:
 	_callback = on_done
 	_open_msec = Time.get_ticks_msec()
 	get_tree().paused = true
+	# The day clock keeps ticking inside minigames: GameState (and the mode
+	# hooks under it) run on PROCESS_MODE_ALWAYS so time, task procs, and
+	# neglect pressure all advance while the world itself stays frozen.
+	GameState.process_mode = Node.PROCESS_MODE_ALWAYS
 
 	_dim = ColorRect.new()
 	_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -122,6 +126,7 @@ func _on_game_finished(success: bool) -> void:
 		_dim.queue_free()
 		_dim = null
 	get_tree().paused = false
+	GameState.process_mode = Node.PROCESS_MODE_INHERIT
 	if cb.is_valid():
 		# elapsed: real seconds the player spent in the minigame — variants
 		# like combo-mom use it for clear-time bonuses.
