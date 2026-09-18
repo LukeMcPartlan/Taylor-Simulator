@@ -46,7 +46,7 @@ and swap their sprites in the inspector.
 | Basement toilet | Whack-a-Leak | Click leaks to plug them; plug 10, don't flood |
 | Trash bins | Trash Sort | ← recycle / → trash while the item is in the zone; 10 right |
 | Feed baby | Spoon Timing | SPACE when the marker is in the green; 5 spoonfuls |
-| Change baby | Diaper Catch | Catch diapers, dodge rubber ducks (A/D); 8 diapers |
+| Change baby | Diaper Catch | Catch diapers, dodge poop/pee/vomit (A/D); 8 diapers |
 | Book | Reading Focus | Hold SPACE to read, release before restlessness maxes |
 | Phone | TikTok Swipe | Hit the matching arrow key in time; 10 hits |
 
