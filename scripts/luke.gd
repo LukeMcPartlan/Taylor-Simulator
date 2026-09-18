@@ -36,7 +36,11 @@ const NAG_RESPONSES: Array[String] = [
 	"you're right. you're right. putting the headset down.",
 ]
 
-enum State { IDLE, WALK, GAMING, DELEGATED }
+enum State { IDLE, WALK, GAMING, DELEGATED, SLEEPING }
+
+# Luke's bed: next to his game setup. He starts every day asleep there
+# (wake him at 6am) and the "put Luke to bed" task sends him back at 10pm.
+const LUKE_BED_POS := Vector2(-1050.0, -110.0)
 
 var _state: int = State.IDLE
 var _idle_timer: float = 1.0
@@ -46,6 +50,7 @@ var _game_timer: float = 0.0
 var _game_cooldown: float = 20.0  # seconds before he may start gaming again
 var _nagged_today: bool = false
 var _player_near: bool = false
+var _going_to_bed: bool = false
 
 # --- DELEGATION mode state --------------------------------------------------
 # When Taylor presses Q at a chore station (DELEGATION mode only), Luke walks
@@ -121,6 +126,10 @@ func _ready() -> void:
 	add_child(_prompt)
 
 	GameState.task_list_changed.connect(_on_tasks_changed)
+	GameState.day_started.connect(_on_day_started)
+	# Every day starts with Luke asleep in bed — the 6am "wake up Luke"
+	# clock task is how Taylor gets him moving.
+	_go_to_sleep(true)
 
 
 func _physics_process(delta: float) -> void:
@@ -150,6 +159,10 @@ func _physics_process(delta: float) -> void:
 				_delegated_work_left -= delta
 				if _delegated_work_left <= 0.0:
 					_finish_delegation()
+		State.SLEEPING:
+			# Out cold. The 6am wake-up (or 10pm bedtime walk) is the only
+			# thing that changes this.
+			velocity.x = move_toward(velocity.x, 0.0, SPEED * 4.0 * delta)
 
 	move_and_slide()
 	_sprite.play(&"walk" if absf(velocity.x) > 10.0 else &"idle")
@@ -157,6 +170,8 @@ func _physics_process(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	_game_cooldown -= delta
+	if _player_near:
+		_refresh_prompt()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -171,6 +186,17 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _talk() -> void:
+	# Asleep: the 6am task wakes him; otherwise let him snore.
+	if _state == State.SLEEPING:
+		if _task_open("wake_luke"):
+			_wake_up()
+		else:
+			GameState.say("LUKE", "zzz... five more minutes... zzz...")
+		return
+	# 10pm: Taylor puts him to bed (wins over gaming, nagging, everything).
+	if _task_open("bed_luke"):
+		_send_to_bed()
+		return
 	# MELTDOWN mode: when cortisol is over 70 he drops the act and goes mean.
 	var m := GameState.mode_node()
 	if _is_meltdown_mode() and GameState.cortisol > 70.0 and m.has_method("mean_line"):
@@ -201,6 +227,12 @@ func _pick_action() -> void:
 
 func _arrive() -> void:
 	velocity.x = 0.0
+	if _going_to_bed:
+		_going_to_bed = false
+		GameState.complete_task("bed_luke")
+		GameState.say("LUKE", "night. if the house is on fire, that's a tomorrow problem.")
+		_go_to_sleep(false)
+		return
 	if _going_to_game:
 		_going_to_game = false
 		_start_gaming()
@@ -234,6 +266,64 @@ func _stop_gaming() -> void:
 	_game_cooldown = 40.0
 
 
+func _task_open(task_id: String) -> bool:
+	for t in GameState.tasks:
+		if String(t["id"]) == task_id and not bool(t["done"]):
+			return true
+	return false
+
+
+func _wake_up() -> void:
+	_state = State.IDLE
+	_idle_timer = 1.5
+	_sprite.rotation = 0.0
+	GameState.complete_task("wake_luke")
+	GameState.say("LUKE", "ughhh i'm UP. 6am? who even does that.")
+	_refresh_prompt()
+
+
+func _send_to_bed() -> void:
+	if _state == State.GAMING:
+		_nagged_today = true  # never got nagged; the day's over anyway
+	_drop_delegation()
+	_going_to_bed = true
+	_going_to_game = false
+	_target_x = LUKE_BED_POS.x
+	_state = State.WALK
+	GameState.say("LUKE", "fine, i'm going to bed. don't let chris eat my leftovers.")
+	_refresh_prompt()
+
+
+func _go_to_sleep(teleport: bool) -> void:
+	_state = State.SLEEPING
+	velocity = Vector2.ZERO
+	_going_to_bed = false
+	_going_to_game = false
+	_drop_delegation()
+	if teleport:
+		global_position = LUKE_BED_POS
+	# Flat on his back, out cold.
+	_sprite.rotation = PI / 2.0
+	_sprite.play(&"idle")
+	_refresh_prompt()
+
+
+func _refresh_prompt() -> void:
+	if _state == State.SLEEPING:
+		_prompt.text = "E — wake up" if _task_open("wake_luke") else "💤"
+	elif _task_open("bed_luke"):
+		_prompt.text = "E — put to bed"
+	else:
+		_prompt.text = "E — talk"
+
+
+func _drop_delegation() -> void:
+	_delegated_task_id = ""
+	_delegated_station_title = ""
+	_delegated_arrived = false
+	_delegated_work_left = 0.0
+
+
 func _remind_task_active() -> bool:
 	for t in GameState.tasks:
 		if t["id"] == String(GameState.REMIND_LUKE_TASK["id"]) and not t["done"]:
@@ -246,8 +336,10 @@ func _remind_task_active() -> bool:
 ## off the games first, THEN put him to work. That's the management loop.
 
 func is_available_for_delegation() -> bool:
-	# Busy = gaming, or already holding a delegated job (even while walking).
-	return _state != State.GAMING and _delegated_task_id == ""
+	# Busy = gaming, asleep, or already holding a delegated job (even while
+	# walking).
+	return _state != State.GAMING and _state != State.SLEEPING \
+		and _delegated_task_id == ""
 
 
 func assign_delegation(task_id: String, station_x: float, station_title: String, work_seconds: float) -> Dictionary:
@@ -304,6 +396,12 @@ func _finish_delegation() -> void:
 					"Luke did a chore!", Color(0.6, 1.0, 0.6))
 
 
+func _on_day_started(_day: int) -> void:
+	# A new day: back to bed, out cold, waiting on the 6am wake-up.
+	_nagged_today = false
+	_go_to_sleep(true)
+
+
 func _on_tasks_changed(tasks: Array) -> void:
 	# A new day clears the task list — reset the nag flag so he can game again,
 	# and drop any in-progress delegation (its task no longer exists).
@@ -320,9 +418,7 @@ func _on_tasks_changed(tasks: Array) -> void:
 			_state = State.IDLE
 			_idle_timer = 2.0
 	if _is_delegation_mode() and _delegated_task_id != "" and not delegation_alive:
-		_delegated_task_id = ""
-		_delegated_station_title = ""
-		_delegated_arrived = false
+		_drop_delegation()
 		if _state == State.DELEGATED or (_state == State.WALK and not _going_to_game):
 			_state = State.IDLE
 			_idle_timer = 2.0

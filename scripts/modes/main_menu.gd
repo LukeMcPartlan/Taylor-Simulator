@@ -207,7 +207,7 @@ func _make_how_panel() -> CanvasLayer:
 		"  read the book, doomscroll TikTok on the phone.",
 		"• CORTISOL (red): your stress. Chores relieve it — laundry,",
 		"  dishes, baby, the basement toilet from hell…",
-		"• Open tasks you ignore push cortisol UP and serotonin DOWN.",
+		"• Open tasks you ignore push cortisol UP. Hit 100 and the day ends.",
 		"",
 		"Walk to a station, press E to play its minigame.",
 		"Talk to Luke (E) for +10 joy AND +10 stress. Worth it.",

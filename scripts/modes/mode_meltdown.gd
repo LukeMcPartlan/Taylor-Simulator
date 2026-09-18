@@ -25,8 +25,8 @@ const COPING_DEFS: Array = [
 		"cost": 90.0, "mult": "neglect_speed", "factor": 0.80},
 	{"id": "gym", "name": "Gym Membership (never used)", "blurb": "Chore cortisol relief +25%",
 		"cost": 110.0, "mult": "task_relief", "factor": 1.25},
-	{"id": "therapy", "name": "Therapy Fund", "blurb": "Baseline serotonin decay -50%",
-		"cost": 120.0, "mult": "baseline_decay", "factor": 0.50},
+	{"id": "therapy", "name": "Therapy Fund", "blurb": "Cortisol gains -10%",
+		"cost": 120.0, "mult": "cortisol_gain", "factor": 0.90},
 	{"id": "whitenoise", "name": "Industrial White-Noise Fan", "blurb": "Cortisol gains -20%",
 		"cost": 160.0, "mult": "cortisol_gain", "factor": 0.80},
 ]
@@ -145,6 +145,17 @@ func day_summary_extras() -> Dictionary:
 func mean_line() -> String:
 	## Called by luke.gd when cortisol is over 70 in this mode.
 	return MEAN_LINES[randi() % MEAN_LINES.size()]
+
+
+# --- Cortisol-max intercept --------------------------------------------------
+# GameState's standard rule (100 cortisol = day ends, serotonin zeroed) asks
+# here first: meltdown mode keeps its signature meltdown instead.
+
+func intercept_cortisol_max() -> bool:
+	var gs := get_parent()
+	if gs.cortisol >= gs.METER_MAX:
+		_trigger_meltdown(gs)
+	return true
 
 
 # --- Meltdown / game over -----------------------------------------------------

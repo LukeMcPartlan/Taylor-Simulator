@@ -25,6 +25,7 @@ const GAME_SCRIPTS: Dictionary = {
 	"change_baby": "res://scripts/minigames/diaper_catch.gd",
 	"book": "res://scripts/minigames/book_focus.gd",
 	"phone": "res://scripts/minigames/phone_swipe.gd",
+	"amazon_break": "res://scripts/minigames/amazon_break.gd",
 }
 # Friendly names shown in station prompts ("Press E — Dish Tetris").
 const GAME_NAMES: Dictionary = {
@@ -38,6 +39,7 @@ const GAME_NAMES: Dictionary = {
 	"change_baby": "Diaper Catch",
 	"book": "Reading Focus",
 	"phone": "TikTok Swipe",
+	"amazon_break": "Box Breaker",
 }
 
 var _dim: ColorRect = null

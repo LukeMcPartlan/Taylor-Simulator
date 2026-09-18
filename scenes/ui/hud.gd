@@ -122,7 +122,10 @@ func _on_task_list_changed(tasks: Array) -> void:
 
 func _on_day_ended() -> void:
 	var summary: Dictionary = GameState.get_day_summary()
-	day_over_label.text = "Day %d complete" % int(summary["day"])
+	if String(summary.get("end_reason", "")) == "cortisol":
+		day_over_label.text = "Day %d cut short — cortisol maxed out!" % int(summary["day"])
+	else:
+		day_over_label.text = "Day %d complete" % int(summary["day"])
 	var stats := "Tasks: %d/%d\nAvg serotonin: %d\nRating: %s" % [
 		int(summary["tasks_done"]),
 		int(summary["tasks_total"]),

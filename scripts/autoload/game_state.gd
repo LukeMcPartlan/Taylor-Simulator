@@ -54,7 +54,7 @@ signal run_ended(title: String, stats: String, restart_kind: String)
 
 # --- Tuning (base defaults; modes override via hooks) -----------------------
 const SECONDS_PER_GAME_HOUR: float = 15.0
-const DAY_START_HOUR: float = 7.0    # 7:00 AM
+const DAY_START_HOUR: float = 6.0    # 6:00 AM — Luke needs waking at 6
 const DAY_END_HOUR: float = 23.0     # 11:00 PM
 const METER_MAX: float = 100.0  # caps CORTISOL only; serotonin is intentionally uncapped
 
@@ -83,6 +83,27 @@ const PROC_MAX_PER_DAY: int = 5
 const NEGLECT_ESCALATION_PER_HOUR: float = 0.5
 const NEGLECT_ESCALATION_MAX_MULT: float = 5.0
 
+# --- Fixed-clock tasks ----------------------------------------------------------
+# These proc at fixed clock times instead of through the random proc
+# scheduler (nobody procs "wake up Luke" at a random hour). Fired once per
+# day when the clock crosses the hour.
+const CLOCK_TASKS: Array = [
+	{"hour": 6.0, "id": "wake_luke", "label": "Wake up Luke", "relief": 12.0},
+	{"hour": 7.0, "id": "wake_chris", "label": "Wake up Chris", "relief": 12.0},
+	{"hour": 22.0, "id": "bed_luke", "label": "Put Luke to bed", "relief": 12.0},
+]
+var _clock_tasks_fired: Dictionary = {}  # task id -> day_number
+
+
+func _check_clock_tasks() -> void:
+	for def in CLOCK_TASKS:
+		var id := String(def["id"])
+		if int(_clock_tasks_fired.get(id, -1)) == day_number:
+			continue
+		if time_hours >= float(def["hour"]):
+			_clock_tasks_fired[id] = day_number
+			register_task(id, String(def["label"]), float(def["relief"]))
+
 # --- Daily bird ---------------------------------------------------------------
 # One random bird (see scripts/bird.gd; the five live in Main.tscn) is active
 # each day. Touching it is worth a flat +50 serotonin, once per day.
@@ -103,6 +124,7 @@ const TASK_DEFS: Array = [
 	{"id": "mop_kitchen", "label": "Mop the kitchen", "relief": 10.0, "day_min": 2, "max_procs": 5},
 	{"id": "take_out_trash", "label": "Take out the trash", "relief": 8.0, "day_min": 3, "max_procs": 5},
 	{"id": "microwave", "label": "Clean the microwave", "relief": 10.0, "day_min": 2, "max_procs": 5},
+	{"id": "amazon_boxes", "label": "Break down the Amazon boxes", "relief": 12.0, "day_min": 1, "max_procs": 5},
 ]
 const REMIND_LUKE_TASK: Dictionary = {
 	"id": "remind_luke", "label": "Remind Luke to get back to work", "relief": 12.0,
@@ -132,6 +154,8 @@ var bird_collected_today: bool = false
 var sim_running: bool = true
 var day_pressure_mult: float = 1.0
 var day_serotonin_integral: float = 0.0
+## Why the current day ended: "" = reached 11pm, "cortisol" = hit 100 cortisol.
+var _day_end_reason: String = ""
 ## The active mode node (null in CLASSIC). Created from ModeManager.
 var mode_hook: Node = null
 
@@ -169,6 +193,7 @@ func _process(delta: float) -> void:
 	_emit_clock_if_changed()
 
 	_update_task_procs(delta)
+	_check_clock_tasks()
 
 	var game_hours: float = delta / sec_per_hour
 	var pressure: float = 0.0
@@ -179,12 +204,18 @@ func _process(delta: float) -> void:
 	if pressure > 0.0:
 		cortisol += get_neglect_cortisol_rate() * get_cortisol_gain_mult() \
 			* day_pressure_mult * pressure * game_hours
-		serotonin -= get_neglect_serotonin_rate() * get_serotonin_drain_mult() \
-			* day_pressure_mult * pressure * game_hours
-	serotonin -= get_baseline_decay_rate() * get_serotonin_drain_mult() * game_hours
 
 	serotonin = maxf(serotonin, 0.0)  # serotonin is UNCAPPED: bank it for expensive store items
 	cortisol = clampf(cortisol, 0.0, METER_MAX)
+	# Standard rule, every mode: nothing drains serotonin any more — open
+	# tasks only ever push cortisol UP. But 100 cortisol ends the day on the
+	# spot with serotonin zeroed. (Meltdown mode intercepts this with its own
+	# sanity-lives meltdown via the intercept_cortisol_max hook.)
+	if cortisol >= METER_MAX and not _hook("intercept_cortisol_max"):
+		serotonin = 0.0
+		_day_end_reason = "cortisol"
+		_end_day()
+		return
 	day_serotonin_integral += serotonin * game_hours
 
 	_meter_emit_cooldown -= delta
@@ -522,11 +553,13 @@ func _begin_day() -> void:
 	time_hours = DAY_START_HOUR
 	serotonin = START_SEROTONIN
 	cortisol = START_CORTISOL
+	_day_end_reason = ""
 	day_pressure_mult = 1.0 + 0.15 * float(day_number - 1)
 	day_serotonin_integral = 0.0
 	_last_clock_string = ""
 	_meter_emit_cooldown = 0.0
 	tasks.clear()
+	_clock_tasks_fired.clear()
 	_reset_proc_state()
 	daily_bird_id = String(BIRD_IDS[randi_range(0, BIRD_IDS.size() - 1)])
 	bird_collected_today = false
@@ -566,6 +599,7 @@ func get_day_summary() -> Dictionary:
 		"tasks_total": tasks.size(),
 		"avg_serotonin": avg_serotonin,
 		"rating": rating,
+		"end_reason": _day_end_reason,
 	}
 	# Modes can inject extra lines (e.g. combo-mom's score).
 	var extras = _hook("day_summary_extras")

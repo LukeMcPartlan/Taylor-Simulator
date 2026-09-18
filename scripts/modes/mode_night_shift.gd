@@ -10,7 +10,7 @@ extends Node
 ##   9pm–11pm: permanent buffs bought with serotonin, plus one-day trades that
 ##   pay cortisol NOW for a buff that expires at the next morning.
 ## - Babysitter buff: baby tasks grind themselves out in the background.
-## - Sugar Rush trade: +30 serotonin now, then a 3-hour crash drain.
+## - Sugar Rush trade: +30 serotonin now, then a 3-hour cortisol crash.
 ## - Cortisol hits 100: the RUN is over (not just the day). Bests persist in
 ##   user://nightshift_save.cfg — a roguelite meta-progression.
 ##
@@ -33,7 +33,7 @@ const BUFF_DEFS: Array = [
 	{"id": "babysitter", "short": "Babysitter", "label": "Babysitter Contact",
 		"desc": "Baby tasks complete themselves over ~2 in-game hours.", "cost": 70},
 	{"id": "blanket", "short": "Blanket", "label": "Weighted Blanket",
-		"desc": "Serotonin drains 25% slower. Forever. Like a hug that judges you.", "cost": 95},
+		"desc": "Cortisol gains -10%. Forever. Like a hug that judges you.", "cost": 95},
 ]
 
 # One-day trades: pay cortisol NOW for a buff that expires at the next morning.
@@ -41,7 +41,7 @@ const TRADE_DEFS: Array = [
 	{"id": "panic_clean", "short": "Panic Clean",
 		"desc": "+25 cortisol NOW, chores 2x faster today. Regret is also 2x."},
 	{"id": "sugar_rush", "short": "Sugar Rush",
-		"desc": "+30 serotonin NOW, then a 3-hour crash (extra drain)."},
+		"desc": "+30 serotonin NOW, then a 3-hour crash (cortisol climbs)."},
 	{"id": "gremlin", "short": "Gremlin Mode",
 		"desc": "+15 cortisol NOW, fun gives 2x serotonin today. 3am energy."},
 ]
@@ -54,7 +54,7 @@ const BABYSITTER_LINES: Array = [
 	"baby's down. try not to wake it, hero",
 ]
 const SUGAR_RUSH_CRASH_HOURS: float = 3.0
-const SUGAR_RUSH_CRASH_DRAIN_PER_HOUR: float = 6.0
+const SUGAR_RUSH_CRASH_CORTISOL_PER_HOUR: float = 6.0
 
 var owned_buffs: Array = []        # buff ids, permanent across days and runs
 var active_trades: Dictionary = {} # trade id -> true, wiped every morning
@@ -88,9 +88,10 @@ func _process(delta: float) -> void:
 	if not gs.sim_running or run_over:
 		return
 	var game_hours: float = delta / GameState.get_seconds_per_game_hour()
-	# Sugar rush crash: the bill comes due for a few in-game hours.
+	# Sugar rush crash: the bill comes due for a few in-game hours — as rising
+	# cortisol, since nothing drains serotonin any more.
 	if active_trades.has("sugar_rush") and gs.time_hours < sugar_rush_crash_until:
-		gs.serotonin = maxf(gs.serotonin - SUGAR_RUSH_CRASH_DRAIN_PER_HOUR * game_hours, 0.0)
+		gs.cortisol = minf(gs.cortisol + SUGAR_RUSH_CRASH_CORTISOL_PER_HOUR * game_hours, gs.METER_MAX)
 	_update_babysitter(gs, game_hours)
 	_check_meltdown(gs)
 
@@ -116,8 +117,13 @@ func neglect_serotonin_rate() -> float:
 
 func cortisol_multiplier() -> float:
 	# All cortisol GAINS go through this (neglect pressure, Luke, trades):
-	# Headphones buff cuts them 20%.
-	return 0.8 if owned_buffs.has("headphones") else 1.0
+	# Headphones cuts them 20%, Weighted Blanket another 10%.
+	var mult := 1.0
+	if owned_buffs.has("headphones"):
+		mult *= 0.8
+	if owned_buffs.has("blanket"):
+		mult *= 0.9
+	return mult
 
 
 func minigame_speed_mult() -> float:
@@ -137,8 +143,10 @@ func fun_multiplier() -> float:
 
 
 func serotonin_drain_multiplier() -> float:
-	# Weighted blanket: all serotonin drains 25% slower.
-	return 0.75 if owned_buffs.has("blanket") else 1.0
+	# Weighted Blanket used to slow serotonin drains; nothing drains
+	# serotonin any more, so the buff now cuts cortisol gains (see
+	# cortisol_multiplier). Kept returning 1.0 so old saves behave.
+	return 1.0
 
 
 func hud_tag() -> String:

@@ -19,6 +19,7 @@ extends Node2D
 
 const STATION_SCRIPT := preload("res://scripts/station.gd")
 const LUKE_SCRIPT := preload("res://scripts/luke.gd")
+const CHRIS_SCRIPT := preload("res://scripts/chris.gd")
 
 # id / title / kind (0=chore, 1=fun, 2=store) / x / floor_y / minigame id / work
 # (Luke's delegation pace; DELEGATION mode only — his minigame runs at 2x this)
@@ -33,6 +34,7 @@ const STATION_DEFS: Array = [
 	{"id": "mop_kitchen", "title": "Mop closet", "kind": 0, "x": -1040.0, "floor_y": -96.0, "game": "mop", "work": 3.0},
 	{"id": "take_out_trash", "title": "Trash bins", "kind": 0, "x": -1350.0, "floor_y": -96.0, "game": "trash", "work": 2.5},
 	{"id": "microwave", "title": "Microwave", "kind": 0, "x": -1600.0, "floor_y": -96.0, "game": "microwave", "work": 3.0},
+	{"id": "amazon_boxes", "title": "Amazon boxes", "kind": 0, "x": -750.0, "floor_y": -96.0, "game": "amazon_break", "work": 3.0},
 	# DELEGATION mode only: the Night Store as a station (see station.gd).
 	{"id": "__store__", "title": "Night Store", "kind": 2, "x": -700.0, "floor_y": -96.0, "work": 0.0},
 ]
@@ -81,6 +83,7 @@ func _ready() -> void:
 	_spawn_stations()
 	_spawn_store()
 	_spawn_luke()
+	_spawn_chris()
 
 
 func spawn_float_text(world_pos: Vector2, text: String, color: Color) -> void:
@@ -131,5 +134,11 @@ func _spawn_store() -> void:
 
 func _spawn_luke() -> void:
 	var luke: Luke = LUKE_SCRIPT.new()
-	luke.position = Vector2(-400.0, -140.0)
+	luke.position = Vector2(-400.0, -110.0)
 	add_child(luke)
+
+
+func _spawn_chris() -> void:
+	var chris = CHRIS_SCRIPT.new()
+	chris.position = Vector2(-1700.0, -110.0)
+	add_child(chris)
