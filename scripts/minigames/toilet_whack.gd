@@ -2,13 +2,13 @@ class_name ToiletWhack
 extends Minigame
 ## Basement toilet station — "Whack-a-Leak". All 10 leaks spring up at
 ## once around the toilet; click them to plug them before they spread.
-## Plug 10 to win. An unplugged leak (3s lifetime) bursts into 2 new
-## leaks. 15+ active leaks at once = flooded = fail.
+## Win by plugging EVERY leak. Every 2s each active leak spawns one new
+## leak adjacent to itself. 15+ active leaks at once = flooded = fail.
 ##
 ## Controls: click leaks with the mouse.
 
-const WIN_PLUGGED: int = 10
-const LEAK_LIFETIME: float = 3.0
+const START_LEAKS: int = 10
+const SPAWN_INTERVAL: float = 2.0
 const FLOOD_LIMIT: int = 15
 const LEAK_RADIUS: float = 22.0
 
@@ -21,19 +21,31 @@ var _was_down: bool = false
 func start() -> void:
 	super.start()
 	title_text = "Whack-a-Leak"
-	help_text = "10 leaks at once! Click them all before they spread! Plug %d." % WIN_PLUGGED
+	help_text = "10 leaks at once! Plug EVERY leak — each one spawns a new leak every 2s!"
 	_toilet_pos = Vector2(size.x / 2.0, size.y / 2.0 + 40.0)
 	_leaks.clear()
 	_plugged = 0
-	# All ten leaks spring at once.
-	for _i in WIN_PLUGGED:
-		_leaks.append({"pos": _random_leak_pos(), "age": 0.0})
+	# All ten leaks spring at once, spawn timers staggered so the first
+	# wave doesn't land all in the same instant.
+	for _i in START_LEAKS:
+		_leaks.append({"pos": _random_leak_pos(), "age": randf_range(0.0, SPAWN_INTERVAL)})
 
 
 func _random_leak_pos() -> Vector2:
 	var ang := randf() * TAU
 	var dist := randf_range(90.0, 200.0)
 	var p := _toilet_pos + Vector2(cos(ang), sin(ang)) * dist
+	return _clamp_to_panel(p)
+
+
+## A leak spreads: one new leak right next to its parent.
+func _adjacent_leak_pos(parent: Vector2) -> Vector2:
+	var ang := randf() * TAU
+	var dist := randf_range(40.0, 70.0)
+	return _clamp_to_panel(parent + Vector2(cos(ang), sin(ang)) * dist)
+
+
+func _clamp_to_panel(p: Vector2) -> Vector2:
 	p.x = clampf(p.x, 60.0, size.x - 60.0)
 	p.y = clampf(p.y, 120.0, size.y - 60.0)
 	return p
@@ -42,16 +54,14 @@ func _random_leak_pos() -> Vector2:
 func _process(delta: float) -> void:
 	if _over:
 		return
-	# Age + spread.
+	# Age + spread: every 2s each leak births one adjacent leak.
 	var i := _leaks.size() - 1
 	while i >= 0:
 		var leak: Dictionary = _leaks[i]
 		leak["age"] = float(leak["age"]) + delta
-		if float(leak["age"]) >= LEAK_LIFETIME / _speed:
-			_leaks.remove_at(i)
-			# Burst: one neglected leak becomes two.
-			_leaks.append({"pos": _random_leak_pos(), "age": 0.0})
-			_leaks.append({"pos": _random_leak_pos(), "age": 0.0})
+		if float(leak["age"]) >= SPAWN_INTERVAL / _speed:
+			leak["age"] = 0.0
+			_leaks.append({"pos": _adjacent_leak_pos(leak["pos"]), "age": 0.0})
 		i -= 1
 	if _leaks.size() >= FLOOD_LIMIT:
 		_end(false)
@@ -75,14 +85,14 @@ func _try_plug(pos: Vector2) -> void:
 func _plug_leak(i: int) -> void:
 	_leaks.remove_at(i)
 	_plugged += 1
-	if _plugged >= WIN_PLUGGED:
+	# Win = the board is clear. No quota: every last leak must go.
+	if _leaks.is_empty():
 		_end(true)
 
 
 # --- Test hooks ----------------------------------------------------------
-func test_plug_ten() -> void:
-	for _i in WIN_PLUGGED:
-		_leaks.append({"pos": _random_leak_pos(), "age": 0.0})
+func test_plug_all() -> void:
+	while not _leaks.is_empty():
 		_plug_leak(_leaks.size() - 1)
 
 
@@ -103,11 +113,11 @@ func _draw_game() -> void:
 	# Leaks: pulsing blue blobs, redder as they age.
 	for leak in _leaks:
 		var p: Vector2 = leak["pos"]
-		var age_frac: float = clampf(float(leak["age"]) / LEAK_LIFETIME, 0.0, 1.0)
+		var age_frac: float = clampf(float(leak["age"]) / SPAWN_INTERVAL, 0.0, 1.0)
 		var col := Color(0.3, 0.6, 1.0).lerp(Color(1.0, 0.3, 0.2), age_frac)
 		var r := LEAK_RADIUS * (1.0 + 0.15 * sin(age_frac * 12.0))
 		draw_circle(p, r, col)
 		draw_arc(p, r + 6.0, 0, TAU * (1.0 - age_frac), 20, Color(1, 1, 1, 0.7), 3.0)
 	draw_string(font, Vector2(24, 120),
-		"Plugged: %d/%d   Active leaks: %d" % [_plugged, WIN_PLUGGED, _leaks.size()],
+		"Plugged: %d   Active leaks: %d" % [_plugged, _leaks.size()],
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.9, 0.9, 0.9))
