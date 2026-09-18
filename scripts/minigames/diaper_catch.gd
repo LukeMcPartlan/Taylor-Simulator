@@ -13,7 +13,7 @@ const FALL_SPEED: float = 260.0
 const PAD_W: float = 120.0
 const TIME_LIMIT: float = 60.0
 const EW_TIME: float = 0.8
-const GROSS_CHANCE: float = 0.37
+const GROSS_CHANCE: float = 0.65
 
 const GOODS: Array[String] = ["diaper", "powder", "wipe", "clothes"]
 const GOOD_LABELS := {"diaper": "Diaper", "powder": "Powder",
