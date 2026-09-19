@@ -2,13 +2,13 @@ class_name ToiletWhack
 extends Minigame
 ## Basement toilet station — "Whack-a-Leak". All 10 leaks spring up at
 ## once around the toilet; click them to plug them before they spread.
-## Win by plugging EVERY leak. Every 2s each active leak spawns one new
+## Win by plugging EVERY leak. Every 3s each active leak spawns one new
 ## leak adjacent to itself. 15+ active leaks at once = flooded = fail.
 ##
 ## Controls: click leaks with the mouse.
 
 const START_LEAKS: int = 10
-const SPAWN_INTERVAL: float = 2.0
+const SPAWN_INTERVAL: float = 3.0
 const FLOOD_LIMIT: int = 15
 const LEAK_RADIUS: float = 22.0
 
@@ -70,7 +70,7 @@ func _clamp_to_panel(p: Vector2) -> Vector2:
 func _process(delta: float) -> void:
 	if _over:
 		return
-	# Age + spread: every 2s each leak births one adjacent leak.
+	# Age + spread: every _spread_interval each leak births one adjacent leak.
 	var i := _leaks.size() - 1
 	while i >= 0:
 		var leak: Dictionary = _leaks[i]

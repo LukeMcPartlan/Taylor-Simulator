@@ -42,7 +42,7 @@ const DEFS: Array = [
 	{
 		"id": "pipes", "name": "Stronger Pipes", "kind": "gadget",
 		"tiers": [
-			{"label": "Stronger Pipes", "desc": "Whack-a-Leak spread interval 2s -> 4s.",
+			{"label": "Stronger Pipes", "desc": "Whack-a-Leak spread interval 3s -> 4s.",
 				"run_cost": 40.0, "perm_cost": 150.0, "fx": {"spread": 4.0}},
 			{"label": "Titanium Pipes", "desc": "Spread interval 6s. Leaks fear commitment now.",
 				"run_cost": 80.0, "perm_cost": 300.0, "fx": {"spread": 6.0}},
