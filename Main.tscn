@@ -13,6 +13,7 @@
 [ext_resource type="Texture2D" path="res://Birds/bird_bluejay.png" id="12_bird"]
 [ext_resource type="Texture2D" path="res://Birds/bird_pigeon.png" id="13_bird"]
 [ext_resource type="Texture2D" path="res://Birds/bird_owl.png" id="14_bird"]
+[ext_resource type="Script" path="res://scripts/killbox.gd" id="15_killbox"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_trn2v"]
 
@@ -559,6 +560,9 @@ sources/0 = SubResource("TileSetAtlasSource_r0du0")
 sources/1 = SubResource("TileSetAtlasSource_3dxm6")
 sources/2 = SubResource("TileSetAtlasSource_lgr22")
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_killbox"]
+size = Vector2(3600, 200)
+
 [node name="Main" type="Node2D" unique_id=234738594]
 
 [node name="Taylor" type="CharacterBody2D" parent="." unique_id=1330087313 groups=["player"]]
@@ -640,3 +644,48 @@ script = ExtResource("9_bird")
 bird_id = "owl"
 bird_name = "Owl"
 sprite_texture = ExtResource("14_bird")
+
+[node name="Spawns" type="Node2D" parent="World"]
+
+[node name="default" type="Marker2D" parent="World/Spawns"]
+position = Vector2(0, -115)
+
+[node name="laundry" type="Marker2D" parent="World/Spawns"]
+position = Vector2(-560, -116)
+
+[node name="dishes" type="Marker2D" parent="World/Spawns"]
+position = Vector2(-400, -116)
+
+[node name="book" type="Marker2D" parent="World/Spawns"]
+position = Vector2(-240, -116)
+
+[node name="feed_baby" type="Marker2D" parent="World/Spawns"]
+position = Vector2(-80, -116)
+
+[node name="change_baby" type="Marker2D" parent="World/Spawns"]
+position = Vector2(-880, -116)
+
+[node name="phone" type="Marker2D" parent="World/Spawns"]
+position = Vector2(-1200, -116)
+
+[node name="basement_toilet" type="Marker2D" parent="World/Spawns"]
+position = Vector2(-1760, 44)
+
+[node name="mop_kitchen" type="Marker2D" parent="World/Spawns"]
+position = Vector2(-1040, -116)
+
+[node name="take_out_trash" type="Marker2D" parent="World/Spawns"]
+position = Vector2(-1350, -116)
+
+[node name="microwave" type="Marker2D" parent="World/Spawns"]
+position = Vector2(-1600, -116)
+
+[node name="amazon_boxes" type="Marker2D" parent="World/Spawns"]
+position = Vector2(-750, -116)
+
+[node name="Killbox" type="Area2D" parent="World"]
+position = Vector2(-900, 700)
+script = ExtResource("15_killbox")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Killbox"]
+shape = SubResource("RectangleShape2D_killbox")

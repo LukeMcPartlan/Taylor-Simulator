@@ -21,6 +21,11 @@ extends Node2D
 ##     currency.
 ##   DELEGATION: a Station of Kind.STORE (see station.gd) — same spot.
 ##   CLASSIC: no store. Taylor shops nowhere. She has no time.
+##
+## Player spawn markers live in the scene (Main.tscn -> World/Spawns): one
+## Marker2D per station game plus "default". The killbox (World/Killbox,
+## scripts/killbox.gd) respawns Taylor at the nearest one if she falls off
+## the map; the day starts her on "default".
 
 const STATION_SCRIPT := preload("res://scripts/station.gd")
 const LUKE_SCRIPT := preload("res://scripts/luke.gd")
@@ -91,6 +96,19 @@ func _ready() -> void:
 	_spawn_luke()
 	_spawn_chris()
 	spawn_roomba()
+	_place_player_at_spawn()
+
+
+## Day start: put Taylor on the "default" spawn marker (her scene position
+## is the fallback if the marker is missing).
+func _place_player_at_spawn() -> void:
+	var player := get_tree().get_first_node_in_group("player")
+	var marker := get_node_or_null("Spawns/default")
+	if player == null or not (marker is Node2D):
+		return
+	(player as Node2D).global_position = (marker as Node2D).global_position
+	if player is CharacterBody2D:
+		(player as CharacterBody2D).velocity = Vector2.ZERO
 
 
 func spawn_float_text(world_pos: Vector2, text: String, color: Color) -> void:
