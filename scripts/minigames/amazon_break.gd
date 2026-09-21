@@ -1,14 +1,19 @@
 class_name AmazonBreak
 extends Minigame
-## Amazon boxes station — "Box Breaker". Brick-breaker: flatten every Amazon
-## box with the tape-gun paddle. 3 lost balls and the boxes win. 120s timer.
+## Amazon boxes station — "Box Breaker". Brick-breaker: flatten the Amazon
+## boxes with the tape-gun paddle — or thread a ball through to the gold
+## JACKPOT LINE at the back for an instant win. 3 lost balls and the boxes
+## win. 120s timer.
 ##
-## Controls: A/D or Left/Right, or just move the mouse.
+## Controls: A/D or Left/Right. The paddle stays where you leave it.
 
 const BOX_COLS: int = 7
-const BOX_ROWS: int = 4
+const BOX_ROWS: int = 2
 const BOX_SIZE := Vector2(86, 36)
+const BOX_TOP: float = 150.0
+const JACKPOT_Y: float = 112.0  # ball touches this line: instant win
 const PADDLE_W: float = 120.0
+const PADDLE_SPEED: float = 480.0
 const BALL_R: float = 9.0
 const BASE_BALL_SPEED: float = 400.0
 const TIME_LIMIT: float = 120.0
@@ -51,7 +56,7 @@ func start() -> void:
 		extra += " %s!" % String((_UPGRADE_DEFS.def("extra_ball")["tiers"] as Array)[extra_tier - 1]["label"])
 	if paddle_tier > 0:
 		extra += " %s!" % String((_UPGRADE_DEFS.def("paddle")["tiers"] as Array)[paddle_tier - 1]["label"])
-	help_text = "Break down every Amazon box! A/D or mouse. 3 missed balls = the boxes win.%s" % extra
+	help_text = "Break the boxes — or thread a ball through to the GOLD LINE for an instant win! A/D or arrows. 3 missed balls = the boxes win.%s" % extra
 	_pw = PADDLE_W * _UPGRADE_DEFS.tier_fx("paddle", paddle_tier, "width_mult", 1.0)
 	_boxes.clear()
 	_boxes_left = 0
@@ -67,7 +72,7 @@ func start() -> void:
 			_boxes_left += 1
 		_boxes.append(row)
 		_box_cols.append(crow)
-	_top = Vector2((size.x - BOX_COLS * BOX_SIZE.x) / 2.0, 100.0)
+	_top = Vector2((size.x - BOX_COLS * BOX_SIZE.x) / 2.0, BOX_TOP)
 	_paddle_x = size.x / 2.0
 	_lives = MAX_LIVES
 	_time_left = TIME_LIMIT
@@ -96,19 +101,14 @@ func _process(delta: float) -> void:
 	if _time_left <= 0.0:
 		_end(false)
 		return
-	# Paddle: keyboard, or mouse motion (whichever moved last wins).
+	# Paddle: keyboard only; it stays where you leave it (like Diaper Catch).
 	var dir: float = 0.0
 	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
 		dir -= 1.0
 	if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
 		dir += 1.0
-	if dir != 0.0:
-		_paddle_x = clampf(_paddle_x + dir * 560.0 * delta,
-			_pw / 2.0 + 16.0, size.x - _pw / 2.0 - 16.0)
-	else:
-		var mx := get_local_mouse_position().x
-		if mx > 0.0 and mx < size.x:
-			_paddle_x = clampf(mx, _pw / 2.0 + 16.0, size.x - _pw / 2.0 - 16.0)
+	_paddle_x = clampf(_paddle_x + dir * PADDLE_SPEED * delta,
+		_pw / 2.0 + 16.0, size.x - _pw / 2.0 - 16.0)
 	# Balls.
 	if _respawn_timer > 0.0:
 		_respawn_timer -= delta
@@ -117,11 +117,22 @@ func _process(delta: float) -> void:
 	else:
 		for ball in _balls.duplicate():
 			ball["pos"] = (ball["pos"] as Vector2) + (ball["vel"] as Vector2) * delta * _speed
+			if _hit_jackpot(ball):
+				continue  # instant win: the run is over
 			if _bounce_walls(ball):
 				continue  # missed the paddle: ball is gone
 			_bounce_paddle(ball)
 			_hit_boxes(ball)
 	queue_redraw()
+
+
+## The gold line at the back: touch it with the ball and the run is won.
+func _hit_jackpot(ball: Dictionary) -> bool:
+	var pos: Vector2 = ball["pos"]
+	if pos.y - BALL_R <= JACKPOT_Y:
+		_end(true)
+		return true
+	return false
 
 
 ## Returns true if the ball missed the paddle (caller skips it).
@@ -208,8 +219,22 @@ func test_timeout() -> void:
 	_end(false)
 
 
+func test_hit_jackpot() -> void:
+	# Park a ball on the jackpot line; the next _process frame wins the run.
+	if _balls.is_empty():
+		return
+	(_balls[0] as Dictionary)["pos"] = Vector2(size.x / 2.0, JACKPOT_Y)
+	(_balls[0] as Dictionary)["vel"] = Vector2.ZERO
+
+
 func _draw_game() -> void:
 	var font := ThemeDB.fallback_font
+	# Jackpot line at the back: touch it with the ball, win instantly.
+	var pulse := 0.55 + 0.45 * sin(Time.get_ticks_msec() / 180.0)
+	var gold := Color(1.0, 0.85, 0.3, pulse)
+	draw_line(Vector2(16.0, JACKPOT_Y), Vector2(size.x - 16.0, JACKPOT_Y), gold, 5.0)
+	draw_string(font, Vector2(16, JACKPOT_Y - 10), "JACKPOT LINE — touch it, win instantly",
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1.0, 0.85, 0.3))
 	# Amazon boxes: cardboard with a tape stripe.
 	for r in BOX_ROWS:
 		for c in BOX_COLS:

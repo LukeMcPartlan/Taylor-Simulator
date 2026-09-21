@@ -199,6 +199,67 @@ func _run_tests(mode_name: String) -> void:
 	_check(result2.has("ok") and not bool(result2["ok"]), "box breaker: 3 missed balls loses")
 	game2.queue_free()
 
+	# Jackpot line at the back wins the run instantly.
+	var bbscr = load("res://scripts/minigames/amazon_break.gd")
+	_check(int(bbscr.BOX_ROWS) == 2, "box breaker: 2 rows of boxes")
+	var game3 = bbscr.new()
+	game3.size = Vector2(700, 560)
+	root.add_child(game3)
+	var result3 := {}
+	game3.finished.connect(func(success: bool) -> void: result3["ok"] = success)
+	game3.start()
+	game3.test_hit_jackpot()
+	await create_timer(1.6).timeout  # banner beat, then the frame detects the line
+	_check(result3.has("ok") and bool(result3["ok"]), "box breaker: jackpot line wins instantly")
+	game3.queue_free()
+
+	# --- TikTok Swipe minigame ----------------------------------------------
+	# Any button press swipes the symbol away instantly; 10 swipes wins.
+	var phone = load("res://scripts/minigames/phone_swipe.gd").new()
+	phone.size = Vector2(700, 560)
+	root.add_child(phone)
+	var presult := {}
+	phone.finished.connect(func(success: bool) -> void: presult["ok"] = success)
+	phone.start()
+	phone.test_hit()
+	_check(int(phone.get("_hits")) == 1, "tiktok swipe: a swipe counts")
+	_check(float(phone.get("_prompt_age")) == 0.0, "tiktok swipe: swipe refreshes the symbol instantly")
+	for i in 9:
+		phone.test_hit()
+	_check(int(phone.get("_hits")) == 10, "tiktok swipe: 10 swipes counted")
+	await create_timer(1.6).timeout
+	_check(presult.has("ok") and bool(presult["ok"]), "tiktok swipe: 10 swipes wins")
+	phone.queue_free()
+
+	# --- Trash Sort minigame -------------------------------------------------
+	# Multiple items fall at once; every press sorts the bottom item.
+	var tscr = load("res://scripts/minigames/trash_sort.gd")
+	_check(int(tscr.ITEM_COUNT) == 4, "trash sort: 4 items on screen")
+	var trash = tscr.new()
+	trash.size = Vector2(700, 560)
+	root.add_child(trash)
+	var tresult := {}
+	trash.finished.connect(func(success: bool) -> void: tresult["ok"] = success)
+	trash.start()
+	_check(int((trash.get("_items") as Array).size()) == 4, "trash sort: starts with 4 items")
+	for i in 10:
+		trash.test_sort_correct()
+	_check(int(trash.get("_sorted")) == 10, "trash sort: 10 correct sorted")
+	await create_timer(1.6).timeout
+	_check(tresult.has("ok") and bool(tresult["ok"]), "trash sort: 10 correct wins")
+	trash.queue_free()
+	var trash2 = tscr.new()
+	trash2.size = Vector2(700, 560)
+	root.add_child(trash2)
+	var tresult2 := {}
+	trash2.finished.connect(func(success: bool) -> void: tresult2["ok"] = success)
+	trash2.start()
+	for i in 3:
+		trash2.test_sort_wrong()
+	await create_timer(1.6).timeout
+	_check(tresult2.has("ok") and not bool(tresult2["ok"]), "trash sort: 3 mistakes loses")
+	trash2.queue_free()
+
 	# --- 100 cortisol rule ----------------------------------------------------
 	if mode_name == "meltdown":
 		var m = gs.get("mode_hook")
