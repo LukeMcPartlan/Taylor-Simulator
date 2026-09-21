@@ -13,6 +13,8 @@ const PADDLE_W: float = 110.0
 const BALL_R: float = 10.0
 const BALL_SPEED: float = 380.0
 const TIME_LIMIT: float = 90.0
+const TEX_BALL := preload("res://placeholder art/Sprites/ball.png")
+const TEX_DIRT := preload("res://placeholder art/Sprites/dirt_spot.png")
 
 var _tiles: Array = []  # TILE_ROWS x TILE_COLS of bool (true = dirty)
 var _tiles_left: int = 0
@@ -136,16 +138,18 @@ func _draw_game() -> void:
 	for r in TILE_ROWS:
 		for c in TILE_COLS:
 			var p := _top + Vector2(c * TILE_SIZE.x, r * TILE_SIZE.y)
-			var col := Color(0.4, 0.28, 0.14) if bool(_tiles[r][c]) else Color(0.2, 0.24, 0.3)
-			draw_rect(Rect2(p + Vector2(2, 2), TILE_SIZE - Vector2(4, 4)), col)
+			var tile_rect := Rect2(p + Vector2(2, 2), TILE_SIZE - Vector2(4, 4))
+			if bool(_tiles[r][c]):
+				draw_texture_rect(TEX_DIRT, tile_rect, false)
+			else:
+				draw_rect(tile_rect, Color(0.2, 0.24, 0.3))
 	# Mop paddle.
 	var py := size.y - 70.0
 	draw_rect(Rect2(_paddle_x - PADDLE_W / 2.0, py - 6, PADDLE_W, 12), Color(0.75, 0.6, 0.35))
 	draw_rect(Rect2(_paddle_x - 8, py - 34, 16, 30), Color(0.5, 0.35, 0.2))  # handle
 	# Dirt ball.
 	if _respawn_timer <= 0.0:
-		draw_circle(_ball_pos, BALL_R, Color(0.35, 0.25, 0.15))
-		draw_arc(_ball_pos, BALL_R, 0, TAU, 16, Color(0.7, 0.55, 0.3), 2.0)
+		draw_texture(TEX_BALL, _ball_pos - TEX_BALL.get_size() / 2.0)
 	draw_string(font, Vector2(24, 120),
 		"Tiles left: %d   Time: %ds" % [_tiles_left, int(_time_left)],
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.9, 0.9, 0.9))

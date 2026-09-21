@@ -128,6 +128,7 @@ func spawn_float_text(world_pos: Vector2, text: String, color: Color) -> void:
 
 
 func _spawn_stations() -> void:
+	var spawns := get_node_or_null("Spawns")
 	for def in STATION_DEFS + extra_station_defs:
 		var kind: int = int(def["kind"])
 		# The __store__ station def only exists for DELEGATION mode.
@@ -139,8 +140,21 @@ func _spawn_stations() -> void:
 		station.kind = kind
 		station.minigame_id = String(def.get("game", ""))
 		station.work_seconds = float(def.get("work", 3.0))
-		station.position = Vector2(float(def["x"]), float(def["floor_y"]))
+		station.position = _station_spawn_pos(spawns, def)
 		add_child(station)
+
+
+## Where a station spawns: its Spawns/<id> marker in the scene if Luke moved
+## one there, otherwise the def's hardcoded x/floor_y (kept as fallback so
+## runtime-registered stations still work without a marker).
+func _station_spawn_pos(spawns: Node, def: Dictionary) -> Vector2:
+	var fallback := Vector2(float(def["x"]), float(def["floor_y"]))
+	if spawns == null:
+		return fallback
+	var marker := spawns.get_node_or_null(String(def["id"]))
+	if marker is Node2D:
+		return (marker as Node2D).global_position
+	return fallback
 
 
 func _spawn_store() -> void:

@@ -19,6 +19,9 @@ const BASE_BALL_SPEED: float = 400.0
 const TIME_LIMIT: float = 120.0
 const MAX_LIVES: int = 3
 
+const TEX_BOX := preload("res://placeholder art/Sprites/amazon_box.png")
+const TEX_BALL := preload("res://placeholder art/Sprites/ball.png")
+
 var _boxes: Array = []  # BOX_ROWS x BOX_COLS of bool (true = still boxed)
 var _boxes_left: int = 0
 var _boxes_broken: int = 0
@@ -235,16 +238,14 @@ func _draw_game() -> void:
 	draw_line(Vector2(16.0, JACKPOT_Y), Vector2(size.x - 16.0, JACKPOT_Y), gold, 5.0)
 	draw_string(font, Vector2(16, JACKPOT_Y - 10), "JACKPOT LINE — touch it, win instantly",
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1.0, 0.85, 0.3))
-	# Amazon boxes: cardboard with a tape stripe.
+	# Amazon boxes: placeholder box art stretched over each cell.
 	for r in BOX_ROWS:
 		for c in BOX_COLS:
 			var p := _top + Vector2(c * BOX_SIZE.x, r * BOX_SIZE.y)
 			var inset := Rect2(p + Vector2(2, 2), BOX_SIZE - Vector2(4, 4))
 			if bool(_boxes[r][c]):
-				draw_rect(inset, _box_cols[r][c])
-				draw_rect(Rect2(p + Vector2(BOX_SIZE.x / 2.0 - 3, 4), Vector2(6, BOX_SIZE.y - 8)),
-					Color(0.88, 0.82, 0.70))  # packing tape
-				draw_rect(inset, Color(0.35, 0.24, 0.12), false, 2.0)
+				draw_texture_rect(TEX_BOX, inset, false)
+				draw_rect(inset, _box_cols[r][c] * Color(1, 1, 1, 0.25), false, 2.0)
 			else:
 				draw_rect(inset, Color(0.16, 0.18, 0.24))
 	# Tape-gun paddle: flattened box.
@@ -256,8 +257,7 @@ func _draw_game() -> void:
 	if _respawn_timer <= 0.0:
 		for ball in _balls:
 			var bpos: Vector2 = ball["pos"]
-			draw_circle(bpos, BALL_R, Color(0.95, 0.85, 0.4))
-			draw_arc(bpos, BALL_R, 0, TAU, 16, Color(0.6, 0.5, 0.2), 2.0)
+			draw_texture(TEX_BALL, bpos - TEX_BALL.get_size() / 2.0)
 	var balls := ""
 	for i in MAX_LIVES:
 		balls += "● " if i < _lives else "○ "

@@ -11,6 +11,7 @@ const START_LEAKS: int = 10
 const SPAWN_INTERVAL: float = 3.0
 const FLOOD_LIMIT: int = 15
 const LEAK_RADIUS: float = 22.0
+const TEX_DROP := preload("res://placeholder art/Sprites/leak_drop.png")
 
 var _leaks: Array = []  # Dictionaries {pos: Vector2, age: float}
 var _plugged: int = 0
@@ -126,13 +127,14 @@ func _draw_game() -> void:
 	draw_circle(_toilet_pos + Vector2(0, -30), 44, Color(0.9, 0.92, 0.95))
 	draw_circle(_toilet_pos + Vector2(0, -30), 30, Color(0.45, 0.6, 0.7))
 	draw_rect(Rect2(_toilet_pos + Vector2(-20, 8), Vector2(40, 60)), Color(0.85, 0.87, 0.9))
-	# Leaks: pulsing blue blobs, redder as they age.
+	# Leaks: placeholder water drops, tinted redder as they age.
 	for leak in _leaks:
 		var p: Vector2 = leak["pos"]
 		var age_frac: float = clampf(float(leak["age"]) / _spread_interval, 0.0, 1.0)
-		var col := Color(0.3, 0.6, 1.0).lerp(Color(1.0, 0.3, 0.2), age_frac)
+		var col := Color(0.6, 0.85, 1.0).lerp(Color(1.0, 0.35, 0.25), age_frac)
 		var r := LEAK_RADIUS * (1.0 + 0.15 * sin(age_frac * 12.0))
-		draw_circle(p, r, col)
+		var dsize := Vector2(r * 2.0, r * 2.0 * 1.28)
+		draw_texture_rect(TEX_DROP, Rect2(p - dsize / 2.0, dsize), false, col)
 		draw_arc(p, r + 6.0, 0, TAU * (1.0 - age_frac), 20, Color(1, 1, 1, 0.7), 3.0)
 	draw_string(font, Vector2(24, 120),
 		"Plugged: %d   Active leaks: %d" % [_plugged, _leaks.size()],

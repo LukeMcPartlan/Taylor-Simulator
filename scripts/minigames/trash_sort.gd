@@ -20,6 +20,20 @@ const ITEMS: Array = [
 	["Battery", false],
 ]
 
+# item name -> placeholder sprite. Every trash-sort item has art now.
+const ITEM_TEX := {
+	"Bottle": preload("res://placeholder art/Sprites/bottle_recycle.png"),
+	"Banana peel": preload("res://placeholder art/Sprites/banana_peel.png"),
+	"Newspaper": preload("res://placeholder art/Sprites/newspaper.png"),
+	"Styrofoam": preload("res://placeholder art/Sprites/styrofoam.png"),
+	"Tin can": preload("res://placeholder art/Sprites/can_recycle.png"),
+	"Broken glass": preload("res://placeholder art/Sprites/glass_shard.png"),
+	"Cardboard": preload("res://placeholder art/Sprites/cardboard_flat.png"),
+	"Chip bag": preload("res://placeholder art/Sprites/chip_bag.png"),
+	"Milk jug": preload("res://placeholder art/Sprites/milk_jug.png"),
+	"Battery": preload("res://placeholder art/Sprites/battery.png"),
+}
+
 var _items: Array = []  # Dictionaries {id, name, recyclable, y}
 var _next_id: int = 1
 var _sorted: int = 0
@@ -156,13 +170,21 @@ func _draw_game() -> void:
 	for it in items_sorted:
 		var d := it as Dictionary
 		var iy := float(d["y"])
-		var rect := Rect2(cx - 70, iy - 22, 140, 44)
-		draw_rect(rect, Color(0.85, 0.8, 0.6))
-		var edge := Color(1.0, 0.85, 0.3) if int(d["id"]) == int(bottom.get("id", -1)) \
-			else Color(0.3, 0.25, 0.15)
-		draw_rect(rect, edge, false, 3.0 if edge == Color(1.0, 0.85, 0.3) else 2.0)
-		draw_string(font, Vector2(cx - 70, iy + 6), String(d["name"]),
-			HORIZONTAL_ALIGNMENT_CENTER, 140, 16, Color(0.15, 0.12, 0.08))
+		var tex: Texture2D = ITEM_TEX.get(String(d["name"]), null)
+		var is_bottom := int(d["id"]) == int(bottom.get("id", -1))
+		if tex != null:
+			var tpos := Vector2(cx - tex.get_width() / 2.0, iy - tex.get_height() / 2.0)
+			draw_texture(tex, tpos)
+			var edge := Color(1.0, 0.85, 0.3) if is_bottom else Color(0.3, 0.25, 0.15)
+			draw_rect(Rect2(tpos - Vector2(3, 3), tex.get_size() + Vector2(6, 6)),
+				edge, false, 3.0 if is_bottom else 2.0)
+		else:
+			var rect := Rect2(cx - 70, iy - 22, 140, 44)
+			draw_rect(rect, Color(0.85, 0.8, 0.6))
+			var edge := Color(1.0, 0.85, 0.3) if is_bottom else Color(0.3, 0.25, 0.15)
+			draw_rect(rect, edge, false, 3.0 if is_bottom else 2.0)
+		draw_string(font, Vector2(cx - 70, iy + 34), String(d["name"]),
+			HORIZONTAL_ALIGNMENT_CENTER, 140, 16, Color(0.9, 0.88, 0.8))
 	draw_string(font, Vector2(24, 120),
 		"Sorted: %d/%d   Mistakes: %d/%d" % [_sorted, WIN_SORTED, _mistakes, MAX_MISTAKES],
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.9, 0.9, 0.9))

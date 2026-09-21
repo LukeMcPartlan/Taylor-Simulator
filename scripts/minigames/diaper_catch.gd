@@ -20,6 +20,14 @@ const GOOD_LABELS := {"diaper": "Diaper", "powder": "Powder",
 	"wipe": "Wipe", "clothes": "Outfit"}
 const GROSS_KINDS: Array[String] = ["poop", "pee", "vomit"]
 
+# Placeholder item art (gross-outs stay procedurally drawn, sorry).
+const GOOD_TEX := {
+	"diaper": preload("res://placeholder art/Sprites/diaper.png"),
+	"powder": preload("res://placeholder art/Sprites/baby_powder.png"),
+	"wipe": preload("res://placeholder art/Sprites/baby_wipe.png"),
+	"clothes": preload("res://placeholder art/Sprites/baby_clothes.png"),
+}
+
 var _have := {"diaper": false, "powder": false, "wipe": false, "clothes": false}
 var _pad_x: float = 0.0
 var _items: Array = []  # Dictionaries {x, y, kind}
@@ -148,29 +156,12 @@ func _draw_game() -> void:
 	# Falling items.
 	for it in _items:
 		var p := Vector2(float(it["x"]), float(it["y"]))
-		match String(it["kind"]):
-			"diaper":
-				draw_rect(Rect2(p - Vector2(16, 12), Vector2(32, 24)), Color(1, 1, 1))
-				draw_rect(Rect2(p - Vector2(16, 12), Vector2(32, 24)), Color(0.6, 0.6, 0.7), false, 2.0)
-			"powder":
-				# Baby powder bottle.
-				draw_rect(Rect2(p - Vector2(10, 2), Vector2(20, 26)), Color(0.88, 0.82, 0.96))
-				draw_rect(Rect2(p - Vector2(10, 2), Vector2(20, 26)), Color(0.55, 0.45, 0.7), false, 2.0)
-				draw_rect(Rect2(p - Vector2(7, -10), Vector2(14, 8)), Color(0.55, 0.45, 0.7))
-				draw_circle(p + Vector2(0, 12), 3, Color(1, 1, 1))
-			"wipe":
-				# Wipe packet with dispenser opening.
-				draw_rect(Rect2(p - Vector2(17, 11), Vector2(34, 22)), Color(0.55, 0.78, 1.0))
-				draw_rect(Rect2(p - Vector2(17, 11), Vector2(34, 22)), Color(0.3, 0.5, 0.8), false, 2.0)
-				draw_circle(p, 7, Color(1, 1, 1))
-				draw_circle(p, 4, Color(0.75, 0.88, 1.0))
-			"clothes":
-				# A little onesie.
-				draw_rect(Rect2(p - Vector2(11, -13), Vector2(22, 26)), Color(0.65, 0.88, 0.65))
-				draw_rect(Rect2(p - Vector2(19, -13), Vector2(8, 10)), Color(0.6, 0.82, 0.6))
-				draw_rect(Rect2(p + Vector2(11, -13), Vector2(8, 10)), Color(0.6, 0.82, 0.6))
-				for s in 3:
-					draw_circle(p + Vector2(-6 + s * 6, 9), 1.8, Color(0.4, 0.6, 0.4))
+		var kind := String(it["kind"])
+		if GOOD_TEX.has(kind):
+			var tex: Texture2D = GOOD_TEX[kind]
+			draw_texture(tex, p - tex.get_size() / 2.0)
+			continue
+		match kind:
 			"poop":
 				# A modest little pile, in browns.
 				draw_circle(p + Vector2(0, 6), 13, Color(0.35, 0.22, 0.1))

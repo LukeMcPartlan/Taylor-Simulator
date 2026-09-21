@@ -15,6 +15,12 @@ const SHOT_COLORS: Array[Color] = [
 	Color(0.95, 0.6, 0.65), Color(0.55, 0.75, 0.95), Color(0.95, 0.85, 0.45),
 	Color(0.6, 0.9, 0.6), Color(0.9, 0.9, 0.95),
 ]
+const TEX_BASKET := preload("res://placeholder art/Sprites/laundry_basket.png")
+const GARMENT_TEX: Array[Texture2D] = [
+	preload("res://placeholder art/Sprites/garment_shirt.png"),
+	preload("res://placeholder art/Sprites/garment_pants.png"),
+	preload("res://placeholder art/Sprites/garment_sock.png"),
+]
 
 var _baskets: int = 0
 var _charging: bool = false
@@ -96,7 +102,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		var angle := deg_to_rad(-55.0)
 		var vel := Vector2(cos(angle), sin(angle)) * (280.0 + _power)
 		_power = 0.0
-		_shots.append({"pos": _throw_origin, "vel": vel, "col": _next_color()})
+		_shots.append({"pos": _throw_origin, "vel": vel, "col": _next_color(),
+			"gi": _throws % GARMENT_TEX.size()})
 		_throws += 1
 
 
@@ -120,18 +127,22 @@ func test_throw(power: float = 500.0) -> void:
 	_unhandled_input(ev)
 
 
+func _draw_garment(p: Vector2, gi: int, col: Color) -> void:
+	## Placeholder garment art, tinted the shot's color.
+	var tex: Texture2D = GARMENT_TEX[gi % GARMENT_TEX.size()]
+	draw_texture(tex, p - tex.get_size() / 2.0, col)
+
+
 func _draw_game() -> void:
 	var font := ThemeDB.fallback_font
-	# Hamper: brown basket with a rim.
-	draw_rect(_hamper.grow(6), Color(0.3, 0.2, 0.12))
-	draw_rect(_hamper, Color(0.55, 0.38, 0.2))
-	draw_rect(Rect2(_hamper.position, Vector2(_hamper.size.x, 14)), Color(0.42, 0.28, 0.14))
+	# Hamper: placeholder basket art stretched over the (possibly upgraded) rect.
+	draw_texture_rect(TEX_BASKET, _hamper, false)
 	# Taylor-ish thrower marker.
 	draw_circle(_throw_origin, 16, Color(0.5, 0.7, 1.0))
 	# Ready garment (next color up) + every flying shot.
-	draw_circle(_throw_origin + Vector2(0, -26), 12, _next_color())
+	_draw_garment(_throw_origin + Vector2(0, -26), _throws % GARMENT_TEX.size(), _next_color())
 	for s in _shots:
-		draw_circle(s["pos"], 12, s["col"])
+		_draw_garment(s["pos"], int(s["gi"]), s["col"])
 	# Charge meter.
 	if _charging:
 		var frac := _power / MAX_POWER

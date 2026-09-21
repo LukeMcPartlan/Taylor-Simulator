@@ -6,6 +6,7 @@ extends Area2D
 const CORTISOL_RELIEF: float = 2.0
 
 var _t: float = 0.0
+var _spr: Sprite2D
 
 
 func _ready() -> void:
@@ -15,21 +16,17 @@ func _ready() -> void:
 	circle.radius = 16.0
 	shape.shape = circle
 	add_child(shape)
+	var spr := Sprite2D.new()
+	spr.texture = load("res://placeholder art/Sprites/garbage_ball.png")
+	add_child(spr)
+	_spr = spr
 	body_entered.connect(_on_body_entered)
 
 
 func _process(delta: float) -> void:
 	_t += delta
-	queue_redraw()
-
-
-func _draw() -> void:
 	# Crumpled paper ball, slightly wobbling.
-	var wobble := sin(_t * 3.0) * 1.5
-	draw_circle(Vector2(0, wobble), 9.0, Color(0.72, 0.72, 0.69))
-	draw_circle(Vector2(-5, wobble + 2), 6.0, Color(0.62, 0.62, 0.59))
-	draw_circle(Vector2(5, wobble - 1), 5.0, Color(0.80, 0.80, 0.77))
-	draw_circle(Vector2(1, wobble + 4), 3.0, Color(0.55, 0.55, 0.52))
+	_spr.position.y = sin(_t * 3.0) * 1.5
 
 
 func vacuum() -> void:

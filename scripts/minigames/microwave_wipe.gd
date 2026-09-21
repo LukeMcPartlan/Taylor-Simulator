@@ -10,6 +10,8 @@ const GRID_H: int = 10
 const BRUSH_RADIUS: float = 34.0
 const WIN_FRACTION: float = 0.9
 const TIME_LIMIT: float = 45.0
+const TEX_DIRT := preload("res://placeholder art/Sprites/dirt_spot.png")
+const TEX_SPONGE := preload("res://placeholder art/Sprites/sponge.png")
 
 var _dirty: Array = []   # GRID_H x GRID_W of bool
 var _dirty_count: int = 0
@@ -116,14 +118,15 @@ func _draw_game() -> void:
 		for j in 3:
 			draw_rect(Rect2(pad.position + Vector2(14 + j * 34, 20 + i * 44), Vector2(24, 32)),
 				Color(0.6, 0.62, 0.68))
-	# Grime layer: brown splotches over the still-dirty cells.
+	# Grime layer: placeholder dirt splotches over the still-dirty cells.
 	var cell := Vector2(_rect.size.x / GRID_W, _rect.size.y / GRID_H)
 	for r in GRID_H:
 		for c in GRID_W:
 			if bool(_dirty[r][c]):
 				var center := _rect.position + Vector2((c + 0.5) * cell.x, (r + 0.5) * cell.y)
 				var radius := minf(cell.x, cell.y) * (0.42 + 0.08 * float((r * 7 + c * 13) % 5) / 4.0)
-				draw_circle(center, radius, Color(0.32, 0.22, 0.12, 0.92))
+				var dsize := Vector2(radius * 2.0, radius * 2.0)
+				draw_texture_rect(TEX_DIRT, Rect2(center - dsize / 2.0, dsize), false)
 	# Progress + timer.
 	var frac := _clean_fraction()
 	draw_rect(Rect2(20, size.y - 46, (size.x - 40) * frac, 20), Color(0.45, 0.9, 0.5))
@@ -131,7 +134,9 @@ func _draw_game() -> void:
 	draw_string(font, Vector2(20, size.y - 56),
 		"Clean: %d%%   Time: %ds" % [int(frac * 100.0), int(_time_left)],
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.9, 0.9, 0.9))
-	# Brush cursor.
+	# Sponge cursor.
+	var mpos := get_local_mouse_position()
+	draw_texture(TEX_SPONGE, mpos - TEX_SPONGE.get_size() / 2.0)
 	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-		draw_arc(get_local_mouse_position(), _brush_radius, 0, TAU, 24,
+		draw_arc(mpos, _brush_radius, 0, TAU, 24,
 			Color(1, 1, 1, 0.6), 2.0)

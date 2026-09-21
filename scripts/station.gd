@@ -45,13 +45,29 @@ const STORE_COLOR := Color(0.25, 0.45, 0.75)
 const DIMMED := Color(0.4, 0.4, 0.4)
 const DELEGATED_TINT := Color(1.0, 0.72, 0.35)
 
+## Placeholder furniture art per station. The station spawns on its
+## Spawns/<station_id> marker; the sprite sits on the floor there.
+const STATION_SPRITES := {
+	"laundry": "res://placeholder art/Furniture/washer.png",
+	"dishes": "res://placeholder art/Furniture/sink.png",
+	"book": "res://placeholder art/Furniture/bookshelf.png",
+	"feed_baby": "res://placeholder art/Furniture/high_chair.png",
+	"change_baby": "res://placeholder art/Furniture/changing_table.png",
+	"phone": "res://placeholder art/Furniture/phone.png",
+	"basement_toilet": "res://placeholder art/Furniture/toilet.png",
+	"mop_kitchen": "res://placeholder art/Furniture/mop_bucket.png",
+	"take_out_trash": "res://placeholder art/Furniture/trash_can.png",
+	"microwave": "res://placeholder art/Furniture/microwave.png",
+	"amazon_boxes": "res://placeholder art/Furniture/box_stack.png",
+}
+
 var _player_inside: bool = false
 # Fix-up flow only (DELEGATION): hold-E to repair Luke's mess (2s).
 var _fixing: bool = false
 var _fix_progress: float = 0.0
 var _cooldown_left: float = 0.0
 
-var _marker: ColorRect
+var _visual: CanvasItem  # Sprite2D when placeholder art exists, else the ColorRect
 var _title_label: Label
 var _prompt: Label
 var _bar: ProgressBar
@@ -79,21 +95,38 @@ func _ready() -> void:
 	shape.shape = circle
 	add_child(shape)
 
-	_marker = ColorRect.new()
-	_marker.size = Vector2(72, 52)
-	_marker.position = Vector2(-36, -52)
-	match kind:
-		Kind.CHORE:
-			_marker.color = CHORE_COLOR
-		Kind.FUN:
-			_marker.color = FUN_COLOR
-		Kind.STORE:
-			_marker.color = STORE_COLOR
-			_marker.size = Vector2(96, 64)
-			_marker.position = Vector2(-48, -64)
-	add_child(_marker)
+	var tex: Texture2D = null
+	if STATION_SPRITES.has(station_id):
+		tex = load(STATION_SPRITES[station_id])
+	var title_y := -104.0
+	var prompt_y := -140.0
+	if tex != null:
+		# Placeholder furniture art: bottom of the sprite sits on the floor.
+		var spr := Sprite2D.new()
+		spr.texture = tex
+		spr.position = Vector2(0, -tex.get_height() / 2.0)
+		add_child(spr)
+		_visual = spr
+		title_y = -(tex.get_height() + 36.0)
+		prompt_y = title_y - 34.0
+	else:
+		# No art for this station (e.g. the STORE): the old colored box.
+		var rect := ColorRect.new()
+		rect.size = Vector2(72, 52)
+		rect.position = Vector2(-36, -52)
+		match kind:
+			Kind.CHORE:
+				rect.color = CHORE_COLOR
+			Kind.FUN:
+				rect.color = FUN_COLOR
+			Kind.STORE:
+				rect.color = STORE_COLOR
+				rect.size = Vector2(96, 64)
+				rect.position = Vector2(-48, -64)
+		add_child(rect)
+		_visual = rect
 
-	_title_label = _make_label(title, Vector2(-70, -104), Vector2(140, 24), 18)
+	_title_label = _make_label(title, Vector2(-70, title_y), Vector2(140, 24), 18)
 	add_child(_title_label)
 
 	# Prompt names the minigame so players learn which game each station runs.
@@ -102,7 +135,7 @@ func _ready() -> void:
 		_build_shop()
 	else:
 		var game_name := MinigameLauncher.display_name(minigame_id)
-		_prompt = _make_label("E: " + game_name, Vector2(-90, -140), Vector2(180, 24), 16)
+		_prompt = _make_label("E: " + game_name, Vector2(-90, prompt_y), Vector2(180, 24), 16)
 	_prompt.modulate = Color(1, 1, 0.6)
 	_prompt.hide()
 	add_child(_prompt)
@@ -433,24 +466,30 @@ func _refresh_from_tasks() -> void:
 	if kind != Kind.CHORE:
 		return
 	var d := _del()
+	# State language: open = full color, done = dimmed gray, delegated =
+	# orange, robot-covered = blue. ColorRects get a base color + modulate;
+	# sprites bake their color in, so the state rides on modulate alone.
+	var base := CHORE_COLOR
+	var mod := Color(1, 1, 1)
 	if GameState.minigames_always_open():
 		# PRACTICE mode: every minigame is open — stations never dim.
-		_marker.color = CHORE_COLOR
-		_marker.modulate = Color(1, 1, 1)
+		pass
 	elif d != null and d.has_method("is_auto_covered") and bool(d.is_auto_covered(station_id)):
 		# A bought upgrade handles this chore: dim it blue, robots at work.
-		_marker.color = CHORE_COLOR
-		_marker.modulate = Color(0.55, 0.7, 1.0)
+		mod = Color(0.55, 0.7, 1.0)
 	elif _own_task_open():
-		_marker.color = CHORE_COLOR
 		# Delegated chores glow orange — that's Luke's problem now.
-		_marker.modulate = DELEGATED_TINT if _own_task_delegated() else Color(1, 1, 1)
+		mod = DELEGATED_TINT if _own_task_delegated() else Color(1, 1, 1)
 	else:
 		# Done (or not registered today): dim the furniture.
-		_marker.color = DIMMED
-		_marker.modulate = Color(1, 1, 1)
+		base = DIMMED
 		_fixing = false
 		_bar.hide()
+	if _visual is ColorRect:
+		(_visual as ColorRect).color = base
+	elif base == DIMMED:
+		mod = Color(0.45, 0.45, 0.45)
+	_visual.modulate = mod
 	_update_prompt()
 
 
