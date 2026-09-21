@@ -184,6 +184,11 @@ func _on_chore_e_pressed(d: Node) -> void:
 	## chore only). If her own chore is done/delegated but Luke broke
 	## something (DELEGATION), E starts the hold-E repair instead. A chore
 	## delegated to Luke is HIS job — no double-dipping.
+	## PRACTICE mode: every minigame is open, task or no task.
+	if GameState.minigames_always_open():
+		if minigame_id != "":
+			MinigameLauncher.open(minigame_id, _on_minigame_done)
+		return
 	if _own_task_open() and not _own_task_delegated():
 		if minigame_id != "":
 			MinigameLauncher.open(minigame_id, _on_minigame_done)
@@ -428,7 +433,11 @@ func _refresh_from_tasks() -> void:
 	if kind != Kind.CHORE:
 		return
 	var d := _del()
-	if d != null and d.has_method("is_auto_covered") and bool(d.is_auto_covered(station_id)):
+	if GameState.minigames_always_open():
+		# PRACTICE mode: every minigame is open — stations never dim.
+		_marker.color = CHORE_COLOR
+		_marker.modulate = Color(1, 1, 1)
+	elif d != null and d.has_method("is_auto_covered") and bool(d.is_auto_covered(station_id)):
 		# A bought upgrade handles this chore: dim it blue, robots at work.
 		_marker.color = CHORE_COLOR
 		_marker.modulate = Color(0.55, 0.7, 1.0)
@@ -465,6 +474,11 @@ func _update_prompt() -> void:
 	elif d != null and d.has_method("is_auto_covered") and bool(d.is_auto_covered(station_id)):
 		_prompt.text = "🤖 AUTO — robots have it"
 		_prompt.modulate = Color(0.55, 0.75, 1.0)
+		_prompt.show()
+	elif GameState.minigames_always_open():
+		# PRACTICE: no task needed — the minigame is just open.
+		_prompt.text = "E — %s" % MinigameLauncher.display_name(minigame_id)
+		_prompt.modulate = Color(1, 1, 0.6)
 		_prompt.show()
 	elif _own_task_open():
 		if _own_task_delegated():

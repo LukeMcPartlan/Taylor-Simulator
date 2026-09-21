@@ -5,8 +5,9 @@ extends Area2D
 ##
 ## Each day GameState picks one bird_id as the daily bird; only that bird is
 ## active (visible + touchable). Touching it (walk into it) calls
-## GameState.collect_daily_bird(): +50 serotonin, once per day. The bird then
-## does a little fly-away tween.
+## GameState.collect_bird(): +50 serotonin, once per day. The bird then
+## does a little fly-away tween. In PRACTICE mode all five birds are active
+## every day instead (see GameState.all_birds_daily).
 ##
 ## Exported knobs (per-bird, set in the editor):
 ##   bird_id: String         must be unique; the daily pick is one of these
@@ -62,8 +63,7 @@ func _on_day_started(_day: int) -> void:
 
 
 func _update_for_day() -> void:
-	_active_today = GameState.daily_bird_id == bird_id \
-		and not GameState.bird_collected_today
+	_active_today = GameState.bird_active_today(bird_id)
 	visible = _active_today
 	# Deferred: this can run inside signal callbacks (day_started,
 	# body_entered), where flipping monitoring directly is blocked.
@@ -78,7 +78,7 @@ func _on_body_entered(body: Node2D) -> void:
 		return
 	if not body.is_in_group("player"):
 		return
-	if not GameState.collect_daily_bird(reward_serotonin):
+	if not GameState.collect_bird(bird_id, reward_serotonin):
 		return
 	_active_today = false
 	var world := get_parent()

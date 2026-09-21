@@ -1,5 +1,7 @@
 extends Control
-## Main menu: pick one of the 5 Taylor Simulator game modes.
+## Main menu: pick one of the 6 Taylor Simulator game modes. PRACTICE is the
+## front door (always unlocked); CLASSIC is bought in the practice laptop
+## store; every other mode is locked for now.
 ##
 ## Built in code (like the rest of the project's UI): title, five selectable
 ## mode cards with best-stat lines read from each mode's save file, keyboard
@@ -109,9 +111,11 @@ func _build() -> void:
 
 func _make_card(card_def: Dictionary) -> PanelContainer:
 	var mode: int = int(card_def["mode"])
+	var locked := not GameState.is_mode_unlocked(mode)
 	var panel := PanelContainer.new()
+	panel.set_meta("locked", locked)
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.16, 0.13, 0.24)
+	style.bg_color = Color(0.16, 0.13, 0.24) if not locked else Color(0.10, 0.09, 0.14)
 	style.border_color = Color(0.35, 0.3, 0.5)
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(8)
@@ -126,32 +130,39 @@ func _make_card(card_def: Dictionary) -> PanelContainer:
 	panel.add_child(vbox)
 
 	var name_label := Label.new()
-	name_label.text = String(card_def["name"])
+	name_label.text = ("🔒 " if locked else "") + String(card_def["name"])
 	name_label.add_theme_font_override("font", PIXEL_FONT)
 	name_label.add_theme_font_size_override("font_size", 16)
-	name_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.55))
+	name_label.add_theme_color_override("font_color",
+		Color(1.0, 0.9, 0.55) if not locked else Color(0.55, 0.5, 0.6))
 	vbox.add_child(name_label)
 
 	var desc := Label.new()
-	desc.text = String(card_def["desc"])
+	if locked and card_def.has("locked_desc"):
+		desc.text = String(card_def["locked_desc"])
+	else:
+		desc.text = String(card_def["desc"])
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.add_theme_font_override("font", PIXEL_FONT)
 	desc.add_theme_font_size_override("font_size", 10)
-	desc.add_theme_color_override("font_color", Color(0.85, 0.82, 0.92))
+	desc.add_theme_color_override("font_color",
+		Color(0.85, 0.82, 0.92) if not locked else Color(0.55, 0.52, 0.6))
 	vbox.add_child(desc)
 
 	var best := Label.new()
-	best.text = _best_stat_line(mode)
+	best.text = _best_stat_line(mode) if not locked else ""
 	best.add_theme_font_override("font", PIXEL_FONT)
 	best.add_theme_font_size_override("font_size", 10)
 	best.add_theme_color_override("font_color", Color(0.55, 0.9, 0.6))
 	vbox.add_child(best)
 
-	# Mouse: hover selects, click starts. gui_input is the Control-level
-	# callback for mouse events on this panel.
-	panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	panel.gui_input.connect(_on_card_gui_input.bind(mode))
-	panel.mouse_entered.connect(_on_card_hover.bind(mode))
+	# Mouse: hover selects, click starts. Locked cards don't respond.
+	if not locked:
+		panel.mouse_filter = Control.MOUSE_FILTER_STOP
+		panel.gui_input.connect(_on_card_gui_input.bind(mode))
+		panel.mouse_entered.connect(_on_card_hover.bind(mode))
+	else:
+		panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return panel
 
 
@@ -159,6 +170,8 @@ func _best_stat_line(mode: int) -> String:
 	## Reads each mode's own save file for a best-stat line. Modes never
 	## share save files, so one mode's progress can't clobber another's.
 	match mode:
+		ModeManager.Mode.PRACTICE:
+			return "All minigames open · zero cortisol · all 5 birds daily"
 		ModeManager.Mode.NIGHT_SHIFT:
 			var cfg := ConfigFile.new()
 			if cfg.load("user://nightshift_save.cfg") == OK:
@@ -232,6 +245,10 @@ func _make_how_panel() -> CanvasLayer:
 		"Walk to a station, press E to play its minigame.",
 		"Talk to Luke (E) for +10 joy AND +10 stress. Worth it.",
 		"",
+		"🌱 New? Start in PRACTICE: zero cortisol, every minigame open,",
+		"all 5 birds daily. Work the laptop for dollars, then buy",
+		"CLASSIC mode ($60) on the 🔓 UNLOCK tab.",
+		"",
 		"Press H or Esc to close this.",
 	]
 	for line in lines:
@@ -273,9 +290,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 		match k:
 			KEY_UP, KEY_W:
-				_select((_selected - 1 + _cards.size()) % _cards.size())
+				_select(_next_unlocked(_selected, -1))
 			KEY_DOWN, KEY_S:
-				_select((_selected + 1) % _cards.size())
+				_select(_next_unlocked(_selected, 1))
 			KEY_ENTER, KEY_KP_ENTER, KEY_SPACE:
 				if _how_visible:
 					_toggle_how()
@@ -295,13 +312,24 @@ func _select(i: int) -> void:
 	for j in _cards.size():
 		var panel: PanelContainer = _cards[j]
 		var style: StyleBoxFlat = panel.get_theme_stylebox("panel").duplicate()
+		var locked: bool = bool(panel.get_meta("locked", false))
 		if j == i:
-			style.border_color = Color(1.0, 0.8, 0.3)
-			style.bg_color = Color(0.22, 0.17, 0.32)
+			style.border_color = Color(1.0, 0.8, 0.3) if not locked else Color(0.4, 0.35, 0.45)
+			style.bg_color = Color(0.22, 0.17, 0.32) if not locked else Color(0.12, 0.10, 0.16)
 		else:
 			style.border_color = Color(0.35, 0.3, 0.5)
-			style.bg_color = Color(0.16, 0.13, 0.24)
+			style.bg_color = Color(0.16, 0.13, 0.24) if not locked else Color(0.10, 0.09, 0.14)
 		panel.add_theme_stylebox_override("panel", style)
+
+
+func _next_unlocked(from: int, dir: int) -> int:
+	## Keyboard nav skips locked cards — you can't even land on them.
+	var i := from
+	for n in _cards.size():
+		i = (i + dir + _cards.size()) % _cards.size()
+		if not bool((_cards[i] as PanelContainer).get_meta("locked", false)):
+			return i
+	return from
 
 
 func _toggle_how() -> void:
@@ -441,6 +469,10 @@ func _refresh_bank() -> void:
 
 
 func _start_mode(mode: int) -> void:
+	# Locked modes can't start, belt and suspenders (cards already ignore
+	# input and keyboard nav skips them).
+	if not GameState.is_mode_unlocked(mode):
+		return
 	ModeManager.set_mode(mode)
 	# GameState (autoload) already ran _ready() at startup in CLASSIC mode.
 	# Rebuild its mode node for the chosen mode, then reset the sim so day 1

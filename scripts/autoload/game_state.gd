@@ -2,7 +2,7 @@ extends Node
 ## Taylor Simulator (UNIFIED) — global simulation state (Autoload singleton).
 ##
 ## This is the base day-loop sim (meters, clock, tasks) PLUS a mode-hook
-## system: each of the 5 game modes is a "mode node" (see scripts/modes/)
+## system: each of the 6 game modes is a "mode node" (see scripts/modes/)
 ## created by ModeManager. GameState asks the mode node for tuning values
 ## through small hook methods; when no mode is active (CLASSIC) the base
 ## defaults apply, so this file behaves exactly like the original base game.
@@ -14,6 +14,10 @@ extends Node
 ##   neglect_serotonin_rate() -> float     default 3.0
 ##   baseline_decay_rate() -> float        default 1.0
 ##   cortisol_gain_mult() -> float         default 1.0
+##   start_cortisol() -> float             default START_CORTISOL (practice: 0)
+##   all_birds_daily() -> bool             default false (practice: all 5)
+##   minigames_always_open() -> bool       default false (practice: stations
+##     always playable, never dim)
 ##   minigame_speed_mult() -> float        default 1.0
 ##   minigame_fail_cortisol() -> float     default 0.0
 ##   minigame_fail_text() -> String        default "Failed! Press E to retry."
@@ -143,6 +147,27 @@ var savings: float = 0.0
 ## savings in the main-menu shop. In-run tiers stack via upgrade_tier().
 var permanent_upgrades: Dictionary = {}
 const SAVINGS_PATH := "user://taylor_savings.cfg"
+## Mode unlocks: PRACTICE is always open; CLASSIC is bought with dollars at
+## the practice laptop; every other mode is locked for now. Persisted in the
+## bank file alongside savings.
+var unlocked_modes: Array = []
+
+
+## PRACTICE is the front door (always unlocked). CLASSIC unlocks once bought
+## in the practice store. Everything else is locked for now.
+func is_mode_unlocked(mode: int) -> bool:
+	if mode == ModeManager.Mode.PRACTICE:
+		return true
+	if mode == ModeManager.Mode.CLASSIC:
+		return mode in unlocked_modes
+	return false
+
+
+func unlock_mode(mode: int) -> void:
+	if mode in unlocked_modes:
+		return
+	unlocked_modes.append(mode)
+	save_bank()
 ## Base serotonin cap. Collectible upgrades (raquaza, kh_boxset) raise it.
 const BASE_SEROTONIN_CAP := 200.0
 const _UPGRADE_DEFS = preload("res://scripts/upgrade_defs.gd")
@@ -271,6 +296,19 @@ func get_baseline_decay_rate() -> float:
 func get_cortisol_gain_mult() -> float:
 	var v = _hook("cortisol_multiplier")
 	return float(v) if v != null else 1.0
+
+
+func get_start_cortisol() -> float:
+	## Practice mode starts the day at 0 cortisol instead of START_CORTISOL.
+	var v = _hook("start_cortisol")
+	return float(v) if v != null else START_CORTISOL
+
+
+func minigames_always_open() -> bool:
+	## Practice mode: every station's minigame is playable on E, no open
+	## task required.
+	var v = _hook("minigames_always_open")
+	return v is bool and bool(v)
 
 
 func get_last_award() -> Dictionary:
@@ -600,6 +638,7 @@ func save_bank() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("bank", "savings", savings)
 	cfg.set_value("bank", "permanent_upgrades", permanent_upgrades)
+	cfg.set_value("unlocks", "modes", unlocked_modes)
 	cfg.save(SAVINGS_PATH)
 
 
@@ -611,6 +650,9 @@ func load_bank() -> void:
 	var p: Variant = cfg.get_value("bank", "permanent_upgrades", {})
 	if p is Dictionary:
 		permanent_upgrades = p
+	var m: Variant = cfg.get_value("unlocks", "modes", [])
+	if m is Array:
+		unlocked_modes = m
 
 
 ## Daily bird: touch the active bird for a flat serotonin reward, once per
@@ -622,6 +664,33 @@ func collect_daily_bird(amount: float = BIRD_REWARD_SEROTONIN) -> bool:
 	bird_collected_today = true
 	add_serotonin(amount)
 	return true
+
+
+## Practice mode: ALL FIVE birds are out every day, each touchable once
+## (+50 serotonin each). Tracked separately from the single daily bird.
+var birds_collected_today: Array = []
+
+
+func all_birds_daily() -> bool:
+	var v = _hook("all_birds_daily")
+	return v is bool and bool(v)
+
+
+func bird_active_today(bird_id: String) -> bool:
+	if all_birds_daily():
+		return not (bird_id in birds_collected_today)
+	return daily_bird_id == bird_id and not bird_collected_today
+
+
+func collect_bird(bird_id: String, amount: float = BIRD_REWARD_SEROTONIN) -> bool:
+	## Route a bird touch through the right daily rule for the active mode.
+	if all_birds_daily():
+		if bird_id in birds_collected_today:
+			return false
+		birds_collected_today.append(bird_id)
+		add_serotonin(amount)
+		return true
+	return collect_daily_bird(amount)
 
 
 func interact_luke() -> void:
@@ -653,7 +722,7 @@ func start_new_day() -> void:
 func _begin_day() -> void:
 	time_hours = DAY_START_HOUR
 	serotonin = START_SEROTONIN
-	cortisol = START_CORTISOL
+	cortisol = get_start_cortisol()
 	_day_end_reason = ""
 	day_pressure_mult = 1.0 + 0.15 * float(day_number - 1)
 	day_serotonin_integral = 0.0
@@ -664,6 +733,7 @@ func _begin_day() -> void:
 	_reset_proc_state()
 	daily_bird_id = String(BIRD_IDS[randi_range(0, BIRD_IDS.size() - 1)])
 	bird_collected_today = false
+	birds_collected_today.clear()
 	sim_running = true
 	set_process(true)
 	clock_changed.emit(get_time_string())

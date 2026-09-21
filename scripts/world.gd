@@ -14,8 +14,11 @@ extends Node2D
 ## Night stores (one per mode, x=-700 on the ground floor):
 ##   NIGHT_SHIFT: Taylor's laptop — WORK emails for dollars + AMAZON store,
 ##     open any time (scripts/modes/store_night_shift.gd).
-##   NIGHT_SHIFT / MELTDOWN / COMBO_MOM: a walk-up Area2D kiosk script
-##     (scripts/modes/store_*.gd), each with its own inventory and currency.
+##   PRACTICE: the same laptop hardware, but the shop tab sells exactly one
+##     thing — CLASSIC MODE ($60). WORK tab still turns serotonin to dollars.
+##   NIGHT_SHIFT / MELTDOWN / COMBO_MOM / PRACTICE: a walk-up Area2D kiosk
+##     script (scripts/modes/store_*.gd), each with its own inventory and
+##     currency.
 ##   DELEGATION: a Station of Kind.STORE (see station.gd) — same spot.
 ##   CLASSIC: no store. Taylor shops nowhere. She has no time.
 
@@ -72,6 +75,7 @@ const STORE_SCRIPTS: Dictionary = {
 	1: "res://scripts/modes/store_night_shift.gd",  # Mode.NIGHT_SHIFT
 	2: "res://scripts/modes/store_meltdown.gd",     # Mode.MELTDOWN
 	4: "res://scripts/modes/store_combo_mom.gd",    # Mode.COMBO_MOM
+	5: "res://scripts/modes/store_practice.gd",     # Mode.PRACTICE
 }
 const STORE_POS := Vector2(-700.0, -96.0)
 
