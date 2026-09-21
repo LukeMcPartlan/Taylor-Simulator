@@ -5,15 +5,15 @@
 [ext_resource type="Texture2D" uid="uid://dqocf11xxdlkm" path="res://Player/Taylor (Megaman)-Sheet.png" id="3_fos0i"]
 [ext_resource type="Texture2D" uid="uid://ceaspl41j7v4t" path="res://Tiles/Grass_48_tiles-Sheet.png" id="5_fos0i"]
 [ext_resource type="Texture2D" uid="uid://duf6v327uokon" path="res://Tiles/Housetileset.png" id="6_3dxm6"]
-[ext_resource type="PackedScene" uid="uid://44ndkpd8sa6f8" path="res://scenes/ui/hud.tscn" id="7_hud0"]
-[ext_resource type="Script" path="res://scripts/world.gd" id="8_world"]
-[ext_resource type="Script" path="res://scripts/bird.gd" id="9_bird"]
-[ext_resource type="Texture2D" path="res://Birds/bird_robin.png" id="10_bird"]
-[ext_resource type="Texture2D" path="res://Birds/bird_crow.png" id="11_bird"]
-[ext_resource type="Texture2D" path="res://Birds/bird_bluejay.png" id="12_bird"]
-[ext_resource type="Texture2D" path="res://Birds/bird_pigeon.png" id="13_bird"]
-[ext_resource type="Texture2D" path="res://Birds/bird_owl.png" id="14_bird"]
-[ext_resource type="Script" path="res://scripts/killbox.gd" id="15_killbox"]
+[ext_resource type="PackedScene" uid="uid://c2sagbxhtu14v" path="res://scenes/ui/hud.tscn" id="7_hud0"]
+[ext_resource type="Script" uid="uid://ba0kcda5om5iy" path="res://scripts/world.gd" id="8_world"]
+[ext_resource type="Script" uid="uid://buv5yqy5x4xah" path="res://scripts/bird.gd" id="9_bird"]
+[ext_resource type="Texture2D" uid="uid://dq6mpmvcvfpb0" path="res://Birds/bird_robin.png" id="10_bird"]
+[ext_resource type="Texture2D" uid="uid://debw4breyokfg" path="res://Birds/bird_crow.png" id="11_bird"]
+[ext_resource type="Texture2D" uid="uid://vdiqfpunr4wv" path="res://Birds/bird_bluejay.png" id="12_bird"]
+[ext_resource type="Texture2D" uid="uid://c40m1ejqe0d50" path="res://Birds/bird_pigeon.png" id="13_bird"]
+[ext_resource type="Texture2D" uid="uid://cr4hhnh0g435d" path="res://Birds/bird_owl.png" id="14_bird"]
+[ext_resource type="Script" uid="uid://jkp4cqrkg85d" path="res://scripts/killbox.gd" id="15_killbox"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_trn2v"]
 
@@ -605,87 +605,85 @@ tile_set = SubResource("TileSet_cm0pq")
 use_parent_material = true
 tile_set = SubResource("TileSet_cm0pq")
 
-[node name="HUD" parent="." instance=ExtResource("7_hud0")]
+[node name="HUD" parent="." unique_id=516852715 instance=ExtResource("7_hud0")]
 
-[node name="World" type="Node2D" parent="."]
+[node name="World" type="Node2D" parent="." unique_id=1983438240]
 script = ExtResource("8_world")
 
-[node name="BirdRobin" type="Area2D" parent="World"]
-position = Vector2(-300, -96)
+[node name="BirdRobin" type="Area2D" parent="World" unique_id=27467318]
+position = Vector2(-1172, -133)
 script = ExtResource("9_bird")
-bird_id = "robin"
-bird_name = "Robin"
 sprite_texture = ExtResource("10_bird")
 
-[node name="BirdCrow" type="Area2D" parent="World"]
-position = Vector2(-900, -96)
+[node name="BirdCrow" type="Area2D" parent="World" unique_id=2015932677]
+position = Vector2(-1226, -130)
 script = ExtResource("9_bird")
 bird_id = "crow"
 bird_name = "Crow"
 sprite_texture = ExtResource("11_bird")
 
-[node name="BirdBluejay" type="Area2D" parent="World"]
-position = Vector2(-1500, -96)
+[node name="BirdBluejay" type="Area2D" parent="World" unique_id=1916461091]
+position = Vector2(-1422, -121)
 script = ExtResource("9_bird")
 bird_id = "bluejay"
 bird_name = "Bluejay"
 sprite_texture = ExtResource("12_bird")
 
-[node name="BirdPigeon" type="Area2D" parent="World"]
-position = Vector2(-600, 64)
+[node name="BirdPigeon" type="Area2D" parent="World" unique_id=826929080]
+position = Vector2(-1351, -144)
 script = ExtResource("9_bird")
 bird_id = "pigeon"
 bird_name = "Pigeon"
 sprite_texture = ExtResource("13_bird")
 
-[node name="BirdOwl" type="Area2D" parent="World"]
-position = Vector2(-1850, -96)
+[node name="BirdOwl" type="Area2D" parent="World" unique_id=451608875]
+position = Vector2(451, -704)
 script = ExtResource("9_bird")
 bird_id = "owl"
 bird_name = "Owl"
 sprite_texture = ExtResource("14_bird")
 
-[node name="Spawns" type="Node2D" parent="World"]
+[node name="Spawns" type="Node2D" parent="World" unique_id=334103261]
 
-[node name="default" type="Marker2D" parent="World/Spawns"]
-position = Vector2(0, -115)
+[node name="default" type="Marker2D" parent="World/Spawns" unique_id=1025530098]
+position = Vector2(-22, 31)
 
-[node name="laundry" type="Marker2D" parent="World/Spawns"]
-position = Vector2(-560, -116)
+[node name="laundry" type="Marker2D" parent="World/Spawns" unique_id=396638129]
+position = Vector2(161, 1)
 
-[node name="dishes" type="Marker2D" parent="World/Spawns"]
-position = Vector2(-400, -116)
+[node name="dishes" type="Marker2D" parent="World/Spawns" unique_id=1960801292]
+position = Vector2(429, -153)
 
-[node name="book" type="Marker2D" parent="World/Spawns"]
-position = Vector2(-240, -116)
+[node name="book" type="Marker2D" parent="World/Spawns" unique_id=2011354485]
+position = Vector2(728, -355)
 
-[node name="feed_baby" type="Marker2D" parent="World/Spawns"]
-position = Vector2(-80, -116)
+[node name="feed_baby" type="Marker2D" parent="World/Spawns" unique_id=123268864]
+position = Vector2(415, -356)
 
-[node name="change_baby" type="Marker2D" parent="World/Spawns"]
-position = Vector2(-880, -116)
+[node name="change_baby" type="Marker2D" parent="World/Spawns" unique_id=682639873]
+position = Vector2(474, -356)
 
-[node name="phone" type="Marker2D" parent="World/Spawns"]
-position = Vector2(-1200, -116)
+[node name="phone" type="Marker2D" parent="World/Spawns" unique_id=723767161]
+position = Vector2(178, -368)
 
-[node name="basement_toilet" type="Marker2D" parent="World/Spawns"]
-position = Vector2(-1760, 44)
+[node name="basement_toilet" type="Marker2D" parent="World/Spawns" unique_id=245199559]
+position = Vector2(371, -5)
 
-[node name="mop_kitchen" type="Marker2D" parent="World/Spawns"]
-position = Vector2(-1040, -116)
+[node name="mop_kitchen" type="Marker2D" parent="World/Spawns" unique_id=2003004994]
+position = Vector2(201, -157)
 
-[node name="take_out_trash" type="Marker2D" parent="World/Spawns"]
-position = Vector2(-1350, -116)
+[node name="take_out_trash" type="Marker2D" parent="World/Spawns" unique_id=96835855]
+position = Vector2(844, -135)
 
-[node name="microwave" type="Marker2D" parent="World/Spawns"]
-position = Vector2(-1600, -116)
+[node name="microwave" type="Marker2D" parent="World/Spawns" unique_id=1162194964]
+position = Vector2(347, -157)
 
-[node name="amazon_boxes" type="Marker2D" parent="World/Spawns"]
-position = Vector2(-750, -116)
+[node name="amazon_boxes" type="Marker2D" parent="World/Spawns" unique_id=12954132]
+position = Vector2(72, -157)
 
-[node name="Killbox" type="Area2D" parent="World"]
+[node name="Killbox" type="Area2D" parent="World" unique_id=1908236843]
 position = Vector2(-900, 700)
 script = ExtResource("15_killbox")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Killbox"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Killbox" unique_id=1522578914]
 shape = SubResource("RectangleShape2D_killbox")
