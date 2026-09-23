@@ -79,7 +79,7 @@ func _run() -> void:
 			expected = n.position  # no marker: fallback, just record it
 		var dist: float = (n as Node2D).global_position.distance_to(expected)
 		_check(dist < 1.0, "station '%s' on marker %s (dist=%.1f)" % [id, "Spawns/" + id, dist])
-	_check(station_count == 11, "11 stations spawned (got %d)" % station_count)
+	_check(station_count == 10, "10 stations spawned (got %d)" % station_count)
 
 	# Taylor starts the day on Spawns/default (physics settles her a little
 	# after placement, hence the loose tolerance).

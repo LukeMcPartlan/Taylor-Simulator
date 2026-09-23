@@ -147,20 +147,31 @@ func _on_task_list_changed(tasks: Array) -> void:
 		name.text = String(t["label"])
 		name.add_theme_font_size_override("font_size", 16)
 		if bool(t["done"]):
+			# Big green check next to a green DONE tag, then the label dimmed.
 			box.text = "✓"
 			box.add_theme_font_size_override("font_size", 26)
 			box.add_theme_color_override("font_color", Color(0.45, 1.0, 0.55))
+			var done_tag := Label.new()
+			done_tag.text = "DONE"
+			done_tag.add_theme_font_size_override("font_size", 16)
+			done_tag.add_theme_color_override("font_color", Color(0.45, 1.0, 0.55))
+			row.add_child(box)
+			row.add_child(done_tag)
+			name.text = " — " + String(t["label"])
 			name.modulate = Color(0.45, 0.45, 0.45)
+			row.add_child(name)
 		elif bool(t.get("delegated", false)):
 			box.text = "🔧"
 			box.add_theme_font_size_override("font_size", 18)
 			name.modulate = Color(1.0, 0.8, 0.4)
+			row.add_child(box)
+			row.add_child(name)
 		else:
 			box.text = "☐"
 			box.add_theme_font_size_override("font_size", 18)
 			name.modulate = Color(1, 1, 1)
-		row.add_child(box)
-		row.add_child(name)
+			row.add_child(box)
+			row.add_child(name)
 		task_list.add_child(row)
 
 

@@ -421,7 +421,7 @@ func _load_save() -> void:
 			owned_buffs.append(id)
 	# Old one-per-game amazon saves: collect ids for migration to permanent
 	# tiers in _ready(). The catalog ids are known; check the old section.
-	for section_id in cfg.get_section_keys("amazon"):
+	for section_id in cfg.get_section_keys("amazon") if cfg.has_section("amazon") else []:
 		if bool(cfg.get_value("amazon", section_id, false)):
 			_migrated_amazon.append(String(section_id))
 	best_days_survived = int(cfg.get_value("meta", "best_days", 0))
