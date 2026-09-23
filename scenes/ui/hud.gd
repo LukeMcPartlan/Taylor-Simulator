@@ -1,7 +1,7 @@
 extends CanvasLayer
-## HUD (UNIFIED): serotonin/cortisol bars, day clock, task list, day-over
-## overlay — plus a mode dock where the active game mode adds its own widgets
-## (sanity pips, combo readout, Luke status, buff icons...).
+## HUD (UNIFIED): serotonin/cortisol/dopamine bars, day clock, task list,
+## day-over overlay — plus a mode dock where the active game mode adds its
+## own widgets (sanity pips, combo readout, Luke status, buff icons...).
 ##
 ## Godot conventions used here:
 ## - `GameState` is the autoload singleton from scripts/autoload/game_state.gd,
@@ -15,8 +15,11 @@ extends CanvasLayer
 
 @onready var serotonin_bar: ProgressBar = $TopLeft/Panel/Margin/VBox/SerotoninBar
 @onready var cortisol_bar: ProgressBar = $TopLeft/Panel/Margin/VBox/CortisolBar
+@onready var dopamine_bar: ProgressBar = $TopLeft/Panel/Margin/VBox/DopamineBar
 @onready var serotonin_label: Label = $TopLeft/Panel/Margin/VBox/SerotoninLabel
 @onready var cortisol_label: Label = $TopLeft/Panel/Margin/VBox/CortisolLabel
+@onready var dopamine_label: Label = $TopLeft/Panel/Margin/VBox/DopamineLabel
+@onready var phone_button: Button = $PhoneButton
 @onready var dollars_label: Label = $TopLeft/Panel/Margin/VBox/DollarsLabel
 @onready var clock_label: Label = $ClockLabel
 @onready var mode_tag: Label = $ModeTag
@@ -33,19 +36,26 @@ extends CanvasLayer
 var _dialogue_timer: float = 0.0
 ## "day" or "run": which overlay is showing. R continues the right thing.
 var _overlay_kind: String = "day"
+## Phone tuning: each tap gives this much dopamine, then the button locks
+## for the cooldown so it can't be spam-clicked to full.
+const PHONE_DOPAMINE_GAIN: float = 12.0
+const PHONE_COOLDOWN_S: float = 5.0
 
 
 func _ready() -> void:
 	GameState.meters_changed.connect(_on_meters_changed)
+	GameState.dopamine_changed.connect(_on_dopamine_changed)
 	GameState.dollars_changed.connect(_on_dollars_changed)
 	GameState.clock_changed.connect(_on_clock_changed)
 	GameState.task_list_changed.connect(_on_task_list_changed)
 	GameState.day_ended.connect(_on_day_ended)
 	GameState.run_ended.connect(_on_run_ended)
 	GameState.luke_said.connect(_on_luke_said)
+	phone_button.pressed.connect(_on_phone_pressed)
 	# Autoloads finish _ready() before scenes do, so day 1 has already started.
 	# Pull the current state instead of waiting for the next signal tick.
 	_on_meters_changed(GameState.serotonin, GameState.cortisol)
+	_on_dopamine_changed(GameState.dopamine)
 	_on_dollars_changed(GameState.dollars)
 	_on_clock_changed(GameState.get_time_string())
 	_on_task_list_changed(GameState.tasks)
@@ -102,6 +112,19 @@ func _on_meters_changed(serotonin: float, cortisol: float) -> void:
 	cortisol_label.text = "CORTISOL %d" % int(cortisol)
 
 
+func _on_dopamine_changed(value: float) -> void:
+	dopamine_bar.value = value
+	dopamine_label.text = "DOPAMINE %d" % int(value)
+
+
+func _on_phone_pressed() -> void:
+	## The phone's whole job now: a tap gives dopamine, no minigame.
+	GameState.add_dopamine(PHONE_DOPAMINE_GAIN)
+	phone_button.disabled = true
+	await get_tree().create_timer(PHONE_COOLDOWN_S).timeout
+	phone_button.disabled = false
+
+
 func _on_dollars_changed(dollars: float) -> void:
 	dollars_label.text = "Dollars: $%d" % int(dollars)
 
@@ -145,6 +168,8 @@ func _on_day_ended() -> void:
 	var summary: Dictionary = GameState.get_day_summary()
 	if String(summary.get("end_reason", "")) == "cortisol":
 		day_over_label.text = "Day %d cut short — cortisol maxed out!" % int(summary["day"])
+	elif String(summary.get("end_reason", "")) == "dopamine":
+		day_over_label.text = "Day %d cut short — dopamine hit zero!" % int(summary["day"])
 	else:
 		day_over_label.text = "Day %d complete" % int(summary["day"])
 	var stats := "Tasks: %d/%d\nAvg serotonin: %d\nRating: %s" % [

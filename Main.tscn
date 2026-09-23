@@ -681,6 +681,9 @@ position = Vector2(347, -157)
 [node name="amazon_boxes" type="Marker2D" parent="World/Spawns" unique_id=12954132]
 position = Vector2(72, -157)
 
+[node name="laptop" type="Marker2D" parent="World/Spawns"]
+position = Vector2(-700, -96)
+
 [node name="Killbox" type="Area2D" parent="World" unique_id=1908236843]
 position = Vector2(-900, 700)
 script = ExtResource("15_killbox")

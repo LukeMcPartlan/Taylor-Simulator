@@ -39,6 +39,7 @@ extends Node
 
 # --- Signals ----------------------------------------------------------------
 signal meters_changed(serotonin: float, cortisol: float)
+signal dopamine_changed(value: float)
 signal dollars_changed(dollars: float)
 signal savings_changed(savings: float)
 signal clock_changed(time_string: String)
@@ -66,6 +67,12 @@ const METER_MAX: float = 100.0  # caps CORTISOL only; serotonin is intentionally
 
 const START_SEROTONIN: float = 60.0
 const START_CORTISOL: float = 30.0
+## Dopamine: the third meter. Starts full, drains over the day, and the
+## phone tops it back up. Hitting zero ends the day on the spot — same
+## severity as maxing cortisol. Tuning lives here; balance in playtesting.
+const START_DOPAMINE: float = 100.0
+const MAX_DOPAMINE: float = 100.0
+const DOPAMINE_DRAIN_PER_HOUR: float = 4.0
 
 const CORTISOL_PER_TASK_PER_HOUR: float = 6.0
 const SEROTONIN_DRAIN_PER_TASK_PER_HOUR: float = 3.0
@@ -139,6 +146,7 @@ const REMIND_LUKE_TASK: Dictionary = {
 # --- State ------------------------------------------------------------------
 var serotonin: float = START_SEROTONIN
 var cortisol: float = START_CORTISOL
+var dopamine: float = START_DOPAMINE
 var dollars: float = 0.0  # earned at the work laptop (night-shift); swept into savings at day end
 ## Savings account: global, persists across days AND runs. Leftover dollars
 ## sweep here at day end; spent in the main-menu shop on permanent upgrades.
@@ -192,7 +200,8 @@ var bird_collected_today: bool = false
 var sim_running: bool = true
 var day_pressure_mult: float = 1.0
 var day_serotonin_integral: float = 0.0
-## Why the current day ended: "" = reached 11pm, "cortisol" = hit 100 cortisol.
+## Why the current day ended: "" = reached 11pm, "cortisol" = hit 100 cortisol,
+## "dopamine" = hit 0 dopamine.
 var _day_end_reason: String = ""
 ## The active mode node (null in CLASSIC). Created from ModeManager.
 var mode_hook: Node = null
@@ -257,12 +266,20 @@ func _process(delta: float) -> void:
 		_day_end_reason = "cortisol"
 		_end_day()
 		return
+	# Dopamine drains over the day; the phone tops it back up. Hitting zero
+	# ends the day on the spot — same severity as maxing cortisol.
+	dopamine = clampf(dopamine - DOPAMINE_DRAIN_PER_HOUR * game_hours, 0.0, MAX_DOPAMINE)
+	if dopamine <= 0.0:
+		_day_end_reason = "dopamine"
+		_end_day()
+		return
 	day_serotonin_integral += serotonin * game_hours
 
 	_meter_emit_cooldown -= delta
 	if _meter_emit_cooldown <= 0.0:
 		_meter_emit_cooldown = METER_EMIT_THROTTLE
 		meters_changed.emit(serotonin, cortisol)
+		dopamine_changed.emit(dopamine)
 
 
 # --- Mode hook queries (base defaults; mode nodes override) -----------------
@@ -564,6 +581,12 @@ func add_serotonin(amount: float) -> void:
 	fun_used.emit(amount)
 
 
+func add_dopamine(amount: float) -> void:
+	## The phone's whole job: tops up the dopamine bar (clamped 0..MAX).
+	dopamine = clampf(dopamine + amount, 0.0, MAX_DOPAMINE)
+	dopamine_changed.emit(dopamine)
+
+
 func add_cortisol(amount: float) -> void:
 	## All cortisol GAINS route through here so modes can scale them
 	## (e.g. night-shift Headphones, meltdown coping items).
@@ -728,6 +751,7 @@ func _begin_day() -> void:
 	time_hours = DAY_START_HOUR
 	serotonin = START_SEROTONIN
 	cortisol = get_start_cortisol()
+	dopamine = START_DOPAMINE
 	_day_end_reason = ""
 	day_pressure_mult = 1.0 + 0.15 * float(day_number - 1)
 	day_serotonin_integral = 0.0
@@ -751,6 +775,7 @@ func _begin_day() -> void:
 	clock_changed.emit(get_time_string())
 	task_list_changed.emit(tasks)
 	meters_changed.emit(serotonin, cortisol)
+	dopamine_changed.emit(dopamine)
 	day_started.emit(day_number)
 
 

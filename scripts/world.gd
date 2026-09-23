@@ -6,7 +6,7 @@ extends Node2D
 ## places gameplay objects on it.
 ##
 ## Station placement (all on walkable ground, west of the tower at x~64):
-##   Ground floor (surface y=-96): laundry, dishes, book, baby stations, phone
+##   Ground floor (surface y=-96): laundry, dishes, book, baby stations
 ##   Pond bowl (surface y=64): the basement toilet. The tilemap has no basement
 ##   interior, so the design was adapted: the leaking toilet flooded the low
 ##   yard, and Taylor cleans it up there.
@@ -39,7 +39,6 @@ const STATION_DEFS: Array = [
 	{"id": "book", "title": "Book", "kind": 1, "x": -240.0, "floor_y": -96.0, "game": "book", "work": 0.0},
 	{"id": "feed_baby", "title": "Feed baby", "kind": 0, "x": -80.0, "floor_y": -96.0, "game": "feed_baby", "work": 4.0},
 	{"id": "change_baby", "title": "Change baby", "kind": 0, "x": -880.0, "floor_y": -96.0, "game": "change_baby", "work": 3.0},
-	{"id": "phone", "title": "Phone", "kind": 1, "x": -1200.0, "floor_y": -96.0, "game": "phone", "work": 0.0},
 	{"id": "basement_toilet", "title": "Basement toilet", "kind": 0, "x": -1760.0, "floor_y": 64.0, "game": "toilet", "work": 5.0},
 	{"id": "mop_kitchen", "title": "Mop closet", "kind": 0, "x": -1040.0, "floor_y": -96.0, "game": "mop", "work": 3.0},
 	{"id": "take_out_trash", "title": "Trash bins", "kind": 0, "x": -1350.0, "floor_y": -96.0, "game": "trash", "work": 2.5},
@@ -184,7 +183,13 @@ func _spawn_store() -> void:
 		push_error("world: could not load store script " + path)
 		return
 	var store: Area2D = script.new()
-	store.position = STORE_POS
+	# The laptop sits on its Spawns/laptop marker in the scene (draggable in
+	# the editor); STORE_POS is the fallback if the marker is missing.
+	var marker := get_node_or_null("Spawns/laptop")
+	if marker is Node2D:
+		store.position = (marker as Node2D).global_position
+	else:
+		store.position = STORE_POS
 	add_child(store)
 
 
