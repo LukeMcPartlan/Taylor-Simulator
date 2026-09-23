@@ -127,6 +127,23 @@ func spawn_float_text(world_pos: Vector2, text: String, color: Color) -> void:
 	tween.chain().tween_callback(label.queue_free)
 
 
+func spawn_done_text(world_pos: Vector2) -> void:
+	## "✓ DONE" over the player on a minigame win. Fixed in world space —
+	## it fades in place and never follows the player.
+	var label := Label.new()
+	label.text = "✓ DONE"
+	label.position = world_pos + Vector2(-90, 0)
+	label.size = Vector2(180, 44)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 36)
+	label.add_theme_color_override("font_color", Color(0.45, 1.0, 0.55))
+	_effects.add_child(label)
+	var tween := create_tween()
+	tween.tween_interval(1.0)
+	tween.tween_property(label, "modulate:a", 0.0, 0.6)
+	tween.tween_callback(label.queue_free)
+
+
 func _spawn_stations() -> void:
 	var spawns := get_node_or_null("Spawns")
 	for def in STATION_DEFS + extra_station_defs:

@@ -112,21 +112,33 @@ func _on_clock_changed(time_string: String) -> void:
 
 func _on_task_list_changed(tasks: Array) -> void:
 	# Rebuild the list from scratch — simple and always correct for a handful
-	# of tasks. Completed ones are dimmed with a checkmark; delegated ones
-	# (DELEGATION mode) get a wrench.
+	# of tasks. Every task gets a checkbox: empty while open, a big green
+	# check when done; delegated ones (DELEGATION mode) get a wrench.
 	for child in task_list.get_children():
 		child.queue_free()
 	for t in tasks:
-		var label := Label.new()
-		if t["done"]:
-			label.text = "✓ " + t["label"]
-			label.modulate = Color(0.45, 0.45, 0.45)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		var box := Label.new()
+		var name := Label.new()
+		name.text = String(t["label"])
+		name.add_theme_font_size_override("font_size", 16)
+		if bool(t["done"]):
+			box.text = "✓"
+			box.add_theme_font_size_override("font_size", 26)
+			box.add_theme_color_override("font_color", Color(0.45, 1.0, 0.55))
+			name.modulate = Color(0.45, 0.45, 0.45)
 		elif bool(t.get("delegated", false)):
-			label.text = "🔧 " + t["label"]
-			label.modulate = Color(1.0, 0.8, 0.4)
+			box.text = "🔧"
+			box.add_theme_font_size_override("font_size", 18)
+			name.modulate = Color(1.0, 0.8, 0.4)
 		else:
-			label.text = "• " + t["label"]
-		task_list.add_child(label)
+			box.text = "☐"
+			box.add_theme_font_size_override("font_size", 18)
+			name.modulate = Color(1, 1, 1)
+		row.add_child(box)
+		row.add_child(name)
+		task_list.add_child(row)
 
 
 func _on_day_ended() -> void:

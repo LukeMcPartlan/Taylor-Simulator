@@ -239,6 +239,12 @@ func _on_minigame_done(success: bool, _elapsed_seconds: float = 0.0) -> void:
 		_notify(GameState.minigame_fail_text(), Color(1.0, 0.5, 0.45))
 		_update_prompt()
 		return
+	# "✓ DONE" over the player: fades in place, never follows them.
+	var player := get_tree().get_first_node_in_group("player")
+	var world := get_parent()
+	if player is Node2D and world != null and world.has_method("spawn_done_text"):
+		world.call("spawn_done_text",
+			(player as Node2D).global_position + Vector2(0, -110))
 	if kind == Kind.FUN:
 		GameState.add_serotonin(serotonin_per_use * GameState.get_fun_mult())
 		_cooldown_left = fun_cooldown

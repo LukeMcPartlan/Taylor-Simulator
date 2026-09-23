@@ -118,9 +118,9 @@ func quit() -> void:
 
 
 func _end(success: bool) -> void:
-	## Call exactly once when the game is decided. Shows a banner, waits a
-	## beat (SceneTreeTimer ignores tree pause by default), then tells the
-	## launcher. Guarded so double-calls are harmless.
+	## Call exactly once when the game is decided. Wins close immediately
+	## (the world pops the "✓ DONE" text over the player); losses show the
+	## banner, wait a beat, then close.
 	_finish(success, "DONE!" if success else "FAILED!")
 
 
@@ -128,8 +128,13 @@ func _finish(success: bool, banner: String) -> void:
 	if _over:
 		return
 	_over = true
+	if success:
+		# Win: no in-game banner, no wait — close at once. The station
+		# shows the "✓ DONE" popup over the player instead.
+		finished.emit(success)
+		return
 	_result_text = banner
-	_result_color = Color(0.45, 1.0, 0.55) if success else Color(1.0, 0.45, 0.45)
+	_result_color = Color(1.0, 0.45, 0.45)
 	queue_redraw()
 	await get_tree().create_timer(1.2).timeout
 	finished.emit(success)

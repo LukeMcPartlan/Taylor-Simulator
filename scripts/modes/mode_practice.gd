@@ -12,8 +12,11 @@ extends Node
 ##   (+50 serotonin each = +250/day to fund the work laptop).
 ## - THE LAPTOP (scripts/modes/store_practice.gd): WORK tab turns serotonin
 ##   into dollars (-10 serotonin, +$10 per verdict, same as night-shift);
-##   the UNLOCK tab sells the only item in the store — CLASSIC MODE ($60).
+##   the AMAZON tab sells the only item in the store — CLASSIC MODE ($60).
 ##   Buying it unlocks Classic on the main menu forever.
+## - ALL TASKS OPEN AT DAWN: every chore task opens the moment the day
+##   starts and stays open all day — the task list is a full checklist.
+##   No random procs, no re-procs: done stays done.
 ## - The day still runs 6am–11pm; leftover dollars sweep to savings at day
 ##   end like everywhere else.
 ##
@@ -53,6 +56,16 @@ func all_birds_daily() -> bool:
 
 func minigames_always_open() -> bool:
 	# Every station's minigame is playable on E, no open task required.
+	return true
+
+
+func open_all_tasks_at_dawn() -> bool:
+	# Every chore task opens the moment the day starts — full checklist.
+	return true
+
+
+func disable_task_procs() -> bool:
+	# No random procs and no re-procs: done stays done all day.
 	return true
 
 

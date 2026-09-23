@@ -481,6 +481,11 @@ func _reset_proc_state() -> void:
 
 
 func _update_task_procs(delta: float) -> void:
+	# PRACTICE mode: the full list opened at dawn — nothing left to proc,
+	# and completed tasks stay done all day.
+	var no_proc = _hook("disable_task_procs")
+	if no_proc is bool and bool(no_proc):
+		return
 	_next_proc_in_s -= delta
 	if _next_proc_in_s > 0.0:
 		return
@@ -731,6 +736,13 @@ func _begin_day() -> void:
 	tasks.clear()
 	_clock_tasks_fired.clear()
 	_reset_proc_state()
+	# PRACTICE mode: every chore task opens the moment the day starts — the
+	# task list is a full checklist from dawn. (Clock tasks keep their fixed
+	# schedule; they're tied to NPC states, not the checklist.)
+	var all_open = _hook("open_all_tasks_at_dawn")
+	if all_open is bool and bool(all_open):
+		for def in task_defs:
+			_activate_task(def)
 	daily_bird_id = String(BIRD_IDS[randi_range(0, BIRD_IDS.size() - 1)])
 	bird_collected_today = false
 	birds_collected_today.clear()

@@ -2,7 +2,7 @@ class_name MopPong
 extends Minigame
 ## Mop station — "Mop Pong". Breakout with a mop: bounce the dirt ball off
 ## your paddle to scrub every dirt tile. Clear all 12 to win. If the ball
-## slips past, it just respawns — no lives, WarioWare is kind. 90s timer.
+## slips past, it respawns instantly — no lives, WarioWare is kind. No timer.
 ##
 ## Controls: A/D or Left/Right to slide the mop.
 
@@ -12,7 +12,6 @@ const TILE_SIZE := Vector2(90, 34)
 const PADDLE_W: float = 110.0
 const BALL_R: float = 10.0
 const BALL_SPEED: float = 380.0
-const TIME_LIMIT: float = 90.0
 const TEX_BALL := preload("res://placeholder art/Sprites/ball.png")
 const TEX_DIRT := preload("res://placeholder art/Sprites/dirt_spot.png")
 
@@ -21,8 +20,6 @@ var _tiles_left: int = 0
 var _paddle_x: float = 0.0
 var _ball_pos := Vector2.ZERO
 var _ball_vel := Vector2.ZERO
-var _respawn_timer: float = 0.0
-var _time_left: float = TIME_LIMIT
 var _top := Vector2.ZERO
 
 
@@ -47,15 +44,10 @@ func _serve_ball() -> void:
 	_ball_pos = Vector2(size.x / 2.0, size.y - 160.0)
 	var ang := deg_to_rad(randf_range(-60.0, -120.0))
 	_ball_vel = Vector2(cos(ang), sin(ang)) * BALL_SPEED
-	_respawn_timer = 0.0
 
 
 func _process(delta: float) -> void:
 	if _over:
-		return
-	_time_left -= delta
-	if _time_left <= 0.0:
-		_end(false)
 		return
 	# Paddle.
 	var dir: float = 0.0
@@ -65,15 +57,10 @@ func _process(delta: float) -> void:
 		dir += 1.0
 	_paddle_x = clampf(_paddle_x + dir * 520.0 * delta, PADDLE_W / 2.0 + 16.0, size.x - PADDLE_W / 2.0 - 16.0)
 	# Ball.
-	if _respawn_timer > 0.0:
-		_respawn_timer -= delta
-		if _respawn_timer <= 0.0:
-			_serve_ball()
-	else:
-		_ball_pos += _ball_vel * delta * _speed
-		_bounce_walls()
-		_bounce_paddle()
-		_hit_tiles()
+	_ball_pos += _ball_vel * delta * _speed
+	_bounce_walls()
+	_bounce_paddle()
+	_hit_tiles()
 	queue_redraw()
 
 
@@ -88,7 +75,7 @@ func _bounce_walls() -> void:
 		_ball_pos.y = 84.0 + BALL_R
 		_ball_vel.y = absf(_ball_vel.y)
 	if _ball_pos.y > size.y + 40.0:
-		_respawn_timer = 0.8  # slipped past the mop — new ball, no penalty
+		_serve_ball()  # slipped past the mop — new ball instantly, no penalty
 
 
 func _bounce_paddle() -> void:
@@ -128,10 +115,6 @@ func test_clean_all() -> void:
 				_clean_tile(r, c)
 
 
-func test_timeout() -> void:
-	_end(false)
-
-
 func _draw_game() -> void:
 	var font := ThemeDB.fallback_font
 	# Dirt tiles.
@@ -148,8 +131,6 @@ func _draw_game() -> void:
 	draw_rect(Rect2(_paddle_x - PADDLE_W / 2.0, py - 6, PADDLE_W, 12), Color(0.75, 0.6, 0.35))
 	draw_rect(Rect2(_paddle_x - 8, py - 34, 16, 30), Color(0.5, 0.35, 0.2))  # handle
 	# Dirt ball.
-	if _respawn_timer <= 0.0:
-		draw_texture(TEX_BALL, _ball_pos - TEX_BALL.get_size() / 2.0)
-	draw_string(font, Vector2(24, 120),
-		"Tiles left: %d   Time: %ds" % [_tiles_left, int(_time_left)],
+	draw_texture(TEX_BALL, _ball_pos - TEX_BALL.get_size() / 2.0)
+	draw_string(font, Vector2(24, 120), "Tiles left: %d" % _tiles_left,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.9, 0.9, 0.9))
