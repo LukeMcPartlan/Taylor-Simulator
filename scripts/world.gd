@@ -40,7 +40,6 @@ const STATION_DEFS: Array = [
 	{"id": "feed_baby", "title": "Feed baby", "kind": 0, "x": -80.0, "floor_y": -96.0, "game": "feed_baby", "work": 4.0},
 	{"id": "change_baby", "title": "Change baby", "kind": 0, "x": -880.0, "floor_y": -96.0, "game": "change_baby", "work": 3.0},
 	{"id": "basement_toilet", "title": "Basement toilet", "kind": 0, "x": -1760.0, "floor_y": 64.0, "game": "toilet", "work": 5.0},
-	{"id": "mop_kitchen", "title": "Mop closet", "kind": 0, "x": -1040.0, "floor_y": -96.0, "game": "mop", "work": 3.0},
 	{"id": "take_out_trash", "title": "Trash bins", "kind": 0, "x": -1350.0, "floor_y": -96.0, "game": "trash", "work": 2.5},
 	{"id": "microwave", "title": "Microwave", "kind": 0, "x": -1600.0, "floor_y": -96.0, "game": "microwave", "work": 3.0},
 	{"id": "amazon_boxes", "title": "Amazon boxes", "kind": 0, "x": -750.0, "floor_y": -96.0, "game": "amazon_break", "work": 3.0},
@@ -90,12 +89,26 @@ func _ready() -> void:
 	_effects = Node2D.new()
 	_effects.name = "Effects"
 	add_child(_effects)
+	_hide_spawn_previews()
 	_spawn_stations()
 	_spawn_store()
 	_spawn_luke()
 	_spawn_chris()
 	spawn_roomba()
 	_place_player_at_spawn()
+
+
+## Spawn markers carry editor-only "Preview" art (a Sprite2D child showing
+## what spawns there: station furniture, NPC sprite). The real nodes draw
+## their own art at runtime, so the previews hide here to avoid doubles.
+func _hide_spawn_previews() -> void:
+	var spawns := get_node_or_null("Spawns")
+	if spawns == null:
+		return
+	for marker in spawns.get_children():
+		var preview := marker.get_node_or_null("Preview")
+		if preview is CanvasItem:
+			(preview as CanvasItem).hide()
 
 
 ## Day start: put Taylor on the "default" spawn marker (her scene position

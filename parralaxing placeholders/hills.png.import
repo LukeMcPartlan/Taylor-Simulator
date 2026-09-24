@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://7dwwvnc8x2yp"
-path="res://.godot/imported/microwave.png-6574a346b1da978d7676861d96dec2f7.ctex"
+uid="uid://ct2cjjpc8odtn"
+path="res://.godot/imported/hills.png-32dfd38a3d4c88a13b365697ec908aed.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://placeholder art/Furniture/microwave.png"
-dest_files=["res://.godot/imported/microwave.png-6574a346b1da978d7676861d96dec2f7.ctex"]
+source_file="res://parralaxing placeholders/hills.png"
+dest_files=["res://.godot/imported/hills.png-32dfd38a3d4c88a13b365697ec908aed.ctex"]
 
 [params]
 

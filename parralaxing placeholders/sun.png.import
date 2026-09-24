@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dkic0o6bucg53"
-path="res://.godot/imported/house_tiles.png-982f5f7a032c3d859102db045269acc1.ctex"
+uid="uid://c7lafkirrefso"
+path="res://.godot/imported/sun.png-19b368e832b24862fcb600d9fbd375fc.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://placeholder art/Tiles/house_tiles.png"
-dest_files=["res://.godot/imported/house_tiles.png-982f5f7a032c3d859102db045269acc1.ctex"]
+source_file="res://parralaxing placeholders/sun.png"
+dest_files=["res://.godot/imported/sun.png-19b368e832b24862fcb600d9fbd375fc.ctex"]
 
 [params]
 

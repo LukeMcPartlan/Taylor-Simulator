@@ -28,7 +28,7 @@ const COMBO_CAP := 8            # the multiplier never exceeds x8
 const FUN_POINTS := 25          # flat points per fun use, scaled by multiplier
 
 const CLEAR_PAR_SECONDS: Dictionary = {
-	"dishes": 45.0, "microwave": 30.0, "laundry": 40.0, "mop": 60.0,
+	"dishes": 45.0, "microwave": 30.0, "laundry": 40.0,
 	"toilet": 45.0, "trash": 50.0, "feed_baby": 30.0, "change_baby": 40.0,
 	"book": 35.0, "phone": 30.0,
 }

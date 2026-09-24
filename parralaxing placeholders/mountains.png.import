@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://2q8omq2xudmr"
-path="res://.godot/imported/fish_bone.png-64ba72ff279f255ad44199cec722f1a1.ctex"
+uid="uid://gqq8ji31cj0k"
+path="res://.godot/imported/mountains.png-b297ebb749f9e67f8a2a5e4f5a8325d0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://placeholder art/Sprites/fish_bone.png"
-dest_files=["res://.godot/imported/fish_bone.png-64ba72ff279f255ad44199cec722f1a1.ctex"]
+source_file="res://parralaxing placeholders/mountains.png"
+dest_files=["res://.godot/imported/mountains.png-b297ebb749f9e67f8a2a5e4f5a8325d0.ctex"]
 
 [params]
 

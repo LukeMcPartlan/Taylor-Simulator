@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bewbupe8bvbnu"
-path="res://.godot/imported/couch.png-22a3bb06a98df207015679a6586630dc.ctex"
+uid="uid://ciev6yjsteg6b"
+path="res://.godot/imported/clouds.png-659076e749625040762ae473fbaa5be8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://placeholder art/Furniture/couch.png"
-dest_files=["res://.godot/imported/couch.png-22a3bb06a98df207015679a6586630dc.ctex"]
+source_file="res://parralaxing placeholders/clouds.png"
+dest_files=["res://.godot/imported/clouds.png-659076e749625040762ae473fbaa5be8.ctex"]
 
 [params]
 

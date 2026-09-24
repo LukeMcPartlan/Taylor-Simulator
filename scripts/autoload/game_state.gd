@@ -134,7 +134,6 @@ const TASK_DEFS: Array = [
 	{"id": "feed_baby", "label": "Feed the baby", "relief": 18.0, "day_min": 1, "max_procs": 5},
 	{"id": "change_baby", "label": "Change the baby", "relief": 14.0, "day_min": 1, "max_procs": 5},
 	{"id": "basement_toilet", "label": "Clean the basement toilet", "relief": 20.0, "day_min": 1, "max_procs": 5},
-	{"id": "mop_kitchen", "label": "Mop the kitchen", "relief": 10.0, "day_min": 2, "max_procs": 5},
 	{"id": "take_out_trash", "label": "Take out the trash", "relief": 8.0, "day_min": 3, "max_procs": 5},
 	{"id": "microwave", "label": "Clean the microwave", "relief": 10.0, "day_min": 2, "max_procs": 5},
 	{"id": "amazon_boxes", "label": "Break down the Amazon boxes", "relief": 12.0, "day_min": 1, "max_procs": 5},

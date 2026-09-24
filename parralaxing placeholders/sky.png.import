@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dffoi1gm58ruk"
-path="res://.godot/imported/bed.png-d8f53096120907950001987637b443e1.ctex"
+uid="uid://bxjd3kvaplqso"
+path="res://.godot/imported/sky.png-f17c2df730001c69fd4e4e485a0d748b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://placeholder art/Furniture/bed.png"
-dest_files=["res://.godot/imported/bed.png-d8f53096120907950001987637b443e1.ctex"]
+source_file="res://parralaxing placeholders/sky.png"
+dest_files=["res://.godot/imported/sky.png-f17c2df730001c69fd4e4e485a0d748b.ctex"]
 
 [params]
 

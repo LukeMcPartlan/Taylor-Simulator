@@ -81,7 +81,7 @@ func _run_tests() -> void:
 		stations.append(n)
 	var phone_stations := stations.filter(func(s): return s.get("station_id") == "phone")
 	_check(phone_stations.is_empty(), "no walk-up phone station any more")
-	_check(stations.size() == 10, "10 stations remain (was 11)")
+	_check(stations.size() == 9, "9 stations remain (was 10)")
 
 	# --- Laptop marker exists --------------------------------------------------
 	var world = main.get_node_or_null("World")

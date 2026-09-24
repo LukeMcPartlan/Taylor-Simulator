@@ -2,10 +2,13 @@
 """Placeholder art generator for Taylor Simulator.
 
 Creates 16-bit-style pixel art under placeholder art/:
-  Tiles/house_tiles.png + .tres  (16px grid house tiles)
-  Tiles/tree_tiles.png + .tres   (16px grid tree/nature tiles)
-  Furniture/*.png                (station + decor sprites)
+  Furniture/high_chair.png, changing_table.png  (baby stations; everything
+      else moved to Luke's production art/furniture/)
   Sprites/*.png                  (minigame item sprites)
+  phone/display_*.png            (FakeTok phone screens)
+
+House tiles now come from tools/make_house_tiles.py ("Placeholder house
+tiles" TileSet); parallax layers from tools/make_parallax.py.
 
 Re-run any time: python3 make_placeholder_art.py
 """
@@ -226,17 +229,8 @@ def t_sapling(im, ox, oy):
     R(im, ox + 7, oy + 6, 2, 8, TRUNK_D)
     C(im, ox + 8, oy + 5, 4, CANOPY_L); PX(im, ox + 6, oy + 3, CANOPY)
 
-tile_sheet("house_tiles.png", [
-    t_wood_light, t_wood_dark, t_plank_v, t_carpet_r, t_carpet_b, t_checker,
-    t_kitchen, t_wp_pink, t_wp_blue, t_brick, t_plaster, t_concrete,
-    t_window, t_door, t_roof, t_grass_l,
-])
-tile_sheet("tree_tiles.png", [
-    t_grass_l, t_grass_d, t_grass_tuft, t_grass_flower, t_dirt, t_dirt_dark,
-    t_path, t_bush, t_trunk, t_canopy_l, t_canopy_d, t_canopy_edge,
-    t_leaves, t_stone, t_stump, t_sapling,
-])
-print("tiles done")
+# NOTE: house_tiles/tree_tiles sheets retired 2026-09-24 — the house now
+# uses Tiles/Housetileset.png and the "Placeholder house tiles" TileSet.
 
 # ===========================================================================
 # FURNITURE (station + decor sprites)
@@ -407,25 +401,8 @@ def f_crib(im):  # 60x44 decor
     R(im, 2, 6, w - 4, 4, WOOD_D); OR(im, 2, 6, w - 4, 4)
     R(im, 20, 32, 20, 4, (150, 190, 230))
 
-furniture("washer.png", 48, 56, f_washer)
-furniture("dryer.png", 48, 56, f_dryer)
-furniture("sink.png", 56, 48, f_sink)
-furniture("bookshelf.png", 48, 64, f_bookshelf)
 furniture("high_chair.png", 36, 52, f_high_chair)
 furniture("changing_table.png", 56, 48, f_changing_table)
-furniture("phone.png", 28, 44, f_phone)
-furniture("toilet.png", 36, 60, f_toilet)
-furniture("mop_bucket.png", 44, 52, f_mop_bucket)
-furniture("trash_can.png", 36, 52, f_trash_can)
-furniture("microwave.png", 52, 36, f_microwave)
-furniture("box_stack.png", 60, 52, f_box_stack)
-furniture("bed.png", 72, 52, f_bed)
-furniture("couch.png", 72, 44, f_couch)
-furniture("table.png", 64, 44, f_table)
-furniture("lamp.png", 28, 52, f_lamp)
-furniture("tv.png", 60, 44, f_tv)
-furniture("fridge.png", 44, 68, f_fridge)
-furniture("crib.png", 60, 44, f_crib)
 print("furniture done")
 
 # ===========================================================================
@@ -609,7 +586,6 @@ def s_battery(im):  # 20x34 battery (trash)
 sprite("amazon_box.png", 44, 36, s_amazon_box)
 sprite("ball.png", 18, 18, s_ball)
 sprite("garbage_ball.png", 26, 26, s_garbage_ball)
-sprite("garbage_pile.png", 48, 32, s_garbage_pile)
 sprite("diaper.png", 36, 28, s_diaper)
 sprite("baby_powder.png", 24, 36, s_powder)
 sprite("baby_wipe.png", 32, 24, s_wipe)
@@ -625,7 +601,6 @@ sprite("bottle_recycle.png", 24, 40, s_bottle)
 sprite("can_recycle.png", 24, 32, s_can)
 sprite("newspaper.png", 36, 28, s_newspaper)
 sprite("banana_peel.png", 34, 24, s_banana)
-sprite("fish_bone.png", 38, 20, s_fishbone)
 sprite("styrofoam.png", 32, 24, s_styrofoam)
 sprite("glass_shard.png", 34, 22, s_glass)
 sprite("cardboard_flat.png", 36, 26, s_cardboard)

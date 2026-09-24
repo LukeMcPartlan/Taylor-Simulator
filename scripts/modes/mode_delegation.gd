@@ -27,12 +27,11 @@ const UPGRADES: Array = [
 	{"id": "baby_monitor", "name": "Baby Monitor", "emoji": "🍼", "cost": 45.0,
 		"desc": "Feed/change baby cause HALF the neglect stress."},
 	{"id": "robot_mop", "name": "Robot Mop", "emoji": "🧹", "cost": 70.0,
-		"desc": "Mop auto-completes at 8:00 AM. Trash causes half stress."},
+		"desc": "Trash causes half stress."},
 ]
 # task_id -> upgrade id that auto-completes it at AUTO_HOUR.
 const AUTO_TASK_UPGRADES: Dictionary = {
 	"dishes": "dishwasher",
-	"mop_kitchen": "robot_mop",
 }
 
 var owned_upgrades: Array = []

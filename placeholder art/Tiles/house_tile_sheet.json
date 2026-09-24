@@ -1,0 +1,215 @@
+{
+ "tile_size": 16,
+ "tiles": {
+  "marble_0": {
+   "at": [
+    0,
+    0
+   ],
+   "collide": "full"
+  },
+  "marble_1": {
+   "at": [
+    1,
+    0
+   ],
+   "collide": "full"
+  },
+  "marble_2": {
+   "at": [
+    2,
+    0
+   ],
+   "collide": "full"
+  },
+  "marble_3": {
+   "at": [
+    3,
+    0
+   ],
+   "collide": "full"
+  },
+  "wall_green_0": {
+   "at": [
+    4,
+    0
+   ],
+   "collide": "full"
+  },
+  "wall_green_1": {
+   "at": [
+    5,
+    0
+   ],
+   "collide": "full"
+  },
+  "wall_green_2": {
+   "at": [
+    6,
+    0
+   ],
+   "collide": "full"
+  },
+  "wall_green_3": {
+   "at": [
+    7,
+    0
+   ],
+   "collide": "full"
+  },
+  "wall_green_4": {
+   "at": [
+    8,
+    0
+   ],
+   "collide": "full"
+  },
+  "wall_green_5": {
+   "at": [
+    9,
+    0
+   ],
+   "collide": "full"
+  },
+  "wall_brown_0": {
+   "at": [
+    10,
+    0
+   ],
+   "collide": "full"
+  },
+  "wall_brown_1": {
+   "at": [
+    11,
+    0
+   ],
+   "collide": "full"
+  },
+  "wall_brown_2": {
+   "at": [
+    12,
+    0
+   ],
+   "collide": "full"
+  },
+  "wall_brown_3": {
+   "at": [
+    13,
+    0
+   ],
+   "collide": "full"
+  },
+  "wall_brown_4": {
+   "at": [
+    14,
+    0
+   ],
+   "collide": "full"
+  },
+  "wall_brown_5": {
+   "at": [
+    15,
+    0
+   ],
+   "collide": "full"
+  },
+  "wall_blue_0": {
+   "at": [
+    0,
+    1
+   ],
+   "collide": "full"
+  },
+  "wall_blue_1": {
+   "at": [
+    1,
+    1
+   ],
+   "collide": "full"
+  },
+  "wall_blue_2": {
+   "at": [
+    2,
+    1
+   ],
+   "collide": "full"
+  },
+  "wall_blue_3": {
+   "at": [
+    3,
+    1
+   ],
+   "collide": "full"
+  },
+  "wall_blue_4": {
+   "at": [
+    4,
+    1
+   ],
+   "collide": "full"
+  },
+  "wall_blue_5": {
+   "at": [
+    5,
+    1
+   ],
+   "collide": "full"
+  },
+  "basement_pink_0": {
+   "at": [
+    6,
+    1
+   ],
+   "collide": "full"
+  },
+  "basement_pink_1": {
+   "at": [
+    7,
+    1
+   ],
+   "collide": "full"
+  },
+  "basement_panther_0": {
+   "at": [
+    8,
+    1
+   ],
+   "collide": "full"
+  },
+  "basement_panther_1": {
+   "at": [
+    9,
+    1
+   ],
+   "collide": "full"
+  },
+  "stair_up_right_0": {
+   "at": [
+    10,
+    1
+   ],
+   "collide": "one_way"
+  },
+  "stair_up_right_1": {
+   "at": [
+    11,
+    1
+   ],
+   "collide": "one_way"
+  },
+  "stair_up_left_0": {
+   "at": [
+    12,
+    1
+   ],
+   "collide": "one_way"
+  },
+  "stair_up_left_1": {
+   "at": [
+    13,
+    1
+   ],
+   "collide": "one_way"
+  }
+ }
+}

@@ -56,7 +56,14 @@ func _run() -> void:
 	GS.set("day_number", 0)
 	GS.start_new_day()
 	root.add_child(load("res://Main.tscn").instantiate())
-	await _frames(10)
+	# Capture Taylor's spawn position on frame 1, before gravity pulls her
+	# off a floating Spawns/default marker.
+	await _frames(1)
+	var taylor_early = get_nodes_in_group("player")
+	var taylor_spawn_pos := Vector2.INF
+	if taylor_early.size() == 1:
+		taylor_spawn_pos = (taylor_early[0] as Node2D).global_position
+	await _frames(9)
 
 	var world = root.get_node("Main/World")
 	var spawns = world.get_node_or_null("Spawns")
@@ -79,16 +86,16 @@ func _run() -> void:
 			expected = n.position  # no marker: fallback, just record it
 		var dist: float = (n as Node2D).global_position.distance_to(expected)
 		_check(dist < 1.0, "station '%s' on marker %s (dist=%.1f)" % [id, "Spawns/" + id, dist])
-	_check(station_count == 10, "10 stations spawned (got %d)" % station_count)
+	_check(station_count == 9, "9 stations spawned (got %d)" % station_count)
 
-	# Taylor starts the day on Spawns/default (physics settles her a little
-	# after placement, hence the loose tolerance).
+	# Taylor starts the day on Spawns/default. Measured on frame 1 so gravity
+	# can't pull her off a floating marker before the check.
 	var taylor = get_nodes_in_group("player")
 	_check(taylor.size() == 1, "exactly one player")
-	if taylor.size() == 1 and spawns != null:
+	if taylor_spawn_pos != Vector2.INF and spawns != null:
 		var dflt := (spawns.get_node("default") as Node2D).global_position
-		var pdist: float = (taylor[0] as Node2D).global_position.distance_to(dflt)
-		_check(pdist < 40.0, "taylor starts on Spawns/default (dist=%.1f)" % pdist)
+		var pdist: float = taylor_spawn_pos.distance_to(dflt)
+		_check(pdist < 2.0, "taylor starts on Spawns/default (dist=%.1f)" % pdist)
 
 	print("STATION-SPAWN TEST: %d checks, %d failures" % [_checks, _failures.size()])
 	quit(1 if _failures.size() > 0 else 0)

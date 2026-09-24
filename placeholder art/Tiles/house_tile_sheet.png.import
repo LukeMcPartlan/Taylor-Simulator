@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c2h46esgmviuv"
-path="res://.godot/imported/toilet.png-64f08709fe501295aab679c3a08d9c21.ctex"
+uid="uid://b6n3vyutasxpc"
+path="res://.godot/imported/house_tile_sheet.png-cee3677791df8e5796889e44074a17b1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://placeholder art/Furniture/toilet.png"
-dest_files=["res://.godot/imported/toilet.png-64f08709fe501295aab679c3a08d9c21.ctex"]
+source_file="res://placeholder art/Tiles/house_tile_sheet.png"
+dest_files=["res://.godot/imported/house_tile_sheet.png-cee3677791df8e5796889e44074a17b1.ctex"]
 
 [params]
 

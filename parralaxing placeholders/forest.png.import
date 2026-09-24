@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dv8oo35e3shj"
-path="res://.godot/imported/dryer.png-b8f2749bc9437f8b46f34b2a8965b8b5.ctex"
+uid="uid://d4vfceaarhci"
+path="res://.godot/imported/forest.png-e3b1705a41d87c3b0f06813f29f7095a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://placeholder art/Furniture/dryer.png"
-dest_files=["res://.godot/imported/dryer.png-b8f2749bc9437f8b46f34b2a8965b8b5.ctex"]
+source_file="res://parralaxing placeholders/forest.png"
+dest_files=["res://.godot/imported/forest.png-e3b1705a41d87c3b0f06813f29f7095a.ctex"]
 
 [params]
 

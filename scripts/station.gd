@@ -51,13 +51,11 @@ const DELEGATED_TINT := Color(1.0, 0.72, 0.35)
 ## the old generated placeholder art.
 const STATION_SPRITES := {
 	"laundry": "res://art/furniture/washer.png",
-	"dishes": "res://art/furniture/dishwasher.png",
+	"dishes": "res://art/furniture/microwaveInterior.png",
 	"book": "res://art/furniture/bookshelf.png",
 	"feed_baby": "res://placeholder art/Furniture/high_chair.png",
 	"change_baby": "res://placeholder art/Furniture/changing_table.png",
-	"phone": "res://placeholder art/Furniture/phone.png",
 	"basement_toilet": "res://art/furniture/toilet.png",
-	"mop_kitchen": "res://placeholder art/Furniture/mop_bucket.png",
 	"take_out_trash": "res://art/furniture/trash_can.png",
 	"microwave": "res://art/furniture/microwave.png",
 	"amazon_boxes": "res://art/furniture/amazon_box.png",

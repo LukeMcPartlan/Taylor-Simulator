@@ -36,7 +36,7 @@ func _run() -> void:
 	root.add_child(main)
 	await _frames(20)
 
-	var games := ["change_baby", "trash", "laundry", "toilet", "mop", "microwave"]
+	var games := ["change_baby", "trash", "laundry", "toilet", "microwave"]
 	var idx := 0
 	for g in games:
 		ML.open(g, Callable(self, "_noop"))

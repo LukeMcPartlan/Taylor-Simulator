@@ -22,6 +22,30 @@
 [ext_resource type="Texture2D" uid="uid://e0bhp4wpjqa5" path="res://art/furniture/dresser.png" id="21_decor"]
 [ext_resource type="Texture2D" uid="uid://da2rhhi24c6lo" path="res://art/furniture/Dryer.png" id="22_decor"]
 [ext_resource type="Texture2D" uid="uid://ccgl4ujis5cc" path="res://art/furniture/toilet_dirty.png" id="23_decor"]
+[ext_resource type="Texture2D" uid="uid://cb6wsnv1oshqc" path="res://art/furniture/washer.png" id="24_preview"]
+[ext_resource type="Texture2D" uid="uid://cynlnlf4qrirq" path="res://art/furniture/microwaveInterior.png" id="25_preview"]
+[ext_resource type="Texture2D" uid="uid://b1rsf1xpqt43r" path="res://art/furniture/bookshelf.png" id="26_preview"]
+[ext_resource type="Texture2D" uid="uid://c0e1s0ptx8rlq" path="res://placeholder art/Furniture/high_chair.png" id="27_preview"]
+[ext_resource type="Texture2D" uid="uid://d1wefiwbkv8l7" path="res://placeholder art/Furniture/changing_table.png" id="28_preview"]
+[ext_resource type="Texture2D" uid="uid://bcklxmdctuiqs" path="res://art/furniture/toilet.png" id="29_preview"]
+[ext_resource type="Texture2D" uid="uid://qsj16eetdyr0" path="res://art/furniture/trash_can.png" id="30_preview"]
+[ext_resource type="Texture2D" uid="uid://dwvnccogqi2rg" path="res://art/furniture/microwave.png" id="31_preview"]
+[ext_resource type="Texture2D" uid="uid://cxgjiu7gr6lrx" path="res://art/furniture/amazon_box.png" id="32_preview"]
+[ext_resource type="Texture2D" uid="uid://crdam1wuiqinc" path="res://Player/GojoWalk-Sheet.png" id="33_gojo"]
+[ext_resource type="Texture2D" uid="uid://bxjd3kvaplqso" path="res://parralaxing placeholders/sky.png" id="34_sky"]
+[ext_resource type="Texture2D" uid="uid://c7lafkirrefso" path="res://parralaxing placeholders/sun.png" id="35_sun"]
+[ext_resource type="Texture2D" uid="uid://ciev6yjsteg6b" path="res://parralaxing placeholders/clouds.png" id="36_clouds"]
+[ext_resource type="Texture2D" uid="uid://gqq8ji31cj0k" path="res://parralaxing placeholders/mountains.png" id="37_mountains"]
+[ext_resource type="Texture2D" uid="uid://ct2cjjpc8odtn" path="res://parralaxing placeholders/hills.png" id="38_hills"]
+[ext_resource type="Texture2D" uid="uid://d4vfceaarhci" path="res://parralaxing placeholders/forest.png" id="39_forest"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gojo_luke"]
+atlas = ExtResource("33_gojo")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gojo_chris"]
+atlas = ExtResource("33_gojo")
+region = Rect2(0, 0, 32, 32)
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_trn2v"]
 
@@ -615,6 +639,56 @@ tile_set = SubResource("TileSet_cm0pq")
 
 [node name="HUD" parent="." unique_id=516852715 instance=ExtResource("7_hud0")]
 
+[node name="ParallaxBG" type="ParallaxBackground" parent="." unique_id=421904337]
+layer = -100
+
+[node name="Sky" type="ParallaxLayer" parent="ParallaxBG" unique_id=782341190]
+motion_scale = Vector2(0, 0)
+
+[node name="SkySprite" type="Sprite2D" parent="ParallaxBG/Sky" unique_id=903412556]
+position = Vector2(576, 324)
+scale = Vector2(1.2, 1.2)
+texture = ExtResource("34_sky")
+
+[node name="Sun" type="ParallaxLayer" parent="ParallaxBG" unique_id=115678902]
+motion_scale = Vector2(0.05, 0)
+
+[node name="SunSprite" type="Sprite2D" parent="ParallaxBG/Sun" unique_id=665432109]
+position = Vector2(900, 110)
+texture = ExtResource("35_sun")
+
+[node name="Clouds" type="ParallaxLayer" parent="ParallaxBG" unique_id=337890451]
+motion_scale = Vector2(0.1, 0)
+motion_mirroring = Vector2(1920, 0)
+
+[node name="CloudSprite" type="Sprite2D" parent="ParallaxBG/Clouds" unique_id=781234567]
+position = Vector2(960, 120)
+texture = ExtResource("36_clouds")
+
+[node name="Mountains" type="ParallaxLayer" parent="ParallaxBG" unique_id=902134567]
+motion_scale = Vector2(0.2, 0)
+motion_mirroring = Vector2(1920, 0)
+
+[node name="MountainSprite" type="Sprite2D" parent="ParallaxBG/Mountains" unique_id=451234890]
+position = Vector2(960, 330)
+texture = ExtResource("37_mountains")
+
+[node name="Hills" type="ParallaxLayer" parent="ParallaxBG" unique_id=229081345]
+motion_scale = Vector2(0.35, 0)
+motion_mirroring = Vector2(1920, 0)
+
+[node name="HillSprite" type="Sprite2D" parent="ParallaxBG/Hills" unique_id=883456120]
+position = Vector2(960, 430)
+texture = ExtResource("38_hills")
+
+[node name="Forest" type="ParallaxLayer" parent="ParallaxBG" unique_id=556789123]
+motion_scale = Vector2(0.5, 0)
+motion_mirroring = Vector2(1920, 0)
+
+[node name="ForestSprite" type="Sprite2D" parent="ParallaxBG/Forest" unique_id=334567890]
+position = Vector2(960, 500)
+texture = ExtResource("39_forest")
+
 [node name="World" type="Node2D" parent="." unique_id=1983438240]
 script = ExtResource("8_world")
 
@@ -660,17 +734,37 @@ position = Vector2(203, -359)
 [node name="laundry" type="Marker2D" parent="World/Spawns" unique_id=396638129]
 position = Vector2(161, 1)
 
+[node name="Preview" type="Sprite2D" parent="World/Spawns/laundry"]
+position = Vector2(0, -16)
+texture = ExtResource("24_preview")
+
 [node name="dishes" type="Marker2D" parent="World/Spawns" unique_id=1960801292]
 position = Vector2(532, -151)
+
+[node name="Preview" type="Sprite2D" parent="World/Spawns/dishes"]
+position = Vector2(0, -16)
+texture = ExtResource("25_preview")
 
 [node name="book" type="Marker2D" parent="World/Spawns" unique_id=2011354485]
 position = Vector2(743, -341)
 
+[node name="Preview" type="Sprite2D" parent="World/Spawns/book"]
+position = Vector2(0, -16)
+texture = ExtResource("26_preview")
+
 [node name="feed_baby" type="Marker2D" parent="World/Spawns" unique_id=123268864]
 position = Vector2(419, -336)
 
+[node name="Preview" type="Sprite2D" parent="World/Spawns/feed_baby"]
+position = Vector2(0, -18)
+texture = ExtResource("27_preview")
+
 [node name="change_baby" type="Marker2D" parent="World/Spawns" unique_id=682639873]
 position = Vector2(485, -335)
+
+[node name="Preview" type="Sprite2D" parent="World/Spawns/change_baby"]
+position = Vector2(0, -16)
+texture = ExtResource("28_preview")
 
 [node name="phone" type="Marker2D" parent="World/Spawns" unique_id=723767161]
 position = Vector2(156, -392)
@@ -678,17 +772,30 @@ position = Vector2(156, -392)
 [node name="basement_toilet" type="Marker2D" parent="World/Spawns" unique_id=245199559]
 position = Vector2(371, -5)
 
-[node name="mop_kitchen" type="Marker2D" parent="World/Spawns" unique_id=2003004994]
-position = Vector2(231, -174)
+[node name="Preview" type="Sprite2D" parent="World/Spawns/basement_toilet"]
+position = Vector2(0, -16)
+texture = ExtResource("29_preview")
 
 [node name="take_out_trash" type="Marker2D" parent="World/Spawns" unique_id=96835855]
 position = Vector2(406, -154)
 
+[node name="Preview" type="Sprite2D" parent="World/Spawns/take_out_trash"]
+position = Vector2(0, -16)
+texture = ExtResource("30_preview")
+
 [node name="microwave" type="Marker2D" parent="World/Spawns" unique_id=1162194964]
 position = Vector2(705, -214)
 
+[node name="Preview" type="Sprite2D" parent="World/Spawns/microwave"]
+position = Vector2(0, -16)
+texture = ExtResource("31_preview")
+
 [node name="amazon_boxes" type="Marker2D" parent="World/Spawns" unique_id=12954132]
 position = Vector2(122, -137)
+
+[node name="Preview" type="Sprite2D" parent="World/Spawns/amazon_boxes"]
+position = Vector2(0, -16)
+texture = ExtResource("32_preview")
 
 [node name="laptop" type="Marker2D" parent="World/Spawns" unique_id=1879629612]
 position = Vector2(687, -353)
@@ -696,8 +803,17 @@ position = Vector2(687, -353)
 [node name="luke" type="Marker2D" parent="World/Spawns" unique_id=487209044]
 position = Vector2(191, -343)
 
+[node name="Preview" type="Sprite2D" parent="World/Spawns/luke"]
+position = Vector2(0, -16)
+texture = SubResource("AtlasTexture_gojo_luke")
+
 [node name="chris" type="Marker2D" parent="World/Spawns" unique_id=1676780021]
 position = Vector2(478, 6)
+
+[node name="Preview" type="Sprite2D" parent="World/Spawns/chris"]
+position = Vector2(0, -16)
+modulate = Color(0, 0, 0, 1)
+texture = SubResource("AtlasTexture_gojo_chris")
 
 [node name="Bookshelf" type="Sprite2D" parent="World/Spawns" unique_id=1046636837]
 position = Vector2(742, -352)
