@@ -21,7 +21,7 @@
 [ext_resource type="Texture2D" uid="uid://e0bhp4wpjqa5" path="res://art/furniture/dresser.png" id="21_decor"]
 [ext_resource type="Texture2D" uid="uid://da2rhhi24c6lo" path="res://art/furniture/Dryer.png" id="22_decor"]
 [ext_resource type="Texture2D" uid="uid://cb6wsnv1oshqc" path="res://art/furniture/washer.png" id="24_preview"]
-[ext_resource type="Texture2D" uid="uid://cynlnlf4qrirq" path="res://art/furniture/microwaveInterior.png" id="25_preview"]
+[ext_resource type="Texture2D" path="res://art/furniture/kitchen_sink.png" id="25_preview"]
 [ext_resource type="Texture2D" uid="uid://b1rsf1xpqt43r" path="res://art/furniture/bookshelf.png" id="26_preview"]
 [ext_resource type="Texture2D" uid="uid://c0e1s0ptx8rlq" path="res://placeholder art/Furniture/high_chair.png" id="27_preview"]
 [ext_resource type="Texture2D" uid="uid://d1wefiwbkv8l7" path="res://placeholder art/Furniture/changing_table.png" id="28_preview"]
@@ -639,6 +639,7 @@ tile_set = SubResource("TileSet_cm0pq")
 [node name="HUD" parent="." unique_id=516852715 instance=ExtResource("7_hud0")]
 
 [node name="ParallaxBG" type="ParallaxBackground" parent="." unique_id=421904337]
+layer = -100
 
 [node name="Sky" type="ParallaxLayer" parent="ParallaxBG" unique_id=782341190]
 motion_scale = Vector2(0, 1)
@@ -734,69 +735,76 @@ sprite_texture = ExtResource("14_bird")
 position = Vector2(203, -359)
 
 [node name="laundry" type="Marker2D" parent="World/Spawns" unique_id=396638129]
-position = Vector2(161, 1)
+position = Vector2(161, 32)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/laundry" unique_id=1988564448]
-position = Vector2(0, -16)
+position = Vector2(0, -32)
+scale = Vector2(2, 2)
 texture = ExtResource("24_preview")
 
 [node name="dishes" type="Marker2D" parent="World/Spawns" unique_id=1960801292]
 position = Vector2(532, -151)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/dishes" unique_id=1825061004]
-position = Vector2(0, -16)
+position = Vector2(0, -32)
+scale = Vector2(2, 2)
 texture = ExtResource("25_preview")
 
 [node name="book" type="Marker2D" parent="World/Spawns" unique_id=2011354485]
 position = Vector2(743, -341)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/book" unique_id=1535251307]
-position = Vector2(0, -16)
+position = Vector2(0, -32)
+scale = Vector2(2, 2)
 texture = ExtResource("26_preview")
 
 [node name="feed_baby" type="Marker2D" parent="World/Spawns" unique_id=123268864]
 position = Vector2(419, -336)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/feed_baby" unique_id=992019796]
-position = Vector2(0, -18)
-texture = ExtResource("27_preview")
+position = Vector2(0, -32)
+scale = Vector2(2, 2)
 
 [node name="change_baby" type="Marker2D" parent="World/Spawns" unique_id=682639873]
 position = Vector2(485, -335)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/change_baby" unique_id=1076173057]
-position = Vector2(0, -16)
-texture = ExtResource("28_preview")
+position = Vector2(0, -32)
+scale = Vector2(2, 2)
 
 [node name="phone" type="Marker2D" parent="World/Spawns" unique_id=723767161]
 position = Vector2(156, -392)
 
 [node name="basement_toilet" type="Marker2D" parent="World/Spawns" unique_id=245199559]
-position = Vector2(371, -5)
+position = Vector2(371, 32)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/basement_toilet" unique_id=1149848017]
-position = Vector2(0, -16)
+position = Vector2(0, -32)
+scale = Vector2(2, 2)
 texture = ExtResource("29_preview")
 
 [node name="take_out_trash" type="Marker2D" parent="World/Spawns" unique_id=96835855]
 position = Vector2(406, -154)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/take_out_trash" unique_id=2041020971]
-position = Vector2(0, -16)
+position = Vector2(0, -32)
+scale = Vector2(2, 2)
 texture = ExtResource("30_preview")
 
 [node name="microwave" type="Marker2D" parent="World/Spawns" unique_id=1162194964]
 position = Vector2(705, -214)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/microwave" unique_id=538868304]
-position = Vector2(0, -16)
+position = Vector2(0, -32)
+scale = Vector2(2, 2)
 texture = ExtResource("31_preview")
 
 [node name="amazon_boxes" type="Marker2D" parent="World/Spawns" unique_id=12954132]
 position = Vector2(122, -137)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/amazon_boxes" unique_id=1143767422]
-position = Vector2(0, -16)
+position = Vector2(0, -32)
+scale = Vector2(2, 2)
 texture = ExtResource("32_preview")
 
 [node name="laptop" type="Marker2D" parent="World/Spawns" unique_id=1879629612]
@@ -826,7 +834,7 @@ texture = ExtResource("26_preview")
 
 [node name="bed" type="Sprite2D" parent="World/Decor" unique_id=1871513339]
 position = Vector2(198.25002, -346.5)
-scale = Vector2(3.1718743, 2.406251)
+scale = Vector2(2, 2)
 texture = ExtResource("16_decor")
 
 [node name="tv" type="Sprite2D" parent="World/Decor" unique_id=590667221]
@@ -841,16 +849,17 @@ texture = ExtResource("18_decor")
 
 [node name="crib" type="Sprite2D" parent="World/Decor" unique_id=1317764616]
 position = Vector2(413.00003, -352)
-scale = Vector2(2.73, 2)
+scale = Vector2(2, 2)
 texture = ExtResource("20_decor")
 
 [node name="dresser" type="Sprite2D" parent="World/Decor" unique_id=18551336]
 position = Vector2(496, -350.00003)
-scale = Vector2(2, 1.884)
+scale = Vector2(2, 2)
 texture = ExtResource("21_decor")
 
 [node name="Dryer" type="Sprite2D" parent="World/Decor" unique_id=1659192805]
 position = Vector2(236, 16)
+scale = Vector2(2, 2)
 texture = ExtResource("22_decor")
 
 [node name="Killbox" type="Area2D" parent="World" unique_id=1908236843]

@@ -227,7 +227,7 @@ func _update_babysitter(gs: Node, game_hours: float) -> void:
 			+ BABYSITTER_PROGRESS_PER_GAME_HOUR * game_hours
 		if p >= 1.0:
 			_sitter_progress.erase(tid)
-			gs.complete_task(tid)
+			gs.complete_task(tid, "babysitter")
 			gs.say("BABYSITTER", BABYSITTER_LINES[randi() % BABYSITTER_LINES.size()])
 		else:
 			_sitter_progress[tid] = p

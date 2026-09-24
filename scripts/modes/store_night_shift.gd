@@ -97,6 +97,10 @@ func store_title() -> String:
 	return "💻 LAPTOP"
 
 
+func show_title_label() -> bool:
+	return false
+
+
 func store_hours_text() -> String:
 	return "always open"
 

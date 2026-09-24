@@ -45,16 +45,14 @@ const STORE_COLOR := Color(0.25, 0.45, 0.75)
 const DIMMED := Color(0.4, 0.4, 0.4)
 const DELEGATED_TINT := Color(1.0, 0.72, 0.35)
 
-## Production furniture art per station (Luke-supplied sprites, native
-## resolution). The station spawns on its Spawns/<station_id> marker; the
-## sprite sits on the floor there. Stations with no supplied sprite keep
-## the old generated placeholder art.
+## Production furniture art per station (Luke-supplied sprites, drawn at 2x).
+## The station spawns on its Spawns/<station_id> marker; the sprite sits on
+## the floor there. Stations with no supplied sprite (feed/change baby) keep
+## the old colored box.
 const STATION_SPRITES := {
 	"laundry": "res://art/furniture/washer.png",
-	"dishes": "res://art/furniture/microwaveInterior.png",
+	"dishes": "res://art/furniture/kitchen_sink.png",
 	"book": "res://art/furniture/bookshelf.png",
-	"feed_baby": "res://placeholder art/Furniture/high_chair.png",
-	"change_baby": "res://placeholder art/Furniture/changing_table.png",
 	"basement_toilet": "res://art/furniture/toilet.png",
 	"take_out_trash": "res://art/furniture/trash_can.png",
 	"microwave": "res://art/furniture/microwave.png",
@@ -103,13 +101,14 @@ func _ready() -> void:
 	var title_y := -104.0
 	var prompt_y := -140.0
 	if tex != null:
-		# Placeholder furniture art: bottom of the sprite sits on the floor.
+		# Furniture art at 2x scale, bottom of the sprite on the floor.
 		var spr := Sprite2D.new()
 		spr.texture = tex
-		spr.position = Vector2(0, -tex.get_height() / 2.0)
+		spr.scale = Vector2(2, 2)
+		spr.position = Vector2(0, -tex.get_height())
 		add_child(spr)
 		_visual = spr
-		title_y = -(tex.get_height() + 36.0)
+		title_y = -(tex.get_height() * 2.0 + 36.0)
 		prompt_y = title_y - 34.0
 	else:
 		# No art for this station (e.g. the STORE): the old colored box.
@@ -256,7 +255,7 @@ func _on_minigame_done(success: bool, _elapsed_seconds: float = 0.0) -> void:
 	elif kind == Kind.CHORE:
 		var relief := _task_relief(station_id)
 		if GameState.complete_task(station_id):
-			_notify("-%d cortisol" % int(relief), Color(0.5, 0.9, 1.0))
+			_notify("-%d cortisol  +%d serotonin" % [int(relief), int(GameState.TASK_COMPLETION_SEROTONIN)], Color(0.5, 0.9, 1.0))
 		_notify_award()
 	# Combo-mom clear-time bonus: beating par extends the combo window and
 	# awards Taylor Points. Called AFTER complete_task()/add_serotonin() so

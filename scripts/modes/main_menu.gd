@@ -28,6 +28,8 @@ var _bank_visible: bool = false
 var _bank_balance: Label
 var _bank_items: VBoxContainer
 var _bank_button: Button
+var _wipe_button: Button
+var _wipe_armed := false
 
 
 func _ready() -> void:
@@ -91,6 +93,16 @@ func _build() -> void:
 	_bank_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_bank_button.pressed.connect(_toggle_bank)
 	vbox.add_child(_bank_button)
+
+	# Save wipe: two taps (arm, then confirm) — no popup, just the button.
+	_wipe_button = Button.new()
+	_wipe_button.text = "🗑 CLEAR SAVE DATA"
+	_wipe_button.add_theme_font_override("font", PIXEL_FONT)
+	_wipe_button.add_theme_font_size_override("font_size", 13)
+	_wipe_button.add_theme_color_override("font_color", Color(1.0, 0.55, 0.5))
+	_wipe_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_wipe_button.pressed.connect(_on_wipe_pressed)
+	vbox.add_child(_wipe_button)
 
 	var footer := Label.new()
 	footer.text = "↑↓ / click to choose · Enter to start · H for how to play · B for savings"
@@ -376,6 +388,18 @@ func _toggle_bank() -> void:
 	if _bank_visible:
 		_refresh_bank()
 	_bank_layer.visible = _bank_visible
+
+
+## Save wipe: first tap arms the button, second tap wipes everything and
+## rebuilds the menu (classic re-locks, birds/products reset).
+func _on_wipe_pressed() -> void:
+	if not _wipe_armed:
+		_wipe_armed = true
+		_wipe_button.text = "⚠️ TAP AGAIN TO WIPE EVERYTHING"
+		return
+	_wipe_armed = false
+	GameState.clear_all_save_data()
+	get_tree().reload_current_scene()
 
 
 func _buy_permanent(id: String) -> void:

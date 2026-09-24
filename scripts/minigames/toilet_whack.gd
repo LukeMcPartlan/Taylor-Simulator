@@ -12,6 +12,7 @@ const SPAWN_INTERVAL: float = 3.0
 const FLOOD_LIMIT: int = 15
 const LEAK_RADIUS: float = 22.0
 const TEX_DROP := preload("res://placeholder art/Sprites/leak_drop.png")
+const TEX_TOILET := preload("res://art/furniture/toilet_dirty.png")
 
 var _leaks: Array = []  # Dictionaries {pos: Vector2, age: float}
 var _plugged: int = 0
@@ -31,6 +32,7 @@ func _upgrade_tier(id: String) -> int:
 
 func start() -> void:
 	super.start()
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	title_text = "Whack-a-Leak"
 	var pipes_tier := _upgrade_tier("pipes")
 	_spread_interval = _UPGRADE_DEFS.tier_fx("pipes", pipes_tier, "spread", SPAWN_INTERVAL)
@@ -122,11 +124,8 @@ func test_flood() -> void:
 
 func _draw_game() -> void:
 	var font := ThemeDB.fallback_font
-	# The toilet: tank + bowl, programmer-art edition.
-	draw_rect(Rect2(_toilet_pos + Vector2(-46, -110), Vector2(92, 44)), Color(0.85, 0.87, 0.9))
-	draw_circle(_toilet_pos + Vector2(0, -30), 44, Color(0.9, 0.92, 0.95))
-	draw_circle(_toilet_pos + Vector2(0, -30), 30, Color(0.45, 0.6, 0.7))
-	draw_rect(Rect2(_toilet_pos + Vector2(-20, 8), Vector2(40, 60)), Color(0.85, 0.87, 0.9))
+	# The toilet: Luke's dirty-toilet sprite at 2x, centered on the leak field.
+	draw_texture_rect(TEX_TOILET, Rect2(_toilet_pos + Vector2(-32, -24), Vector2(64, 64)), false)
 	# Leaks: placeholder water drops, tinted redder as they age.
 	for leak in _leaks:
 		var p: Vector2 = leak["pos"]

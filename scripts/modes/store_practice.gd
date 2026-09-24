@@ -15,6 +15,10 @@ func store_title() -> String:
 	return "💻 LAPTOP"
 
 
+func show_title_label() -> bool:
+	return false
+
+
 func get_rows() -> Array:
 	var unlocked := GameState.is_mode_unlocked(ModeManager.Mode.CLASSIC)
 	return [{

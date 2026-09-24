@@ -12,6 +12,7 @@ const WIN_FRACTION: float = 0.9
 const TIME_LIMIT: float = 45.0
 const TEX_DIRT := preload("res://placeholder art/Sprites/dirt_spot.png")
 const TEX_SPONGE := preload("res://placeholder art/Sprites/sponge.png")
+const TEX_INTERIOR := preload("res://art/furniture/microwaveInterior.png")
 
 var _dirty: Array = []   # GRID_H x GRID_W of bool
 var _dirty_count: int = 0
@@ -33,6 +34,8 @@ func _upgrade_tier(id: String) -> int:
 
 func start() -> void:
 	super.start()
+	# Crisp pixels for the stretched interior backdrop (and the dirt/sponge).
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	title_text = "Microwave Wipe"
 	var sponge_tier := _upgrade_tier("sponge")
 	var sponge_note := ""
@@ -106,18 +109,10 @@ func test_timeout() -> void:
 
 func _draw_game() -> void:
 	var font := ThemeDB.fallback_font
-	# The clean microwave underneath: body, door window, keypad.
+	# The microwave interior: Luke's interior sprite stretched over the play
+	# field (nearest filter keeps the pixels crisp).
 	draw_rect(_rect.grow(10), Color(0.25, 0.25, 0.3))
-	draw_rect(_rect, Color(0.75, 0.76, 0.8))
-	var door := Rect2(_rect.position + Vector2(24, 40), Vector2(360, 320))
-	draw_rect(door, Color(0.55, 0.62, 0.7))
-	draw_rect(door, Color(0.2, 0.2, 0.25), false, 4.0)
-	var pad := Rect2(_rect.position + Vector2(410, 40), Vector2(120, 320))
-	draw_rect(pad, Color(0.3, 0.3, 0.35))
-	for i in 3:
-		for j in 3:
-			draw_rect(Rect2(pad.position + Vector2(14 + j * 34, 20 + i * 44), Vector2(24, 32)),
-				Color(0.6, 0.62, 0.68))
+	draw_texture_rect(TEX_INTERIOR, _rect, false)
 	# Grime layer: placeholder dirt splotches over the still-dirty cells.
 	var cell := Vector2(_rect.size.x / GRID_W, _rect.size.y / GRID_H)
 	for r in GRID_H:

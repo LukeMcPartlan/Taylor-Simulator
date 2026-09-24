@@ -22,10 +22,10 @@ const GROSS_KINDS: Array[String] = ["poop", "pee", "vomit"]
 
 # Placeholder item art (gross-outs stay procedurally drawn, sorry).
 const GOOD_TEX := {
-	"diaper": preload("res://placeholder art/Sprites/diaper.png"),
-	"powder": preload("res://placeholder art/Sprites/baby_powder.png"),
-	"wipe": preload("res://placeholder art/Sprites/baby_wipe.png"),
-	"clothes": preload("res://placeholder art/Sprites/baby_clothes.png"),
+	"diaper": preload("res://art/furniture/diaper.png"),
+	"powder": preload("res://art/furniture/baby_powder.png"),
+	"wipe": preload("res://art/furniture/baby_wipe.png"),
+	"clothes": preload("res://art/furniture/baby_clothes.png"),
 }
 
 var _have := {"diaper": false, "powder": false, "wipe": false, "clothes": false}

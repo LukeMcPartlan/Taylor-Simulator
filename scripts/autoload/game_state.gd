@@ -67,6 +67,9 @@ const METER_MAX: float = 100.0  # caps CORTISOL only; serotonin is intentionally
 
 const START_SEROTONIN: float = 60.0
 const START_CORTISOL: float = 30.0
+## Serotonin granted whenever TAYLOR personally completes a task. Delegated /
+## auto completions (robots, Luke, babysitter) keep cortisol relief only.
+const TASK_COMPLETION_SEROTONIN: float = 8.0
 ## Dopamine: the third meter. Starts full, drains over the day, and the
 ## phone tops it back up. Hitting zero ends the day on the spot — same
 ## severity as maxing cortisol. Tuning lives here; balance in playtesting.
@@ -564,6 +567,8 @@ func _activate_task(def: Dictionary) -> void:
 
 func complete_task(id: String, by: String = "taylor") -> bool:
 	## Marks a task done, records WHO did it, applies cortisol relief.
+	## Taylor's own completions also grant serotonin — every finished task
+	## feels good. Delegated/auto completions skip the serotonin.
 	for t in tasks:
 		if t["id"] == id and not t["done"]:
 			t["done"] = true
@@ -571,6 +576,8 @@ func complete_task(id: String, by: String = "taylor") -> bool:
 			t["completed_by"] = by
 			var relief: float = float(t["cortisol_relief"]) * get_task_relief_mult()
 			cortisol = clampf(cortisol - relief, 0.0, METER_MAX)
+			if by == "taylor":
+				add_serotonin(TASK_COMPLETION_SEROTONIN)
 			task_list_changed.emit(tasks)
 			meters_changed.emit(serotonin, cortisol)
 			task_completed.emit(id, relief, by)
@@ -739,6 +746,21 @@ func load_bank() -> void:
 	var m: Variant = cfg.get_value("unlocks", "modes", [])
 	if m is Array:
 		unlocked_modes = m
+
+
+## Wipes every save file (bank + per-mode saves) and resets in-memory state
+## to a fresh game. The main menu's "clear save data" button calls this.
+func clear_all_save_data() -> void:
+	for path in [SAVINGS_PATH, "user://nightshift_save.cfg",
+			"user://delegation_save.cfg", "user://combo_save.cfg"]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(path)
+	savings = 0.0
+	permanent_upgrades = {}
+	birds_found = []
+	unlocked_modes = []  # practice is always unlocked; classic re-locks
+	# Note: no save_bank() here — the files stay deleted until the next save.
+	# In-memory state is already reset, and load_bank() tolerates missing files.
 
 
 ## One-time bird collectibles. Each real mode has one fixed species

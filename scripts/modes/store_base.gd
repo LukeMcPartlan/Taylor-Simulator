@@ -65,6 +65,8 @@ func _ready() -> void:
 	title.modulate = Color(1.0, 0.85, 0.4)
 	add_child(title)
 	_title_label = title
+	if not show_title_label():
+		title.hide()
 
 	_prompt = _make_label("", Vector2(-110, -102), Vector2(220, 24), 16)
 	_prompt.modulate = Color(1, 1, 0.6)
@@ -122,6 +124,12 @@ func _input(event: InputEvent) -> void:
 
 func store_title() -> String:
 	return "STORE"
+
+
+## The floating title above the store (e.g. "💻 LAPTOP"). The laptop stores
+## hide it — the laptop sprite speaks for itself.
+func show_title_label() -> bool:
+	return true
 
 func store_hours_text() -> String:
 	return "opens 9pm"
