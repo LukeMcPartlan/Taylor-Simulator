@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://da2rhhi24c6lo"
-path="res://.godot/imported/stove.png-9da7b9d43d5edc71cb46c842d9f49bdc.ctex"
+path="res://.godot/imported/Dryer.png-4a9cb4ef9ab5ba1206853ffb19d84093.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/furniture/stove.png"
-dest_files=["res://.godot/imported/stove.png-9da7b9d43d5edc71cb46c842d9f49bdc.ctex"]
+source_file="res://art/furniture/Dryer.png"
+dest_files=["res://.godot/imported/Dryer.png-4a9cb4ef9ab5ba1206853ffb19d84093.ctex"]
 
 [params]
 
