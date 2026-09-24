@@ -776,7 +776,7 @@ scale = Vector2(2, 2)
 position = Vector2(156, -392)
 
 [node name="basement_toilet" type="Marker2D" parent="World/Spawns" unique_id=245199559]
-position = Vector2(371, 32)
+position = Vector2(371, 45)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/basement_toilet" unique_id=1149848017]
 position = Vector2(0, -32)
@@ -858,7 +858,7 @@ scale = Vector2(2, 2)
 texture = ExtResource("21_decor")
 
 [node name="Dryer" type="Sprite2D" parent="World/Decor" unique_id=1659192805]
-position = Vector2(236, 16)
+position = Vector2(236, 0)
 scale = Vector2(2, 2)
 texture = ExtResource("22_decor")
 
