@@ -1,0 +1,150 @@
+extends SceneTree
+## Headless verification for the FakeTok phone minigame:
+##  - 16 display images exist and load
+##  - prompt weighting: down appears ~3x as often as any other direction
+##  - up/down navigation: down advances (wraps), up goes back, never past 0
+##  - left/right toggle comments; up/down scroll comments while open
+##  - comment pool: ~1/50 negative, positive usernames from the female pools,
+##    negative usernames from the gamer pool, vote ranges sane
+##
+## Run: godot --headless --script tests/test_faketok.gd
+
+var _failures: Array = []
+var _checks: int = 0
+
+
+func _check(cond: bool, name: String) -> void:
+	_checks += 1
+	if cond:
+		print("PASS: ", name)
+	else:
+		_failures.append(name)
+		printerr("FAIL: ", name)
+
+
+func _initialize() -> void:
+	_run()
+	print("----")
+	print("checks: %d  failures: %d" % [_checks, _failures.size()])
+	print("ALL GREEN" if _failures.is_empty() else "FAILURES PRESENT")
+	quit()
+
+
+func _run() -> void:
+	var script: GDScript = load("res://scripts/minigames/phone_swipe.gd")
+
+	# --- Display art ------------------------------------------------------
+	var loaded := 0
+	for i in 16:
+		var tex: Texture2D = load("res://placeholder art/phone/display_%02d.png" % (i + 1))
+		if tex != null:
+			loaded += 1
+	_check(loaded == 16, "faketok: all 16 display images load (got %d)" % loaded)
+
+	# --- Prompt weighting ---------------------------------------------------
+	var game = script.new()
+	game.size = Vector2(700, 560)
+	root.add_child(game)
+	game.start()
+	game.set("_display_index", 5)  # mid-deck so up is eligible
+	var counts := {KEY_DOWN: 0, KEY_UP: 0, KEY_LEFT: 0, KEY_RIGHT: 0}
+	for i in 1200:
+		game.test_pick_prompt()
+		var p: int = game.get_prompt()
+		counts[p] = int(counts[p]) + 1
+	var down_share := float(counts[KEY_DOWN]) / 1200.0
+	_check(down_share > 0.40 and down_share < 0.60,
+		"faketok: down is ~3x weighted (share %.2f)" % down_share)
+	var up_share := float(counts[KEY_UP]) / 1200.0
+	_check(up_share > 0.10 and up_share < 0.25,
+		"faketok: up/left/right share the rest (up %.2f)" % up_share)
+
+	# --- Navigation ---------------------------------------------------------
+	game.set("_display_index", 3)
+	game.test_set_prompt(KEY_DOWN)
+	game.test_press(KEY_DOWN)
+	_check(int(game.get("_display_index")) == 4, "faketok: down advances")
+	game.set("_display_index", 15)
+	game.test_set_prompt(KEY_DOWN)
+	game.test_press(KEY_DOWN)
+	_check(int(game.get("_display_index")) == 0, "faketok: down wraps at the end")
+	game.set("_display_index", 3)
+	game.test_set_prompt(KEY_UP)
+	game.test_press(KEY_UP)
+	_check(int(game.get("_display_index")) == 2, "faketok: up goes to the prior tiktok")
+	game.set("_display_index", 0)
+	game.test_set_prompt(KEY_UP)
+	game.test_press(KEY_UP)
+	_check(int(game.get("_display_index")) == 0, "faketok: can't go up from the first tiktok")
+
+	# --- Comments toggle + scroll -------------------------------------------
+	_check(not bool(game.get("_comments_open")), "faketok: comments start closed")
+	game.test_set_prompt(KEY_LEFT)
+	game.test_press(KEY_LEFT)
+	_check(bool(game.get("_comments_open")), "faketok: left opens comments")
+	_check(int(game.get("_comments").size()) == 60, "faketok: comment pool has 60 entries")
+	# Scroll down to the bottom, then back up; clamps at both ends.
+	# (Reset _hits each press so the 12-hit win doesn't end the game mid-test.)
+	for i in 70:
+		game.set("_hits", 0)
+		game.test_set_prompt(KEY_DOWN)
+		game.test_press(KEY_DOWN)
+	var max_scroll: int = 60 - 6
+	_check(int(game.get("_scroll")) == max_scroll, "faketok: comment scroll clamps at the bottom")
+	for i in 70:
+		game.set("_hits", 0)
+		game.test_set_prompt(KEY_UP)
+		game.test_press(KEY_UP)
+	_check(int(game.get("_scroll")) == 0, "faketok: comment scroll clamps at the top")
+	game.set("_hits", 0)
+	game.test_set_prompt(KEY_RIGHT)
+	game.test_press(KEY_RIGHT)
+	_check(not bool(game.get("_comments_open")), "faketok: right closes comments")
+
+	# --- Comment pool composition -------------------------------------------
+	var neg := 0
+	var total := 0
+	var bad_pos_name := false
+	var bad_neg_name := false
+	var bad_votes := false
+	var pos_names: Array = game.NAMES_POSITIVE
+	var neg_names: Array = game.NAMES_NEGATIVE
+	for round in 12:
+		var pool: Array = game._gen_comments()
+		for c in pool:
+			total += 1
+			var d: Dictionary = c
+			if bool(d["neg"]):
+				neg += 1
+				if not neg_names.has(String(d["name"])):
+					bad_neg_name = true
+				if int(d["votes"]) > -1_000_000 or int(d["votes"]) < -9_999_999:
+					bad_votes = true
+			else:
+				if not pos_names.has(String(d["name"])):
+					bad_pos_name = true
+				if int(d["votes"]) < 1_200 or int(d["votes"]) > 98_700:
+					bad_votes = true
+				if String(d["text"]) != "Yaaaaaas queen" and String(d["text"]) != "This is literally ME fr":
+					bad_votes = true
+	var neg_rate := float(neg) / float(total)
+	_check(neg_rate > 0.005 and neg_rate < 0.05,
+		"faketok: ~1/50 comments are negative (rate %.3f over %d)" % [neg_rate, total])
+	_check(not bad_pos_name, "faketok: positive names come from the female pools")
+	_check(not bad_neg_name, "faketok: negative names come from the gamer pool")
+	_check(not bad_votes, "faketok: vote ranges and positive texts are sane")
+
+	# --- Win ------------------------------------------------------------------
+	var game2 = script.new()
+	game2.size = Vector2(700, 560)
+	root.add_child(game2)
+	var won := {}
+	game2.finished.connect(func(success: bool) -> void: won["ok"] = success)
+	game2.start()
+	var guard := 0
+	while int(game2.get("_hits")) < 12 and guard < 60:
+		game2.test_press(game2.get_prompt())
+		guard += 1
+	_check(won.has("ok") and bool(won["ok"]), "faketok: 12 correct presses wins")
+	game.queue_free()
+	game2.queue_free()

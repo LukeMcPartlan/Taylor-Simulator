@@ -36,10 +36,9 @@ extends CanvasLayer
 var _dialogue_timer: float = 0.0
 ## "day" or "run": which overlay is showing. R continues the right thing.
 var _overlay_kind: String = "day"
-## Phone tuning: each tap gives this much dopamine, then the button locks
-## for the cooldown so it can't be spam-clicked to full.
-const PHONE_DOPAMINE_GAIN: float = 12.0
-const PHONE_COOLDOWN_S: float = 5.0
+## Phone tuning: winning the FakeTok swipe minigame gives this much dopamine.
+## The minigame itself is the gate now, so there's no tap cooldown.
+const PHONE_GAME_DOPAMINE: float = 15.0
 
 
 func _ready() -> void:
@@ -118,11 +117,24 @@ func _on_dopamine_changed(value: float) -> void:
 
 
 func _on_phone_pressed() -> void:
-	## The phone's whole job now: a tap gives dopamine, no minigame.
-	GameState.add_dopamine(PHONE_DOPAMINE_GAIN)
-	phone_button.disabled = true
-	await get_tree().create_timer(PHONE_COOLDOWN_S).timeout
-	phone_button.disabled = false
+	## The phone opens the FakeTok swipe minigame; winning it tops up dopamine.
+	if MinigameLauncher.is_open():
+		return
+	MinigameLauncher.open("phone", _on_phone_game_done)
+
+
+func _on_phone_game_done(success: bool, _elapsed: float) -> void:
+	if not success:
+		return
+	GameState.add_dopamine(PHONE_GAME_DOPAMINE)
+	# "✓ DONE" over the player, same treatment as chore-game wins.
+	var player := get_tree().get_first_node_in_group("player")
+	var world: Node = null
+	if player != null:
+		world = player.get_parent()
+	if player is Node2D and world != null and world.has_method("spawn_done_text"):
+		world.call("spawn_done_text",
+			(player as Node2D).global_position + Vector2(0, -110))
 
 
 func _on_dollars_changed(dollars: float) -> void:

@@ -213,22 +213,52 @@ func _run_tests(mode_name: String) -> void:
 	_check(result3.has("ok") and bool(result3["ok"]), "box breaker: jackpot line wins instantly")
 	game3.queue_free()
 
-	# --- TikTok Swipe minigame ----------------------------------------------
-	# Any button press swipes the symbol away instantly; 10 swipes wins.
+	# --- FakeTok (phone) minigame ----------------------------------------------
+	# A big arrow shows above the phone screen; press the matching arrow key.
+	# 12 correct presses wins; wrong arrows don't count.
 	var phone = load("res://scripts/minigames/phone_swipe.gd").new()
 	phone.size = Vector2(700, 560)
 	root.add_child(phone)
 	var presult := {}
 	phone.finished.connect(func(success: bool) -> void: presult["ok"] = success)
 	phone.start()
-	phone.test_hit()
-	_check(int(phone.get("_hits")) == 1, "tiktok swipe: a swipe counts")
-	_check(float(phone.get("_prompt_age")) == 0.0, "tiktok swipe: swipe refreshes the symbol instantly")
-	for i in 9:
-		phone.test_hit()
-	_check(int(phone.get("_hits")) == 10, "tiktok swipe: 10 swipes counted")
-	await create_timer(1.6).timeout
-	_check(presult.has("ok") and bool(presult["ok"]), "tiktok swipe: 10 swipes wins")
+	# Force a known prompt before every press — never rely on the random
+	# re-roll between presses, and pin the comments state explicitly.
+	phone.test_set_prompt(KEY_UP)
+	phone.test_press(KEY_UP)
+	_check(int(phone.get("_hits")) == 1, "faketok: correct arrow counts")
+	phone.test_set_prompt(KEY_DOWN)
+	phone.test_press(KEY_LEFT)
+	_check(int(phone.get("_hits")) == 1, "faketok: wrong arrow doesn't count")
+	# Left/right toggle the comments.
+	phone.set("_comments_open", false)
+	phone.test_set_prompt(KEY_RIGHT)
+	phone.test_press(KEY_RIGHT)
+	_check(bool(phone.get("_comments_open")), "faketok: right opens comments")
+	phone.test_set_prompt(KEY_LEFT)
+	phone.test_press(KEY_LEFT)
+	_check(not bool(phone.get("_comments_open")), "faketok: left closes comments")
+	# Down goes to the next display (comments closed so it navigates).
+	phone.set("_comments_open", false)
+	var idx0: int = int(phone.get("_display_index"))
+	phone.test_set_prompt(KEY_DOWN)
+	phone.test_press(KEY_DOWN)
+	_check(int(phone.get("_display_index")) == (idx0 + 1) % 16,
+		"faketok: down goes to the next display")
+	# Up is never offered while on the first TikTok.
+	phone.set("_display_index", 0)
+	var saw_up := false
+	for i in 50:
+		phone.test_pick_prompt()
+		if phone.get_prompt() == KEY_UP:
+			saw_up = true
+	_check(not saw_up, "faketok: up never offered on the first tiktok")
+	# Play to a win.
+	var guard := 0
+	while int(phone.get("_hits")) < 12 and guard < 60:
+		phone.test_press(phone.get_prompt())
+		guard += 1
+	_check(presult.has("ok") and bool(presult["ok"]), "faketok: 12 correct swipes wins")
 	phone.queue_free()
 
 	# --- Trash Sort minigame -------------------------------------------------

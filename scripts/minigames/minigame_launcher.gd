@@ -38,7 +38,7 @@ const GAME_NAMES: Dictionary = {
 	"feed_baby": "Spoon Timing",
 	"change_baby": "Diaper Catch",
 	"book": "Reading Focus",
-	"phone": "TikTok Swipe",
+	"phone": "FakeTok",
 	"amazon_break": "Box Breaker",
 }
 

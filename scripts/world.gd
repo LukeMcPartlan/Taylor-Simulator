@@ -195,13 +195,24 @@ func _spawn_store() -> void:
 
 func _spawn_luke() -> void:
 	var luke: Luke = LUKE_SCRIPT.new()
-	luke.position = Vector2(-400.0, -110.0)
+	# Luke starts on his Spawns/luke marker in the scene (draggable in the
+	# editor); the old hardcoded spot is the fallback if it's missing.
+	var marker := get_node_or_null("Spawns/luke")
+	if marker is Node2D:
+		luke.position = (marker as Node2D).global_position
+	else:
+		luke.position = Vector2(-400.0, -110.0)
 	add_child(luke)
 
 
 func _spawn_chris() -> void:
 	var chris = CHRIS_SCRIPT.new()
-	chris.position = Vector2(-1700.0, -110.0)
+	# Same marker pattern as Luke: Spawns/chris, hardcoded fallback.
+	var marker := get_node_or_null("Spawns/chris")
+	if marker is Node2D:
+		chris.position = (marker as Node2D).global_position
+	else:
+		chris.position = Vector2(-1700.0, -110.0)
 	add_child(chris)
 
 
