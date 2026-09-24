@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Generates the 'Placeholder house tiles' tile sheet + manifest.
 
-Sheet: placeholder art/Tiles/house_tile_sheet.png (16px grid, 16 cols x 2 rows)
+Sheet: placeholder art/Tiles/house_tile_sheet.png (32px grid, 16 cols x 2 rows)
 Manifest: placeholder art/Tiles/house_tile_sheet.json (tile name -> grid pos + flags)
+
+Tiles are painted at 16px and upscaled 2x (NEAREST) so the pixel-art look is
+preserved while the TileSet works on a 32x32 grid (Luke's request 2026-09-24).
 
 Tiles:
   row 0: 4 black-marbled kitchen floor variants, 6 green / 6 brown wall paints
@@ -164,7 +167,9 @@ for i, (name, fn, flags) in enumerate(painters):
     manifest[name] = {"at": [i % COLS, i // COLS], "collide": flags["collide"]}
 
 sheet_path = os.path.join(TILES, "house_tile_sheet.png")
+# Painted at 16px; upscale 2x NEAREST for the 32x32 grid (crisp pixels).
+im = im.resize((im.width * 2, im.height * 2), Image.NEAREST)
 im.save(sheet_path)
 with open(os.path.join(TILES, "house_tile_sheet.json"), "w") as f:
-    json.dump({"tile_size": T, "tiles": manifest}, f, indent=1)
-print("wrote house_tile_sheet.png (%d tiles) + manifest" % len(painters))
+    json.dump({"tile_size": 32, "tiles": manifest}, f, indent=1)
+print("wrote house_tile_sheet.png (%d tiles, 32x32) + manifest" % len(painters))

@@ -31,6 +31,8 @@ var _menu_open: bool = false
 var _was_open: bool = false
 
 var _marker: ColorRect
+var _visual_spr: Sprite2D = null  # stall sprite (replaces the old kiosk block)
+var _title_label: Label
 var _prompt: Label
 var _menu_layer: CanvasLayer
 var _menu_items: VBoxContainer
@@ -46,18 +48,25 @@ func _ready() -> void:
 	shape.shape = circle
 	add_child(shape)
 
-	# The shop: a gold-trimmed kiosk block with a sign.
+	# The shop: a little night-store stall sprite (was a ColorRect block).
 	_marker = ColorRect.new()
 	_marker.size = Vector2(96, 64)
 	_marker.position = Vector2(-48, -64)
 	_marker.color = CLOSED_COLOR
+	_marker.hide()
 	add_child(_marker)
+	var spr := Sprite2D.new()
+	spr.texture = load("res://placeholder art/Sprites/night_store.png")
+	spr.position = Vector2(0, -22)
+	add_child(spr)
+	_visual_spr = spr
 
-	var title := _make_label(store_title(), Vector2(-90, -116), Vector2(180, 28), 20)
+	var title := _make_label(store_title(), Vector2(-90, -72), Vector2(180, 28), 20)
 	title.modulate = Color(1.0, 0.85, 0.4)
 	add_child(title)
+	_title_label = title
 
-	_prompt = _make_label("", Vector2(-110, -150), Vector2(220, 24), 16)
+	_prompt = _make_label("", Vector2(-110, -102), Vector2(220, 24), 16)
 	_prompt.modulate = Color(1, 1, 0.6)
 	_prompt.hide()
 	add_child(_prompt)
@@ -234,6 +243,10 @@ func _build_menu() -> void:
 
 func _refresh_open_state() -> void:
 	_marker.color = OPEN_COLOR if is_open() else CLOSED_COLOR
+	if _visual_spr != null:
+		# Gold glow when open, dimmed gray when closed (replaces the old
+		# kiosk block colors).
+		_visual_spr.modulate = Color(1.15, 1.05, 0.85) if is_open() else Color(0.55, 0.55, 0.62)
 
 
 func _update_prompt() -> void:

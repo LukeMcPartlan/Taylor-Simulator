@@ -78,21 +78,19 @@ var _work_note: Label
 
 func _ready() -> void:
 	super._ready()
-	# Restyle the kiosk marker into a little laptop: dark screen + base bar.
-	_marker.color = Color(0.07, 0.09, 0.15)
-	_marker.size = Vector2(96, 60)
-	_marker.position = Vector2(-48, -64)
-	var glow := ColorRect.new()
-	glow.size = Vector2(88, 4)
-	glow.position = Vector2(-44, -60)
-	glow.color = Color(0.35, 0.75, 1.0, 0.8)
-	add_child(glow)
-	var base := ColorRect.new()
-	base.size = Vector2(112, 10)
-	base.position = Vector2(-56, -4)
-	base.color = Color(0.16, 0.18, 0.24)
-	add_child(base)
+	# The laptop is a small sprite now (was a stack of ColorRects) — it sits
+	# on the floor at the marker, much smaller than before.
+	_marker.hide()
+	var spr := Sprite2D.new()
+	spr.texture = load("res://placeholder art/Sprites/laptop.png")
+	spr.position = Vector2(0, -14)
+	add_child(spr)
 	_new_email()
+	# Pull the title/prompt down to sit just above the little laptop.
+	if _title_label != null:
+		_title_label.position = Vector2(-90, -58)
+	if _prompt != null:
+		_prompt.position = Vector2(-110, -88)
 
 
 func store_title() -> String:

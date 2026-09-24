@@ -9,8 +9,9 @@ extends Minigame
 ## - While comments are open, UP/DOWN scroll them instead of changing videos
 ##
 ## Endless: there is no win condition — swipe as long as you like and exit
-## whenever (EXIT closes instantly). Correct swipes drip +1 dopamine,
-## wrong arrows cost -1.
+## whenever (EXIT closes instantly). Correct swipes drip +1 dopamine and move
+## to a new prompt; wrong arrows still perform their swipe but cost -1
+## dopamine, and the prompt arrow stays put (blinking red) until you hit it.
 
 const SWIPE_DOPAMINE: float = 1.0
 const WRONG_SWIPE_DOPAMINE: float = -1.0
@@ -123,9 +124,13 @@ func _press(keycode: int) -> void:
 		_apply_action(keycode)
 		_pick_prompt()
 	else:
+		# Wrong arrow: the input STILL happens (the swipe/scroll/toggle goes
+		# through), it just costs -1 dopamine. The prompt arrow stays the
+		# same and blinks red — no new prompt until you hit the right one.
 		_flash = 0.3
 		if _gs != null:
 			_gs.call("add_dopamine", WRONG_SWIPE_DOPAMINE)
+		_apply_action(keycode)
 
 
 func _apply_action(keycode: int) -> void:

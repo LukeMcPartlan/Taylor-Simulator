@@ -77,6 +77,45 @@ func _run() -> void:
 	game.test_press(KEY_UP)
 	_check(int(game.get("_display_index")) == 0, "faketok: can't go up from the first tiktok")
 
+	# --- Wrong input still acts ------------------------------------------------
+	# A wrong arrow performs its swipe anyway (-1 dopamine), but the prompt
+	# arrow stays the same and blinks red instead of advancing to a new one.
+	game.set("_display_index", 3)
+	game.test_set_prompt(KEY_UP)  # prompt wants UP...
+	game.test_press(KEY_DOWN)      # ...but we press DOWN (wrong)
+	_check(int(game.get("_display_index")) == 4,
+		"faketok: wrong input still performs the swipe")
+	_check(int(game.get_prompt()) == KEY_UP,
+		"faketok: wrong input keeps the same prompt arrow")
+	_check(float(game.get("_flash")) > 0.0,
+		"faketok: wrong input blinks the arrow red")
+
+	# --- Wrong input: comment toggle + scroll still act -------------------------
+	# Pressing LEFT while the prompt wants UP still toggles the comments open
+	# (wrong: -1 dopamine, prompt stays, red blink).
+	game.set("_comments_open", false)
+	game.test_set_prompt(KEY_UP)  # prompt wants UP...
+	game.test_press(KEY_LEFT)      # ...but we press LEFT (wrong)
+	_check(bool(game.get("_comments_open")),
+		"faketok: wrong input still toggles comments open")
+	_check(int(game.get_prompt()) == KEY_UP,
+		"faketok: wrong comment toggle keeps the prompt")
+	_check(float(game.get("_flash")) > 0.0,
+		"faketok: wrong comment toggle blinks red")
+	# With comments open, a wrong DOWN scrolls the comments instead of
+	# advancing the TikTok.
+	game.set("_scroll", 0)
+	var idx_before: int = int(game.get("_display_index"))
+	game.test_set_prompt(KEY_UP)  # prompt wants UP...
+	game.test_press(KEY_DOWN)      # ...but we press DOWN (wrong)
+	_check(int(game.get("_scroll")) == 1,
+		"faketok: wrong input scrolls comments while open")
+	_check(int(game.get("_display_index")) == idx_before,
+		"faketok: wrong scroll does not advance the tiktok")
+	# Reset for the sections below.
+	game.set("_comments_open", false)
+	game.set("_scroll", 0)
+
 	# --- Comments toggle + scroll -------------------------------------------
 	_check(not bool(game.get("_comments_open")), "faketok: comments start closed")
 	game.test_set_prompt(KEY_LEFT)

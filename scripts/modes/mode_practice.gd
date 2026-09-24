@@ -8,8 +8,8 @@ extends Node
 ##   the stress meter can never climb. The day can't be cut short.
 ## - ALL MINIGAMES OPEN: every chore/fun station plays its minigame on E,
 ##   task or no task. Stations never dim.
-## - ALL 5 BIRDS, EVERY DAY: each bird is out and touchable once per day
-##   (+50 serotonin each = +250/day to fund the work laptop).
+## - ALL 5 BIRDS AS ONE-TIME COLLECTIBLES: every bird is out in the gallery;
+##   each species is touchable once EVER (+50 serotonin, banked forever).
 ## - THE LAPTOP (scripts/modes/store_practice.gd): WORK tab turns serotonin
 ##   into dollars (-10 serotonin, +$10 per verdict, same as night-shift);
 ##   the AMAZON tab sells the only item in the store — CLASSIC MODE ($60).
@@ -70,4 +70,4 @@ func disable_task_procs() -> bool:
 
 
 func day_summary_extras() -> Dictionary:
-	return {"extra_lines": "Practice day complete — pet all 5 birds (+250 serotonin) and work the laptop to save up for Classic mode!"}
+	return {"extra_lines": "Practice day complete — the 5 birds are one-time collectibles (+50 serotonin each, once ever) — and work the laptop to save up for Classic mode!"}

@@ -118,6 +118,47 @@ static func def(id: String) -> Dictionary:
 	return {}
 
 
+## Per-mode product inventories, for the "purchased product progress" line on
+## the main-menu mode cards (e.g. Practice shows 0/1, Night Shift 0/9).
+## Keyed by ModeManager.Mode int. Modes with no inventory yet (Classic) get an
+## empty list — the card hides the line until their inventory lands.
+## Entries: {"id", "name"}; shared-catalog ids also carry "tiers".
+## Add new modes/products here; GameState.product_progress() does the counting.
+static func products_for_mode(mode: int) -> Array:
+	match mode:
+		5:  # PRACTICE
+			return [{"id": "classic_unlock", "name": "Classic Mode"}]
+		1:  # NIGHT_SHIFT — the 9 shared Amazon/permanent products
+			var out: Array = []
+			for d in DEFS:
+				out.append({"id": String(d["id"]), "name": String(d["name"]), "tiers": 3})
+			return out
+		2:  # MELTDOWN — 5 durable coping products. The 3 repeatable vents
+			# (pillow/pantry/bake) are consumables: never counted as owned,
+			# so they stay out of the product inventory entirely.
+			return [
+				{"id": "headphones", "name": "Noise-cancelling Headphones"},
+				{"id": "mealprep", "name": "Meal Prep Sundays"},
+				{"id": "gym", "name": "Gym Membership (never used)"},
+				{"id": "therapy", "name": "Therapy Fund"},
+				{"id": "whitenoise", "name": "Industrial White-Noise Fan"},
+			]
+		3:  # DELEGATION — 3 permanent upgrades
+			return [
+				{"id": "dishwasher", "name": "Dishwasher"},
+				{"id": "baby_monitor", "name": "Baby Monitor"},
+				{"id": "robot_mop", "name": "Robot Mop"},
+			]
+		4:  # COMBO_MOM — Coffee IV, Comfy Shoes, Second Wind, Industrial Advil
+			return [
+				{"id": "coffee_iv", "name": "Coffee IV"},
+				{"id": "comfy_shoes", "name": "Comfy Shoes"},
+				{"id": "second_wind", "name": "Second Wind"},
+				{"id": "advil", "name": "Industrial Advil"},
+			]
+	return []
+
+
 static func max_tier() -> int:
 	return 3
 

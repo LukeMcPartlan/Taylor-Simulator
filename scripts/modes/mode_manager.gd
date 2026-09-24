@@ -32,7 +32,7 @@ const MODE_CARDS: Array = [
 	{
 		"mode": Mode.PRACTICE,
 		"name": "🌱 Practice Taylor",
-		"desc": "The safe sandbox. All minigames open, zero cortisol, all 5 birds every day. Earn serotonin, work the laptop for dollars, buy Classic mode.",
+		"desc": "The safe sandbox. All minigames open, zero cortisol, all 5 birds as one-time collectibles. Earn serotonin, work the laptop for dollars, buy Classic mode.",
 	},
 	{
 		"mode": Mode.CLASSIC,

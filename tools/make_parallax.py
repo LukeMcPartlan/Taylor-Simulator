@@ -101,10 +101,11 @@ def paint_clouds():
 def paint_mountains():
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
-    far = ridge_fn(150, [(3, 34), (7, 10), (11, 4)], seed=11)
+    # DRAMATIC: tall jagged peaks, deep valleys.
+    far = ridge_fn(150, [(3, 70), (7, 22), (11, 8)], seed=11)
     d.polygon(ridge_polygon(far, step=4), fill=(110, 125, 150, 255))
     # snow caps: one hugging segment per contiguous above-snowline run
-    snowline = 132
+    snowline = 110
     run = []
     runs = []
     x = 0
@@ -122,7 +123,7 @@ def paint_mountains():
         bottom = max(p[1] for p in seg) + 12
         cap = [(seg[0][0], bottom)] + seg + [(seg[-1][0], bottom)]
         d.polygon(cap, fill=(235, 240, 248, 255))
-    near = ridge_fn(205, [(2, 28), (5, 12), (9, 5)], seed=23)
+    near = ridge_fn(205, [(2, 60), (5, 26), (9, 10)], seed=23)
     d.polygon(ridge_polygon(near, step=4), fill=(85, 100, 125, 255))
     return im
 
@@ -130,9 +131,9 @@ def paint_mountains():
 def paint_hills():
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
-    back = ridge_fn(225, [(2, 30), (6, 8)], seed=37)
+    back = ridge_fn(225, [(2, 60), (6, 16)], seed=37)
     d.polygon(ridge_polygon(back, step=4), fill=(95, 150, 95, 255))
-    front = ridge_fn(245, [(3, 24), (8, 6)], seed=51)
+    front = ridge_fn(245, [(3, 50), (8, 12)], seed=51)
     d.polygon(ridge_polygon(front, step=4), fill=(80, 135, 85, 255))
     return im
 
@@ -143,7 +144,7 @@ def paint_forest():
     d.rectangle([0, 210, W, H], fill=(55, 95, 60, 255))
     for _ in range(130):
         cx = rng.randrange(W)
-        h = rng.randrange(60, 130)
+        h = rng.randrange(80, 185)
         w = rng.randrange(18, 34)
         col = rng.choice([(45, 85, 55), (55, 100, 62), (40, 78, 50)])
         for xoff in (-W, 0, W):  # wrap copies -> seamless

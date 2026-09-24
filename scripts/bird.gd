@@ -1,16 +1,17 @@
 class_name Bird
 extends Area2D
-## The daily bird. Five of these live in Main.tscn (children of World) —
-## drag them around the editor and swap their sprite_texture in the inspector.
+## One-time bird collectible. Five of these live in Main.tscn (children of
+## World) — drag them around the editor and swap their sprite_texture in
+## the inspector.
 ##
-## Each day GameState picks one bird_id as the daily bird; only that bird is
-## active (visible + touchable). Touching it (walk into it) calls
-## GameState.collect_bird(): +50 serotonin, once per day. The bird then
-## does a little fly-away tween. In PRACTICE mode all five birds are active
-## every day instead (see GameState.all_birds_daily).
+## Each real game mode has one fixed species (GameState.MODE_BIRDS); only
+## that mode's bird appears, and only while it's still uncollected. Touching
+## it collects it FOREVER (+50 serotonin, banked). In PRACTICE mode all five
+## birds are out every day as a gallery: uncollected ones are touchable,
+## collected ones stay visible but dimmed and no longer reward.
 ##
 ## Exported knobs (per-bird, set in the editor):
-##   bird_id: String         must be unique; the daily pick is one of these
+##   bird_id: String         must be unique; one of GameState.BIRD_IDS
 ##   bird_name: String       shown in the "+50 serotonin (Robin!)" popup
 ##   sprite_texture: Texture2D  Luke's art goes here
 ##   reward_serotonin: float default 50.0
@@ -53,7 +54,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not _active_today or not visible:
 		return
-	# Gentle idle bob so the daily bird reads as alive.
+	# Gentle idle bob so the bird reads as alive.
 	_bob_t += delta
 	_sprite.position.y = sin(_bob_t * 3.0) * 3.0
 
@@ -64,13 +65,16 @@ func _on_day_started(_day: int) -> void:
 
 func _update_for_day() -> void:
 	_active_today = GameState.bird_active_today(bird_id)
-	visible = _active_today
+	# Found birds stay visible in practice (gallery) but dimmed and
+	# untouchable; everywhere else they simply don't appear.
+	var found := GameState.bird_found(bird_id)
+	visible = _active_today or (found and GameState.all_birds_daily())
+	modulate.a = 0.45 if found else 1.0
 	# Deferred: this can run inside signal callbacks (day_started,
 	# body_entered), where flipping monitoring directly is blocked.
-	set_deferred("monitoring", _active_today)
-	set_deferred("monitorable", _active_today)
+	set_deferred("monitoring", _active_today and not found)
+	set_deferred("monitorable", _active_today and not found)
 	_sprite.position = Vector2.ZERO
-	modulate.a = 1.0
 
 
 func _on_body_entered(body: Node2D) -> void:

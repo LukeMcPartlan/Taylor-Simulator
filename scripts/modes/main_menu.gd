@@ -156,6 +156,24 @@ func _make_card(card_def: Dictionary) -> PanelContainer:
 	best.add_theme_color_override("font_color", Color(0.55, 0.9, 0.6))
 	vbox.add_child(best)
 
+	# Purchased-product progress (Practice 0/1, Night Shift 0/9, ...). Modes
+	# with no inventory yet hide the product part. Every card — locked or
+	# not — shows the mode's one-time bird status: found or not.
+	var prods := Label.new()
+	var parts: Array = []
+	if not locked:
+		var pp: Array = GameState.product_progress(mode)
+		if int(pp[1]) > 0:
+			parts.append("📦 Products: %d/%d" % [int(pp[0]), int(pp[1])])
+	var bird := _bird_indicator(mode)
+	if bird != "":
+		parts.append(bird)
+	prods.text = " · ".join(parts)
+	prods.add_theme_font_override("font", PIXEL_FONT)
+	prods.add_theme_font_size_override("font_size", 10)
+	prods.add_theme_color_override("font_color", Color(0.95, 0.75, 0.4))
+	vbox.add_child(prods)
+
 	# Mouse: hover selects, click starts. Locked cards don't respond.
 	if not locked:
 		panel.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -166,12 +184,27 @@ func _make_card(card_def: Dictionary) -> PanelContainer:
 	return panel
 
 
+func _bird_indicator(mode: int) -> String:
+	## One-time bird status for a mode card: the mode's fixed species found
+	## or not (practice shows the gallery count).
+	if mode == ModeManager.Mode.PRACTICE:
+		var n := 0
+		for b in GameState.BIRD_IDS:
+			if GameState.bird_found(String(b)):
+				n += 1
+		return "🐦 %d/5" % n
+	var species := String(GameState.MODE_BIRDS.get(mode, ""))
+	if species == "":
+		return ""
+	return "🐦 found" if GameState.bird_found(species) else "🪶 not found"
+
+
 func _best_stat_line(mode: int) -> String:
 	## Reads each mode's own save file for a best-stat line. Modes never
 	## share save files, so one mode's progress can't clobber another's.
 	match mode:
 		ModeManager.Mode.PRACTICE:
-			return "All minigames open · zero cortisol · all 5 birds daily"
+			return "All minigames open · zero cortisol · 5 one-time birds"
 		ModeManager.Mode.NIGHT_SHIFT:
 			var cfg := ConfigFile.new()
 			if cfg.load("user://nightshift_save.cfg") == OK:
@@ -183,12 +216,7 @@ func _best_stat_line(mode: int) -> String:
 		ModeManager.Mode.MELTDOWN:
 			return "3 lives. No mercy. No save scumming."
 		ModeManager.Mode.DELEGATION:
-			var cfg := ConfigFile.new()
-			if cfg.load("user://delegation_save.cfg") == OK:
-				var owned: Array = Array(cfg.get_value("upgrades", "owned", []))
-				if not owned.is_empty():
-					return "Upgrades owned: %d/3" % owned.size()
-			return "No upgrades yet — Luke is still useless"
+			return "Luke is still useless — for now"
 		ModeManager.Mode.COMBO_MOM:
 			var cfg := ConfigFile.new()
 			if cfg.load("user://combo_save.cfg") == OK:
@@ -246,8 +274,8 @@ func _make_how_panel() -> CanvasLayer:
 		"Talk to Luke (E) for +10 joy AND +10 stress. Worth it.",
 		"",
 		"🌱 New? Start in PRACTICE: zero cortisol, every minigame open,",
-		"all 5 birds daily. Work the laptop for dollars, then buy",
-		"CLASSIC mode ($60) on the 🔓 UNLOCK tab.",
+		"5 one-time bird collectibles. Work the laptop for dollars,",
+		"then buy CLASSIC mode ($60) on the 🔓 UNLOCK tab.",
 		"",
 		"Press H or Esc to close this.",
 	]

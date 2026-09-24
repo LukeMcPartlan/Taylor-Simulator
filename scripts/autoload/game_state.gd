@@ -117,9 +117,10 @@ func _check_clock_tasks() -> void:
 			_clock_tasks_fired[id] = day_number
 			register_task(id, String(def["label"]), float(def["relief"]))
 
-# --- Daily bird ---------------------------------------------------------------
-# One random bird (see scripts/bird.gd; the five live in Main.tscn) is active
-# each day. Touching it is worth a flat +50 serotonin, once per day.
+# --- One-time bird collectibles ------------------------------------------------
+# One fixed species per real mode (GameState.MODE_BIRDS; the five Bird nodes
+# live in Main.tscn). Touching a species collects it FOREVER: +50 serotonin,
+# banked in the save. Practice shows all five as a gallery.
 const BIRD_IDS: Array = ["robin", "crow", "bluejay", "pigeon", "owl"]
 const BIRD_REWARD_SEROTONIN: float = 50.0
 
@@ -192,10 +193,14 @@ var task_defs: Array = TASK_DEFS.duplicate(true)
 var _proc_state: Dictionary = {}
 ## Countdown (real seconds) to the next global proc tick.
 var _next_proc_in_s: float = 0.0
-## Today's randomly picked bird (one of BIRD_IDS); "" before the first day.
-var daily_bird_id: String = ""
-## True once the daily bird has been touched today (reward is once per day).
-var bird_collected_today: bool = false
+## One-time bird collectibles: species ids found EVER (persisted in the
+## bank). Touching a bird collects it once; afterwards it's yours forever.
+var birds_found: Array = []
+## Each real game mode has one fixed bird species (its collectible).
+## PRACTICE (5) has no single bird — all five are out as a gallery.
+## ModeManager.Mode ints: CLASSIC 0, NIGHT_SHIFT 1, MELTDOWN 2,
+## DELEGATION 3, COMBO_MOM 4, PRACTICE 5.
+const MODE_BIRDS := {0: "robin", 1: "crow", 2: "bluejay", 3: "pigeon", 4: "owl"}
 var sim_running: bool = true
 var day_pressure_mult: float = 1.0
 var day_serotonin_integral: float = 0.0
@@ -624,6 +629,56 @@ func permanent_tier(id: String) -> int:
 	return int(permanent_upgrades.get(id, 0))
 
 
+## Purchased-product progress for a mode's main-menu card: [owned, total].
+## Counts from the per-mode inventory in UpgradeDefs.products_for_mode().
+## Shared-catalog products count as owned if any tier is held (permanent or
+## run); mode-specific items read that mode's own save/state. Modes with no
+## inventory yet return [0, 0] and the card hides the line.
+func product_progress(mode: int) -> Array:
+	var prods: Array = _UPGRADE_DEFS.products_for_mode(mode)
+	if prods.is_empty():
+		return [0, 0]
+	var owned := 0
+	for p in prods:
+		if _product_owned(mode, String(p["id"])):
+			owned += 1
+	return [owned, prods.size()]
+
+
+func _product_owned(mode: int, pid: String) -> bool:
+	# ModeManager.Mode ints: CLASSIC 0, NIGHT_SHIFT 1, MELTDOWN 2,
+	# DELEGATION 3, COMBO_MOM 4, PRACTICE 5.
+	match mode:
+		5:  # PRACTICE: the one and only product is the Classic unlock.
+			return pid == "classic_unlock" and is_mode_unlocked(0)
+		1:  # NIGHT_SHIFT: any tier held (permanent or this run) counts.
+			return upgrade_tier(pid) > 0
+		3:  # DELEGATION: persisted upgrade list in its own save file.
+			var cfg := ConfigFile.new()
+			if cfg.load("user://delegation_save.cfg") == OK:
+				return String(pid) in Array(cfg.get_value("upgrades", "owned", []))
+			return false
+		4:  # COMBO_MOM: coffee/shoes persist; second wind is daily, advil
+			# is instant-use — neither counts as an owned product.
+			var cfg := ConfigFile.new()
+			if cfg.load("user://combo_save.cfg") != OK:
+				return false
+			if pid == "coffee_iv":
+				return int(cfg.get_value("perks", "coffee_tier", 0)) > 0
+			if pid == "comfy_shoes":
+				return bool(cfg.get_value("perks", "shoes_owned", false))
+			return false
+		2:  # MELTDOWN: coping is run-long (not persisted) — owned only
+			# while a meltdown run is actually in progress. Vents are
+			# repeatable and never count as owned.
+			var m := mode_node()
+			if m != null and m.has_method("mode_id") and int(m.call("mode_id")) == 2 \
+					and m.get("coping_owned") is Dictionary:
+				return (m.get("coping_owned") as Dictionary).has(pid)
+			return false
+	return false
+
+
 func grant_permanent_tier(id: String, tier: int) -> void:
 	## Set a permanent tier without charging (save migrations).
 	permanent_upgrades[id] = clampi(tier, 0, _UPGRADE_DEFS.max_tier())
@@ -665,6 +720,7 @@ func save_bank() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("bank", "savings", savings)
 	cfg.set_value("bank", "permanent_upgrades", permanent_upgrades)
+	cfg.set_value("bank", "birds_found", birds_found)
 	cfg.set_value("unlocks", "modes", unlocked_modes)
 	cfg.save(SAVINGS_PATH)
 
@@ -677,47 +733,47 @@ func load_bank() -> void:
 	var p: Variant = cfg.get_value("bank", "permanent_upgrades", {})
 	if p is Dictionary:
 		permanent_upgrades = p
+	var b: Variant = cfg.get_value("bank", "birds_found", [])
+	if b is Array:
+		birds_found = b
 	var m: Variant = cfg.get_value("unlocks", "modes", [])
 	if m is Array:
 		unlocked_modes = m
 
 
-## Daily bird: touch the active bird for a flat serotonin reward, once per
-## day. Returns true if this was the first touch today (the bird plays its
-## fly-away); false if already collected.
-func collect_daily_bird(amount: float = BIRD_REWARD_SEROTONIN) -> bool:
-	if bird_collected_today:
+## One-time bird collectibles. Each real mode has one fixed species
+## (MODE_BIRDS); touching it collects it forever (+50 serotonin, banked).
+## Practice shows all five as a gallery. Returns true if this touch was the
+## first ever for the species (the bird plays its fly-away); false if the
+## species was already found.
+func bird_active_today(bird_id: String) -> bool:
+	if bird_id in birds_found:
+		# In practice the found birds stay out as a gallery (dimmed, not
+		# touchable); in other modes a found bird simply doesn't appear.
+		return all_birds_daily()
+	if all_birds_daily():
+		return true
+	return String(MODE_BIRDS.get(ModeManager.current_mode, "")) == bird_id
+
+
+func collect_bird(bird_id: String, amount: float = BIRD_REWARD_SEROTONIN) -> bool:
+	if bird_id in birds_found:
 		return false
-	bird_collected_today = true
+	birds_found.append(bird_id)
 	add_serotonin(amount)
+	save_bank()
 	return true
 
 
-## Practice mode: ALL FIVE birds are out every day, each touchable once
-## (+50 serotonin each). Tracked separately from the single daily bird.
-var birds_collected_today: Array = []
-
-
+## Practice mode shows all five birds every day (gallery); other modes show
+## only their own species while it's still uncollected.
 func all_birds_daily() -> bool:
 	var v = _hook("all_birds_daily")
 	return v is bool and bool(v)
 
 
-func bird_active_today(bird_id: String) -> bool:
-	if all_birds_daily():
-		return not (bird_id in birds_collected_today)
-	return daily_bird_id == bird_id and not bird_collected_today
-
-
-func collect_bird(bird_id: String, amount: float = BIRD_REWARD_SEROTONIN) -> bool:
-	## Route a bird touch through the right daily rule for the active mode.
-	if all_birds_daily():
-		if bird_id in birds_collected_today:
-			return false
-		birds_collected_today.append(bird_id)
-		add_serotonin(amount)
-		return true
-	return collect_daily_bird(amount)
+func bird_found(bird_id: String) -> bool:
+	return bird_id in birds_found
 
 
 func interact_luke() -> void:
@@ -766,9 +822,8 @@ func _begin_day() -> void:
 	if all_open is bool and bool(all_open):
 		for def in task_defs:
 			_activate_task(def)
-	daily_bird_id = String(BIRD_IDS[randi_range(0, BIRD_IDS.size() - 1)])
-	bird_collected_today = false
-	birds_collected_today.clear()
+	# Birds are one-time collectibles now: no daily reset. Unfound species
+	# appear (each mode its own; practice shows all five as a gallery).
 	sim_running = true
 	set_process(true)
 	clock_changed.emit(get_time_string())

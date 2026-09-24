@@ -59,6 +59,8 @@ const STATION_SPRITES := {
 	"take_out_trash": "res://art/furniture/trash_can.png",
 	"microwave": "res://art/furniture/microwave.png",
 	"amazon_boxes": "res://art/furniture/amazon_box.png",
+	"__store__": "res://placeholder art/Sprites/night_store.png",
+	"__laptop__": "res://placeholder art/Sprites/laptop.png",
 }
 
 var _player_inside: bool = false
@@ -452,6 +454,13 @@ func _own_task_open() -> bool:
 	return false
 
 
+## Toilet texture: dirty while the task is active, clean when it's done.
+const TOILET_CLEAN := preload("res://art/furniture/toilet.png")
+const TOILET_DIRTY := preload("res://art/furniture/toilet_dirty.png")
+func _toilet_tex(dirty: bool) -> Texture2D:
+	return TOILET_DIRTY if dirty else TOILET_CLEAN
+
+
 func _own_task_delegated() -> bool:
 	for t in GameState.tasks:
 		if t["id"] == station_id:
@@ -472,6 +481,9 @@ func _refresh_from_tasks() -> void:
 	if kind != Kind.CHORE:
 		return
 	var d := _del()
+	# Basement toilet: dirty sprite while its task is open, clean when done.
+	if station_id == "basement_toilet" and _visual is Sprite2D:
+		(_visual as Sprite2D).texture = _toilet_tex(_own_task_open())
 	# State language: open = full color, done = dimmed gray, delegated =
 	# orange, robot-covered = blue. ColorRects get a base color + modulate;
 	# sprites bake their color in, so the state rides on modulate alone.
