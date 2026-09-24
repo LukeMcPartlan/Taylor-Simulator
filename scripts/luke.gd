@@ -97,6 +97,7 @@ func _ready() -> void:
 
 	_sprite = AnimatedSprite2D.new()
 	_sprite.sprite_frames = frames
+	_sprite.scale = Vector2(2, 2)
 	_sprite.play(&"idle")
 	add_child(_sprite)
 

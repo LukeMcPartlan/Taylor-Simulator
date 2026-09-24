@@ -60,6 +60,9 @@ const STATION_SPRITES := {
 	"__store__": "res://placeholder art/Sprites/night_store.png",
 	"__laptop__": "res://placeholder art/Sprites/laptop.png",
 }
+# Stations whose furniture visual stays fully transparent (labels/prompts
+# still show; the player just walks up to the text).
+const TRANSPARENT_VISUALS: Array[String] = ["feed_baby", "change_baby"]
 
 var _player_inside: bool = false
 # Fix-up flow only (DELEGATION): hold-E to repair Luke's mess (2s).
@@ -106,24 +109,30 @@ func _ready() -> void:
 		spr.texture = tex
 		spr.scale = Vector2(2, 2)
 		spr.position = Vector2(0, -tex.get_height())
+		spr.z_index = -1  # furniture draws behind the player
 		add_child(spr)
 		_visual = spr
 		title_y = -(tex.get_height() * 2.0 + 36.0)
 		prompt_y = title_y - 34.0
 	else:
 		# No art for this station (e.g. the STORE): the old colored box.
+		# feed_baby / change_baby stay fully transparent — text only.
 		var rect := ColorRect.new()
 		rect.size = Vector2(72, 52)
 		rect.position = Vector2(-36, -52)
-		match kind:
-			Kind.CHORE:
-				rect.color = CHORE_COLOR
-			Kind.FUN:
-				rect.color = FUN_COLOR
-			Kind.STORE:
-				rect.color = STORE_COLOR
-				rect.size = Vector2(96, 64)
-				rect.position = Vector2(-48, -64)
+		rect.z_index = -1  # furniture draws behind the player
+		if station_id in TRANSPARENT_VISUALS:
+			rect.color = Color(0, 0, 0, 0)
+		else:
+			match kind:
+				Kind.CHORE:
+					rect.color = CHORE_COLOR
+				Kind.FUN:
+					rect.color = FUN_COLOR
+				Kind.STORE:
+					rect.color = STORE_COLOR
+					rect.size = Vector2(96, 64)
+					rect.position = Vector2(-48, -64)
 		add_child(rect)
 		_visual = rect
 
@@ -502,7 +511,7 @@ func _refresh_from_tasks() -> void:
 		base = DIMMED
 		_fixing = false
 		_bar.hide()
-	if _visual is ColorRect:
+	if _visual is ColorRect and not (station_id in TRANSPARENT_VISUALS):
 		(_visual as ColorRect).color = base
 	elif base == DIMMED:
 		mod = Color(0.45, 0.45, 0.45)

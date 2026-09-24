@@ -743,7 +743,7 @@ scale = Vector2(2, 2)
 texture = ExtResource("24_preview")
 
 [node name="dishes" type="Marker2D" parent="World/Spawns" unique_id=1960801292]
-position = Vector2(532, -151)
+position = Vector2(532, -119)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/dishes" unique_id=1825061004]
 position = Vector2(0, -32)
@@ -784,7 +784,7 @@ scale = Vector2(2, 2)
 texture = ExtResource("29_preview")
 
 [node name="take_out_trash" type="Marker2D" parent="World/Spawns" unique_id=96835855]
-position = Vector2(406, -154)
+position = Vector2(406, -122)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/take_out_trash" unique_id=2041020971]
 position = Vector2(0, -32)
@@ -814,7 +814,8 @@ position = Vector2(687, -353)
 position = Vector2(191, -343)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/luke" unique_id=1849922678]
-position = Vector2(0, -16)
+position = Vector2(0, -32)
+scale = Vector2(2, 2)
 texture = SubResource("AtlasTexture_gojo_luke")
 
 [node name="chris" type="Marker2D" parent="World/Spawns" unique_id=1676780021]
@@ -822,7 +823,8 @@ position = Vector2(478, 6)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/chris" unique_id=1896849335]
 modulate = Color(0, 0, 0, 1)
-position = Vector2(0, -16)
+position = Vector2(0, -32)
+scale = Vector2(2, 2)
 texture = SubResource("AtlasTexture_gojo_chris")
 
 [node name="Bookshelf" type="Sprite2D" parent="World/Spawns" unique_id=1046636837]
@@ -834,32 +836,38 @@ texture = ExtResource("26_preview")
 
 [node name="bed" type="Sprite2D" parent="World/Decor" unique_id=1871513339]
 position = Vector2(198.25002, -346.5)
-scale = Vector2(2, 2)
+scale = Vector2(3, 3)
+z_index = -1
 texture = ExtResource("16_decor")
 
 [node name="tv" type="Sprite2D" parent="World/Decor" unique_id=590667221]
 position = Vector2(189, -160)
 scale = Vector2(2, 2)
+z_index = -1
 texture = ExtResource("17_decor")
 
 [node name="couch" type="Sprite2D" parent="World/Decor" unique_id=1668481247]
 position = Vector2(300, -159)
-scale = Vector2(2, 2)
+scale = Vector2(3, 3)
+z_index = -1
 texture = ExtResource("18_decor")
 
 [node name="crib" type="Sprite2D" parent="World/Decor" unique_id=1317764616]
 position = Vector2(413.00003, -352)
 scale = Vector2(2, 2)
+z_index = -1
 texture = ExtResource("20_decor")
 
 [node name="dresser" type="Sprite2D" parent="World/Decor" unique_id=18551336]
 position = Vector2(496, -350.00003)
 scale = Vector2(2, 2)
+z_index = -1
 texture = ExtResource("21_decor")
 
 [node name="Dryer" type="Sprite2D" parent="World/Decor" unique_id=1659192805]
 position = Vector2(236, 0)
 scale = Vector2(2, 2)
+z_index = -1
 texture = ExtResource("22_decor")
 
 [node name="Killbox" type="Area2D" parent="World" unique_id=1908236843]
