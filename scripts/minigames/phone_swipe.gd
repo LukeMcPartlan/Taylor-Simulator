@@ -8,10 +8,10 @@ extends Minigame
 ## - LEFT / RIGHT = open/close the comments
 ## - While comments are open, UP/DOWN scroll them instead of changing videos
 ##
-## 12 correct presses wins. Wrong arrows just flash red — no penalty.
-## Every correct swipe drips a little dopamine straight into the bar.
+## Endless: there is no win condition — swipe as long as you like and exit
+## whenever (EXIT closes instantly). Correct swipes drip +1 dopamine,
+## wrong arrows cost -1.
 
-const WIN_HITS: int = 12
 const SWIPE_DOPAMINE: float = 1.0
 const WRONG_SWIPE_DOPAMINE: float = -1.0
 const DISPLAY_COUNT: int = 16
@@ -121,9 +121,6 @@ func _press(keycode: int) -> void:
 		if _gs != null:
 			_gs.call("add_dopamine", SWIPE_DOPAMINE)
 		_apply_action(keycode)
-		if _hits >= WIN_HITS:
-			_end(true)
-			return
 		_pick_prompt()
 	else:
 		_flash = 0.3

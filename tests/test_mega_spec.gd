@@ -215,7 +215,7 @@ func _run_tests(mode_name: String) -> void:
 
 	# --- FakeTok (phone) minigame ----------------------------------------------
 	# A big arrow shows above the phone screen; press the matching arrow key.
-	# 12 correct presses wins; wrong arrows don't count.
+	# Endless: correct arrows count, wrong arrows don't, no win condition.
 	var phone = load("res://scripts/minigames/phone_swipe.gd").new()
 	phone.size = Vector2(700, 560)
 	root.add_child(phone)
@@ -253,12 +253,15 @@ func _run_tests(mode_name: String) -> void:
 		if phone.get_prompt() == KEY_UP:
 			saw_up = true
 	_check(not saw_up, "faketok: up never offered on the first tiktok")
-	# Play to a win.
-	var guard := 0
-	while int(phone.get("_hits")) < 12 and guard < 60:
+	# Endless: 30 correct presses never end the game on their own...
+	for i in 30:
 		phone.test_press(phone.get_prompt())
-		guard += 1
-	_check(presult.has("ok") and bool(presult["ok"]), "faketok: 12 correct swipes wins")
+	_check(not presult.has("ok") and not bool(phone.get("_over")),
+		"faketok: endless — 30 correct swipes never end the game")
+	# ...and quitting closes instantly, no banner wait.
+	phone.quit()
+	_check(presult.has("ok") and not bool(presult["ok"]),
+		"faketok: quit closes instantly")
 	phone.queue_free()
 
 	# --- Trash Sort minigame -------------------------------------------------

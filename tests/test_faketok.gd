@@ -84,19 +84,15 @@ func _run() -> void:
 	_check(bool(game.get("_comments_open")), "faketok: left opens comments")
 	_check(int(game.get("_comments").size()) == 60, "faketok: comment pool has 60 entries")
 	# Scroll down to the bottom, then back up; clamps at both ends.
-	# (Reset _hits each press so the 12-hit win doesn't end the game mid-test.)
 	for i in 70:
-		game.set("_hits", 0)
 		game.test_set_prompt(KEY_DOWN)
 		game.test_press(KEY_DOWN)
 	var max_scroll: int = 60 - 6
 	_check(int(game.get("_scroll")) == max_scroll, "faketok: comment scroll clamps at the bottom")
 	for i in 70:
-		game.set("_hits", 0)
 		game.test_set_prompt(KEY_UP)
 		game.test_press(KEY_UP)
 	_check(int(game.get("_scroll")) == 0, "faketok: comment scroll clamps at the top")
-	game.set("_hits", 0)
 	game.test_set_prompt(KEY_RIGHT)
 	game.test_press(KEY_RIGHT)
 	_check(not bool(game.get("_comments_open")), "faketok: right closes comments")
@@ -136,17 +132,21 @@ func _run() -> void:
 	_check(not bad_neg_name, "faketok: negative names come from the gamer pool")
 	_check(not bad_votes, "faketok: vote ranges and positive texts are sane")
 
-	# --- Win ------------------------------------------------------------------
+	# --- Endless + instant quit ---------------------------------------------
+	# No win condition: 30 correct presses never end the game on their own...
 	var game2 = script.new()
 	game2.size = Vector2(700, 560)
 	root.add_child(game2)
-	var won := {}
-	game2.finished.connect(func(success: bool) -> void: won["ok"] = success)
+	var done := {}
+	game2.finished.connect(func(success: bool) -> void: done["ok"] = success)
 	game2.start()
-	var guard := 0
-	while int(game2.get("_hits")) < 12 and guard < 60:
+	for i in 30:
 		game2.test_press(game2.get_prompt())
-		guard += 1
-	_check(won.has("ok") and bool(won["ok"]), "faketok: 12 correct presses wins")
+	_check(not done.has("ok") and not bool(game2.get("_over")),
+		"faketok: endless — 30 correct swipes never end the game")
+	# ...and quitting closes instantly, no banner wait.
+	game2.quit()
+	_check(done.has("ok") and not bool(done["ok"]),
+		"faketok: quit closes instantly")
 	game.queue_free()
 	game2.queue_free()

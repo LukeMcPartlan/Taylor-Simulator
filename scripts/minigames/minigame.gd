@@ -113,8 +113,11 @@ func _input(event: InputEvent) -> void:
 
 func quit() -> void:
 	## Player bailed via the exit button: counts as a fail — no reward, the
-	## chore stays open and can re-proc later.
-	_finish(false, "QUIT")
+	## chore stays open and can re-proc later. Closes instantly, no banner.
+	if _over:
+		return
+	_over = true
+	finished.emit(false)
 
 
 func _end(success: bool) -> void:
