@@ -14,6 +14,14 @@
 [ext_resource type="Texture2D" uid="uid://c40m1ejqe0d50" path="res://Birds/bird_pigeon.png" id="13_bird"]
 [ext_resource type="Texture2D" uid="uid://cr4hhnh0g435d" path="res://Birds/bird_owl.png" id="14_bird"]
 [ext_resource type="Script" uid="uid://jkp4cqrkg85d" path="res://scripts/killbox.gd" id="15_killbox"]
+[ext_resource type="Texture2D" uid="uid://c1mknvpihkvs6" path="res://art/furniture/bed.png" id="16_decor"]
+[ext_resource type="Texture2D" uid="uid://c2vww3mhonk8g" path="res://art/furniture/tv.png" id="17_decor"]
+[ext_resource type="Texture2D" uid="uid://dyhe88nbludup" path="res://art/furniture/couch.png" id="18_decor"]
+[ext_resource type="Texture2D" uid="uid://djckwwqevtfa4" path="res://art/furniture/phone.png" id="19_decor"]
+[ext_resource type="Texture2D" uid="uid://dgjxdac5m8751" path="res://art/furniture/crib.png" id="20_decor"]
+[ext_resource type="Texture2D" uid="uid://e0bhp4wpjqa5" path="res://art/furniture/dresser.png" id="21_decor"]
+[ext_resource type="Texture2D" uid="uid://da2rhhi24c6lo" path="res://art/furniture/stove.png" id="22_decor"]
+[ext_resource type="Texture2D" uid="uid://ccgl4ujis5cc" path="res://art/furniture/toilet_dirty.png" id="23_decor"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_trn2v"]
 
@@ -689,6 +697,40 @@ position = Vector2(-400, -110)
 
 [node name="chris" type="Marker2D" parent="World/Spawns"]
 position = Vector2(-1700, -110)
+
+[node name="Decor" type="Node2D" parent="World"]
+
+[node name="bed" type="Sprite2D" parent="World/Decor"]
+position = Vector2(-470, -126)
+texture = ExtResource("16_decor")
+
+[node name="tv" type="Sprite2D" parent="World/Decor"]
+position = Vector2(110, -376)
+texture = ExtResource("17_decor")
+
+[node name="couch" type="Sprite2D" parent="World/Decor"]
+position = Vector2(260, -376)
+texture = ExtResource("18_decor")
+
+[node name="phone" type="Sprite2D" parent="World/Decor"]
+position = Vector2(330, -376)
+texture = ExtResource("19_decor")
+
+[node name="crib" type="Sprite2D" parent="World/Decor"]
+position = Vector2(540, -372)
+texture = ExtResource("20_decor")
+
+[node name="dresser" type="Sprite2D" parent="World/Decor"]
+position = Vector2(648, -372)
+texture = ExtResource("21_decor")
+
+[node name="stove" type="Sprite2D" parent="World/Decor"]
+position = Vector2(270, -171)
+texture = ExtResource("22_decor")
+
+[node name="toilet_dirty" type="Sprite2D" parent="World/Decor"]
+position = Vector2(290, -16)
+texture = ExtResource("23_decor")
 
 [node name="Killbox" type="Area2D" parent="World" unique_id=1908236843]
 position = Vector2(-900, 700)

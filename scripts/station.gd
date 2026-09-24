@@ -45,20 +45,22 @@ const STORE_COLOR := Color(0.25, 0.45, 0.75)
 const DIMMED := Color(0.4, 0.4, 0.4)
 const DELEGATED_TINT := Color(1.0, 0.72, 0.35)
 
-## Placeholder furniture art per station. The station spawns on its
-## Spawns/<station_id> marker; the sprite sits on the floor there.
+## Production furniture art per station (Luke-supplied sprites, native
+## resolution). The station spawns on its Spawns/<station_id> marker; the
+## sprite sits on the floor there. Stations with no supplied sprite keep
+## the old generated placeholder art.
 const STATION_SPRITES := {
-	"laundry": "res://placeholder art/Furniture/washer.png",
-	"dishes": "res://placeholder art/Furniture/sink.png",
-	"book": "res://placeholder art/Furniture/bookshelf.png",
+	"laundry": "res://art/furniture/washer.png",
+	"dishes": "res://art/furniture/dishwasher.png",
+	"book": "res://art/furniture/bookshelf.png",
 	"feed_baby": "res://placeholder art/Furniture/high_chair.png",
 	"change_baby": "res://placeholder art/Furniture/changing_table.png",
 	"phone": "res://placeholder art/Furniture/phone.png",
-	"basement_toilet": "res://placeholder art/Furniture/toilet.png",
+	"basement_toilet": "res://art/furniture/toilet.png",
 	"mop_kitchen": "res://placeholder art/Furniture/mop_bucket.png",
-	"take_out_trash": "res://placeholder art/Furniture/trash_can.png",
-	"microwave": "res://placeholder art/Furniture/microwave.png",
-	"amazon_boxes": "res://placeholder art/Furniture/box_stack.png",
+	"take_out_trash": "res://art/furniture/trash_can.png",
+	"microwave": "res://art/furniture/microwave.png",
+	"amazon_boxes": "res://art/furniture/amazon_box.png",
 }
 
 var _player_inside: bool = false
