@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cmpstnbd7fnbo"
-path="res://.godot/imported/poop.png-01cc9cb9ed43062d37e52bef7f620756.ctex"
+uid="uid://1e04qllypswa"
+path="res://.godot/imported/vomit.png-214a183c0f553a8997ef6a869b13a603.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/furniture/poop.png"
-dest_files=["res://.godot/imported/poop.png-01cc9cb9ed43062d37e52bef7f620756.ctex"]
+source_file="res://art/furniture/vomit.png"
+dest_files=["res://.godot/imported/vomit.png-214a183c0f553a8997ef6a869b13a603.ctex"]
 
 [params]
 

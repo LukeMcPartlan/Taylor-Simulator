@@ -1,5 +1,5 @@
 extends SceneTree
-## Screenshots Diaper Catch mid-game with banana/broccoli/poop falling.
+## Screenshots Diaper Catch mid-game with piss/shit/vomit sprites falling.
 
 var _booted := false
 
@@ -24,14 +24,14 @@ func _run() -> void:
 		await process_frame
 	g.start()
 	g._ready_to_draw = true
-	# Seed a spread of items: both foods, poop sprite, pee + vomit procedural.
+	# Seed a spread of items: 4 goods + the 3 gross-out sprites.
 	g._items = [
-		{"x": 200.0, "y": 200.0, "kind": "banana"},
-		{"x": 380.0, "y": 320.0, "kind": "broccoli"},
+		{"x": 200.0, "y": 200.0, "kind": "diaper"},
+		{"x": 380.0, "y": 320.0, "kind": "powder"},
 		{"x": 560.0, "y": 240.0, "kind": "poop"},
 		{"x": 740.0, "y": 360.0, "kind": "pee"},
-		{"x": 480.0, "y": 140.0, "kind": "diaper"},
-		{"x": 120.0, "y": 420.0, "kind": "vomit"},
+		{"x": 480.0, "y": 140.0, "kind": "vomit"},
+		{"x": 120.0, "y": 420.0, "kind": "wipe"},
 	]
 	g._spawn_timer = 99.0  # hold spawner off for the shot
 	for i in 10:

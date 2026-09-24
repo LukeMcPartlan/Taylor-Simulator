@@ -1,11 +1,11 @@
 class_name DiaperCatch
 extends Minigame
 ## Change-baby station — "Diaper Catch". Slide the changing pad to catch
-## what the baby needs: 1 diaper, 1 baby powder, 1 wipe, 1 change of
-## clothes, plus a banana and some broccoli for snacks. Only items you
-## still need ever spawn. The baby fights back with poop, pee, and
-## vomit — catching any of those knocks one collected item back off
-## your list. Collect all six to win. 60-second timer.
+## what the baby needs: exactly 1 diaper, 1 baby powder, 1 wipe, and
+## 1 change of clothes. Only items you still need ever spawn. The baby
+## fights back with poop, pee, and vomit — catching any of those knocks
+## one collected item back off your list. Collect all four to win.
+## 60-second timer.
 ##
 ## Controls: A/D or Left/Right to slide the pad.
 
@@ -15,25 +15,24 @@ const TIME_LIMIT: float = 60.0
 const EW_TIME: float = 0.8
 const GROSS_CHANCE: float = 0.65
 
-const GOODS: Array[String] = ["diaper", "powder", "wipe", "clothes", "banana", "broccoli"]
+const GOODS: Array[String] = ["diaper", "powder", "wipe", "clothes"]
 const GOOD_LABELS := {"diaper": "Diaper", "powder": "Powder",
-	"wipe": "Wipe", "clothes": "Outfit",
-	"banana": "Banana", "broccoli": "Broccoli"}
+	"wipe": "Wipe", "clothes": "Outfit"}
 const GROSS_KINDS: Array[String] = ["poop", "pee", "vomit"]
 
-# Item art (pee + vomit gross-outs stay procedurally drawn, sorry).
 const GOOD_TEX := {
 	"diaper": preload("res://art/furniture/diaper.png"),
 	"powder": preload("res://art/furniture/baby_powder.png"),
 	"wipe": preload("res://art/furniture/baby_wipe.png"),
 	"clothes": preload("res://art/furniture/baby_clothes.png"),
-	"banana": preload("res://art/furniture/banana.png"),
-	"broccoli": preload("res://art/furniture/broccoli.png"),
 }
-const POOP_TEX := preload("res://art/furniture/poop.png")
+const GROSS_TEX := {
+	"poop": preload("res://art/furniture/shit.png"),
+	"pee": preload("res://art/furniture/piss.png"),
+	"vomit": preload("res://art/furniture/vomit.png"),
+}
 
-var _have := {"diaper": false, "powder": false, "wipe": false, "clothes": false,
-	"banana": false, "broccoli": false}
+var _have := {"diaper": false, "powder": false, "wipe": false, "clothes": false}
 var _pad_x: float = 0.0
 var _items: Array = []  # Dictionaries {x, y, kind}
 var _spawn_timer: float = 0.0
@@ -45,7 +44,7 @@ var _ew_pos := Vector2.ZERO
 func start() -> void:
 	super.start()
 	title_text = "Diaper Catch"
-	help_text = "Catch diaper, powder, wipe, outfit, banana, broccoli. DODGE the gross stuff!"
+	help_text = "Catch 1 diaper, 1 powder, 1 wipe, 1 fresh outfit. DODGE the gross stuff!"
 	_pad_x = size.x / 2.0
 	for k in GOODS:
 		_have[k] = false
@@ -167,19 +166,9 @@ func _draw_game() -> void:
 			draw_texture(tex, p - tex.get_size() / 2.0)
 			continue
 		match kind:
-			"poop":
-				draw_texture(POOP_TEX, p - POOP_TEX.get_size() / 2.0)
-			"pee":
-				# A yellow stream with drops.
-				draw_rect(Rect2(p - Vector2(3, 18), Vector2(6, 30)), Color(0.95, 0.8, 0.15))
-				draw_circle(p + Vector2(0, 18), 5, Color(0.95, 0.8, 0.15))
-				draw_circle(p + Vector2(4, 28), 3, Color(0.95, 0.8, 0.15))
-			"vomit":
-				# A green splat with chunks. Sorry.
-				draw_circle(p, 14, Color(0.45, 0.65, 0.25))
-				draw_circle(p + Vector2(-5, -3), 4, Color(0.3, 0.48, 0.16))
-				draw_circle(p + Vector2(6, 4), 5, Color(0.3, 0.48, 0.16))
-				draw_circle(p + Vector2(2, -7), 3, Color(0.55, 0.72, 0.3))
+			"poop", "pee", "vomit":
+				var gtex: Texture2D = GROSS_TEX[kind]
+				draw_texture(gtex, p - gtex.get_size() / 2.0)
 	# "EW!" popup when you catch something gross.
 	if _ew_timer > 0.0:
 		var a := clampf(_ew_timer / EW_TIME, 0.0, 1.0)

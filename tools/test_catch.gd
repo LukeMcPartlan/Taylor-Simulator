@@ -1,5 +1,5 @@
 extends SceneTree
-## Functional check: Diaper Catch with banana/broccoli goods + poop sprite.
+## Functional check: Diaper Catch — 4 goods, piss/shit/vomit sprite gross-outs.
 
 var _booted := false
 var _results: Array = []
@@ -30,42 +30,38 @@ func _make_game():
 
 func _run() -> void:
 	var g = load("res://scripts/minigames/diaper_catch.gd").new()
-	_check(g.GOODS.has("banana") and g.GOODS.has("broccoli"), "banana+broccoli in GOODS")
-	_check(g.GOODS.size() == 6, "6 goods total")
-	_check(g.GOOD_TEX.has("banana") and g.GOOD_TEX.has("broccoli"), "food textures wired")
-	_check(g.POOP_TEX != null, "poop sprite loaded")
+	_check(g.GOODS.size() == 4, "4 goods, no banana/broccoli")
+	_check(not g.GOODS.has("banana") and not g.GOODS.has("broccoli"),
+		"banana/broccoli references removed")
+	_check(g.GROSS_TEX.has("poop") and g.GROSS_TEX.has("pee") and g.GROSS_TEX.has("vomit"),
+		"piss/shit/vomit gross sprites wired")
 	g.free()
 
-	# Win path: catch all six, game ends with success=true.
+	# Win path: catch all four goods.
 	var g1 = _make_game()
 	var won := [false]
 	g1.finished.connect(func(success: bool) -> void: won[0] = success)
 	for i in 5:
 		await process_frame
 	g1.start()
-	for k in ["diaper", "powder", "wipe", "clothes"]:
-		g1._catch_item(k, Vector2.ZERO)
-	_check(not bool(g1.get("_over")), "no win with only 4/6 goods")
-	g1._catch_item("banana", Vector2.ZERO)
-	g1._catch_item("broccoli", Vector2.ZERO)
-	_check(bool(g1.get("_over")) and won[0], "win after all 6 goods")
+	g1.test_catch_all_goods()
+	_check(bool(g1.get("_over")) and won[0], "win after all 4 goods")
 	g1.free()
 
-	# Gross poop knocks a collected item back off.
+	# Gross-outs knock a collected item back off.
 	var g2 = _make_game()
 	for i in 5:
 		await process_frame
 	g2.start()
-	g2._catch_item("diaper", Vector2.ZERO)
-	g2._catch_item("banana", Vector2.ZERO)
-	g2._catch_item("poop", Vector2(100, 100))
+	g2.test_catch_diaper()
+	g2._catch_item("pee", Vector2(100, 100))
 	var have: Dictionary = g2.get("_have")
-	var owned := 0
-	for k in have:
-		if bool(have[k]):
-			owned += 1
-	_check(owned == 1, "poop knocks one item off (2->1)")
-	_check(not bool(g2.get("_over")), "game continues after gross catch")
+	_check(not bool(have["diaper"]), "pee knocks diaper off")
+	g2._catch_item("diaper", Vector2.ZERO)
+	g2._catch_item("vomit", Vector2(100, 100))
+	have = g2.get("_have")
+	_check(not bool(have["diaper"]), "vomit knocks diaper off")
+	_check(not bool(g2.get("_over")), "game continues after gross catches")
 	g2.free()
 
 	for r in _results:

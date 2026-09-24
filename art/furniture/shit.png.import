@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://csxuk67m17kqx"
-path="res://.godot/imported/banana.png-7bf0f8f3f18610285fe8b826b98b9a9c.ctex"
+uid="uid://ccmnue0s8vndi"
+path="res://.godot/imported/shit.png-714dc3ee0d7f169fd116fce265d8af7e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/furniture/banana.png"
-dest_files=["res://.godot/imported/banana.png-7bf0f8f3f18610285fe8b826b98b9a9c.ctex"]
+source_file="res://art/furniture/shit.png"
+dest_files=["res://.godot/imported/shit.png-714dc3ee0d7f169fd116fce265d8af7e.ctex"]
 
 [params]
 
