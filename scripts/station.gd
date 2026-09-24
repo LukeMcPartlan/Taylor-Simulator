@@ -57,8 +57,6 @@ const STATION_SPRITES := {
 	"take_out_trash": "res://art/furniture/trash_can.png",
 	"microwave": "res://art/furniture/microwave.png",
 	"amazon_boxes": "res://art/furniture/amazon_box.png",
-	"feed_baby": "res://art/furniture/banana.png",
-	"change_baby": "res://art/furniture/diaper.png",
 	"__store__": "res://placeholder art/Sprites/night_store.png",
 	"__laptop__": "res://placeholder art/Sprites/laptop.png",
 }
