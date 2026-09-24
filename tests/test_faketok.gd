@@ -125,8 +125,10 @@ func _run() -> void:
 					bad_pos_name = true
 				if int(d["votes"]) < 1_200 or int(d["votes"]) > 98_700:
 					bad_votes = true
-				if String(d["text"]) != "Yaaaaaas queen" and String(d["text"]) != "This is literally ME fr":
+				if not game.POSITIVE_TEXTS.has(String(d["text"])):
 					bad_votes = true
+	_check(game.POSITIVE_TEXTS.size() >= 10,
+		"faketok: a dozen different positive comments (got %d)" % game.POSITIVE_TEXTS.size())
 	var neg_rate := float(neg) / float(total)
 	_check(neg_rate > 0.005 and neg_rate < 0.05,
 		"faketok: ~1/50 comments are negative (rate %.3f over %d)" % [neg_rate, total])

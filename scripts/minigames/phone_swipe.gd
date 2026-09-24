@@ -9,8 +9,11 @@ extends Minigame
 ## - While comments are open, UP/DOWN scroll them instead of changing videos
 ##
 ## 12 correct presses wins. Wrong arrows just flash red — no penalty.
+## Every correct swipe drips a little dopamine straight into the bar.
 
 const WIN_HITS: int = 12
+const SWIPE_DOPAMINE: float = 1.0
+const WRONG_SWIPE_DOPAMINE: float = -1.0
 const DISPLAY_COUNT: int = 16
 const DISPLAY_PATH: String = "res://placeholder art/phone/display_%02d.png"
 const COMMENT_POOL_SIZE: int = 60
@@ -21,7 +24,20 @@ const ARROW_GLYPHS: Dictionary = {
 	KEY_LEFT: "<", KEY_UP: "^", KEY_RIGHT: ">", KEY_DOWN: "v",
 }
 
-const POSITIVE_TEXTS: Array = ["Yaaaaaas queen", "This is literally ME fr"]
+const POSITIVE_TEXTS: Array = [
+	"Yaaaaaas queen",
+	"This is literally ME fr",
+	"POV: you finally get it",
+	"the algorithm knew I needed this",
+	"watching this for the 47th time no regrets",
+	"this healed something in me",
+	"ok but why is this so real",
+	"sending this to everyone I know",
+	"the way I GASPED",
+	"new personality just dropped",
+	"this is my roman empire",
+	"instant follow, no notes",
+]
 const NEGATIVE_TEXTS: Array = [
 	"Uhhh, is this ironic? Seems like this would be really damaging to society at scale.",
 ]
@@ -51,12 +67,14 @@ var _comments_open: bool = false
 var _comments: Array = []
 var _scroll: int = 0
 var _flash: float = 0.0
+var _gs = null  # /root/GameState, cached in start() for the dopamine drip
 
 
 func start() -> void:
 	super.start()
+	_gs = get_node_or_null("/root/GameState")
 	title_text = "FakeTok"
-	help_text = "Press the arrow shown above the phone! %d correct swipes wins." % WIN_HITS
+	help_text = "Press the arrow shown above the phone!"
 	_hits = 0
 	_display_index = 0
 	_comments_open = false
@@ -100,6 +118,8 @@ func _press(keycode: int) -> void:
 		return
 	if keycode == _prompt:
 		_hits += 1
+		if _gs != null:
+			_gs.call("add_dopamine", SWIPE_DOPAMINE)
 		_apply_action(keycode)
 		if _hits >= WIN_HITS:
 			_end(true)
@@ -107,6 +127,8 @@ func _press(keycode: int) -> void:
 		_pick_prompt()
 	else:
 		_flash = 0.3
+		if _gs != null:
+			_gs.call("add_dopamine", WRONG_SWIPE_DOPAMINE)
 
 
 func _apply_action(keycode: int) -> void:
@@ -215,16 +237,6 @@ func _draw_game() -> void:
 			HORIZONTAL_ALIGNMENT_CENTER, phone.size.x, 24, Color(0.9, 0.9, 0.9))
 	if _comments_open:
 		_draw_comments(font, phone)
-	# HUD lines.
-	draw_string(font, Vector2(24, 118),
-		"Swipes: %d/%d" % [_hits, WIN_HITS],
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.9, 0.9, 0.9))
-	draw_string(font, Vector2(size.x - 224, 118),
-		"TikTok %d/%d" % [_display_index + 1, DISPLAY_COUNT],
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.9, 0.9, 0.9))
-	draw_string(font, Vector2(24, 140),
-		"DOWN: next   UP: prev   LEFT/RIGHT: comments",
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.7, 0.72, 0.8))
 
 
 func _draw_comments(font: Font, phone: Rect2) -> void:

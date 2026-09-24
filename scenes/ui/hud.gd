@@ -36,9 +36,13 @@ extends CanvasLayer
 var _dialogue_timer: float = 0.0
 ## "day" or "run": which overlay is showing. R continues the right thing.
 var _overlay_kind: String = "day"
-## Phone tuning: winning the FakeTok swipe minigame gives this much dopamine.
-## The minigame itself is the gate now, so there's no tap cooldown.
-const PHONE_GAME_DOPAMINE: float = 15.0
+## Phone tuning: dopamine below this auto-opens the FakeTok game (the
+## phone demands attention). Clicking the phone button always opens it;
+## the button takes no keyboard focus so spacebar can never trigger it.
+const PHONE_AUTO_OPEN_DOPAMINE: float = 10.0
+## Latched while dopamine stays low so the game opens once per dip, not
+## every drain tick. Cleared when dopamine climbs back above the line.
+var _phone_low_latched: bool = false
 
 
 func _ready() -> void:
@@ -51,6 +55,9 @@ func _ready() -> void:
 	GameState.run_ended.connect(_on_run_ended)
 	GameState.luke_said.connect(_on_luke_said)
 	phone_button.pressed.connect(_on_phone_pressed)
+	# Spacebar must never open the phone: the button takes no keyboard
+	# focus, so only a real click can press it.
+	phone_button.focus_mode = Control.FOCUS_NONE
 	# Autoloads finish _ready() before scenes do, so day 1 has already started.
 	# Pull the current state instead of waiting for the next signal tick.
 	_on_meters_changed(GameState.serotonin, GameState.cortisol)
@@ -114,6 +121,15 @@ func _on_meters_changed(serotonin: float, cortisol: float) -> void:
 func _on_dopamine_changed(value: float) -> void:
 	dopamine_bar.value = value
 	dopamine_label.text = "DOPAMINE %d" % int(value)
+	# The phone demands attention: when dopamine dips below the line the
+	# FakeTok game opens on its own. Latched so it fires once per dip;
+	# the latch clears when dopamine climbs back above the line.
+	if value >= PHONE_AUTO_OPEN_DOPAMINE:
+		_phone_low_latched = false
+	elif not _phone_low_latched and not day_over_overlay.visible \
+			and not MinigameLauncher.is_open():
+		_phone_low_latched = true
+		_on_phone_pressed()
 
 
 func _on_phone_pressed() -> void:
@@ -126,8 +142,8 @@ func _on_phone_pressed() -> void:
 func _on_phone_game_done(success: bool, _elapsed: float) -> void:
 	if not success:
 		return
-	GameState.add_dopamine(PHONE_GAME_DOPAMINE)
-	# "✓ DONE" over the player, same treatment as chore-game wins.
+	# Dopamine now drips per swipe inside the game; the win just pops
+	# the "✓ DONE" over the player, same treatment as chore-game wins.
 	var player := get_tree().get_first_node_in_group("player")
 	var world: Node = null
 	if player != null:
