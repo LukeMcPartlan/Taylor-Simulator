@@ -1,7 +1,7 @@
 class_name TrashSort
 extends Minigame
 ## Trash station — "Trash Sort". A stream of junk falls down the screen;
-## LEFT sorts into recycle, RIGHT into trash. Every press sorts the LOWEST
+## LEFT/A sorts into recycle, RIGHT/D into trash. Every press sorts the LOWEST
 ## item on screen — no timing, just call it right. 10 correct to win.
 ## 3 mistakes = fail.
 ##
@@ -45,7 +45,7 @@ var _bin_trash := Rect2()
 func start() -> void:
 	super.start()
 	title_text = "Trash Sort"
-	help_text = "LEFT = recycle, RIGHT = trash. Each press sorts the LOWEST item! %d right wins." % WIN_SORTED
+	help_text = "LEFT/A = recycle, RIGHT/D = trash. Each press sorts the LOWEST item! %d right wins." % WIN_SORTED
 	_bin_recycle = Rect2(60, size.y - 180.0, 150, 120)
 	_bin_trash = Rect2(size.x - 210, size.y - 180.0, 150, 120)
 	_items.clear()
@@ -107,9 +107,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	var k := event as InputEventKey
 	if not k.pressed or k.echo:
 		return
-	if k.keycode == KEY_LEFT:
+	if k.keycode == KEY_LEFT or k.keycode == KEY_A:
 		_sort_item(true)
-	elif k.keycode == KEY_RIGHT:
+	elif k.keycode == KEY_RIGHT or k.keycode == KEY_D:
 		_sort_item(false)
 
 

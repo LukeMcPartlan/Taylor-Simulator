@@ -24,6 +24,10 @@ const NEGATIVE_ODDS: float = 1.0 / 50.0
 const ARROW_GLYPHS: Dictionary = {
 	KEY_LEFT: "<", KEY_UP: "^", KEY_RIGHT: ">", KEY_DOWN: "v",
 }
+# WASD mirrors the arrows (W=up, A=left, S=down, D=right).
+const WASD_TO_ARROW: Dictionary = {
+	KEY_W: KEY_UP, KEY_A: KEY_LEFT, KEY_S: KEY_DOWN, KEY_D: KEY_RIGHT,
+}
 
 const POSITIVE_TEXTS: Array = [
 	"Yaaaaaas queen",
@@ -75,7 +79,7 @@ func start() -> void:
 	super.start()
 	_gs = get_node_or_null("/root/GameState")
 	title_text = "FakeTok"
-	help_text = "Press the arrow shown above the phone!"
+	help_text = "Press the arrow shown above the phone (arrows or WASD)!"
 	_hits = 0
 	_display_index = 0
 	_comments_open = false
@@ -110,8 +114,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		var k := event as InputEventKey
 		if not k.pressed or k.echo:
 			return
-		if ARROW_GLYPHS.has(k.keycode):
-			_press(int(k.keycode))
+		var code := int(k.keycode)
+		if WASD_TO_ARROW.has(code):
+			code = int(WASD_TO_ARROW[code])
+		if ARROW_GLYPHS.has(code):
+			_press(code)
 
 
 func _press(keycode: int) -> void:
