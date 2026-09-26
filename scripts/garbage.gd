@@ -1,12 +1,17 @@
 class_name Garbage
 extends Area2D
-## Crumpled litter Chris drops while wandering after 2:30pm. Walk over it to
+## Crumpled litter Chris drops while wandering after 2:30pm. It spawns above
+## his head and falls to the floor, then sits there wobbling. Walk over it to
 ## pick it up: -2 cortisol each. Chris caps how many can be on the floor.
 
 const CORTISOL_RELIEF: float = 2.0
+const FALL_GRAVITY: float = 900.0
 
 var _t: float = 0.0
 var _spr: Sprite2D
+var _falling: bool = false
+var _floor_y: float = 0.0
+var _vy: float = 0.0
 
 
 func _ready() -> void:
@@ -25,8 +30,23 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	if _falling:
+		_vy += FALL_GRAVITY * delta
+		position.y += _vy * delta
+		if position.y >= _floor_y:
+			position.y = _floor_y
+			_falling = false
+			_vy = 0.0
 	# Crumpled paper ball, slightly wobbling.
 	_spr.position.y = sin(_t * 3.0) * 1.5
+
+
+func drop_from_above(floor_y: float) -> void:
+	## Called right after spawning above Chris's head: fall with gravity
+	## until landing on the floor, then sit there.
+	_floor_y = floor_y
+	_falling = true
+	_vy = 0.0
 
 
 func vacuum() -> void:

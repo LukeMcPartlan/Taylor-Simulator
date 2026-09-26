@@ -78,7 +78,7 @@ func _run() -> void:
 	_check(int(game.get("_display_index")) == 0, "faketok: can't go up from the first tiktok")
 
 	# --- Wrong input still acts ------------------------------------------------
-	# A wrong arrow performs its swipe anyway (-1 dopamine), but the prompt
+	# A wrong arrow performs its swipe anyway (-2 dopamine), but the prompt
 	# arrow stays the same and blinks red instead of advancing to a new one.
 	game.set("_display_index", 3)
 	game.test_set_prompt(KEY_UP)  # prompt wants UP...
@@ -92,7 +92,7 @@ func _run() -> void:
 
 	# --- Wrong input: comment toggle + scroll still act -------------------------
 	# Pressing LEFT while the prompt wants UP still toggles the comments open
-	# (wrong: -1 dopamine, prompt stays, red blink).
+	# (wrong: -2 dopamine, prompt stays, red blink).
 	game.set("_comments_open", false)
 	game.test_set_prompt(KEY_UP)  # prompt wants UP...
 	game.test_press(KEY_LEFT)      # ...but we press LEFT (wrong)

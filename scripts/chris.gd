@@ -203,8 +203,11 @@ func _drop_garbage() -> void:
 	if existing >= MAX_GARBAGE:
 		return
 	var g: Area2D = GARBAGE_SCRIPT.new()
-	g.position = global_position + Vector2(randf_range(-14.0, 14.0), 34.0)
+	# Spawn above his head and let it fall to the floor (was: popped in
+	# below him).
+	g.position = global_position + Vector2(randf_range(-14.0, 14.0), -90.0)
 	world.add_child(g)
+	g.drop_from_above(global_position.y + 34.0)
 
 
 func _go_to_sleep(teleport: bool) -> void:

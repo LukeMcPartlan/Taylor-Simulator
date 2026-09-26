@@ -9,12 +9,12 @@ extends Minigame
 ## - While comments are open, UP/DOWN scroll them instead of changing videos
 ##
 ## Endless: there is no win condition — swipe as long as you like and exit
-## whenever (EXIT closes instantly). Correct swipes drip +1 dopamine and move
-## to a new prompt; wrong arrows still perform their swipe but cost -1
+## whenever (EXIT closes instantly). Correct swipes drip +2 dopamine and move
+## to a new prompt; wrong arrows still perform their swipe but cost -2
 ## dopamine, and the prompt arrow stays put (blinking red) until you hit it.
 
-const SWIPE_DOPAMINE: float = 1.0
-const WRONG_SWIPE_DOPAMINE: float = -1.0
+const SWIPE_DOPAMINE: float = 2.0
+const WRONG_SWIPE_DOPAMINE: float = -2.0
 const DISPLAY_COUNT: int = 16
 const DISPLAY_PATH: String = "res://placeholder art/phone/display_%02d.png"
 const COMMENT_POOL_SIZE: int = 60
