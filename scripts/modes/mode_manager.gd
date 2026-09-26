@@ -18,6 +18,7 @@ enum Mode { CLASSIC, NIGHT_SHIFT, MELTDOWN, DELEGATION, COMBO_MOM, PRACTICE }
 var current_mode: int = Mode.CLASSIC
 
 const MODE_SCRIPT_PATHS: Dictionary = {
+	Mode.CLASSIC: "res://scripts/modes/mode_cortisol.gd",
 	Mode.NIGHT_SHIFT: "res://scripts/modes/mode_night_shift.gd",
 	Mode.MELTDOWN: "res://scripts/modes/mode_meltdown.gd",
 	Mode.DELEGATION: "res://scripts/modes/mode_delegation.gd",
@@ -68,8 +69,9 @@ const MODE_CARDS: Array = [
 
 
 func create_mode() -> Node:
-	## Builds the mode node for the currently selected mode, or null for
-	## Classic (Classic needs no overrides — the base game IS Classic).
+	## Builds the mode node for the currently selected mode. Cortisol Mode's
+	## node (mode_cortisol.gd) adds no gameplay overrides — the base game IS
+	## Cortisol Mode — it only carries the laptop's run-tier upgrade shelf.
 	var path: String = String(MODE_SCRIPT_PATHS.get(current_mode, ""))
 	if path == "":
 		return null

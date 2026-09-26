@@ -14,6 +14,7 @@ const PAD_W: float = 120.0
 const TIME_LIMIT: float = 60.0
 const EW_TIME: float = 0.8
 const GROSS_CHANCE: float = 0.65
+const _UPGRADE_DEFS = preload("res://scripts/upgrade_defs.gd")
 
 const GOODS: Array[String] = ["diaper", "powder", "wipe", "clothes"]
 const GOOD_LABELS := {"diaper": "Diaper", "powder": "Powder",
@@ -44,7 +45,7 @@ var _ew_pos := Vector2.ZERO
 func start() -> void:
 	super.start()
 	title_text = "Diaper Catch"
-	help_text = "Catch 1 diaper, 1 powder, 1 wipe, 1 fresh outfit. DODGE the gross stuff!"
+	help_text = "Catch 1 diaper, 1 powder, 1 wipe, 1 fresh outfit. DODGE the gross stuff! Hold S to fast-forward."
 	_pad_x = size.x / 2.0
 	for k in GOODS:
 		_have[k] = false
@@ -71,14 +72,42 @@ func _roll_kind() -> String:
 	return String(missing[randi() % missing.size()])
 
 
+func _bonus_good_chance() -> float:
+	## Lucky Diapers (purchasable upgrade): chance that each spawn tick also
+	## drops a BONUS good item. The gross-item roll is untouched — this only
+	## adds goods, never changes the negative-item spawn rate.
+	return _UPGRADE_DEFS.tier_fx("good_drops",
+		_upgrade_tier("good_drops"), "bonus_chance", 0.0)
+
+
+func _maybe_bonus_good() -> void:
+	if _bonus_good_chance() <= 0.0 or randf() >= _bonus_good_chance():
+		return
+	_spawn_bonus_good()
+
+
+func _spawn_bonus_good() -> void:
+	## One extra GOOD item (a still-missing one, like _roll_kind). Never
+	## gross — the gross spawn rate is unchanged by this upgrade.
+	var missing := _missing_goods()
+	if missing.is_empty():
+		return
+	_items.append({"x": randf_range(60.0, size.x - 60.0), "y": 96.0,
+		"kind": String(missing[randi() % missing.size()])})
+
+
 func _process(delta: float) -> void:
 	if _over:
 		return
-	_time_left -= delta
+	# Hold S to fast-forward the game 2x (base mechanic, no upgrade needed).
+	# Only the items, spawns and timer speed up — the pad keeps its normal
+	# speed, so this is a skilled-play fast-forward.
+	var d := delta * (2.0 if Input.is_key_pressed(KEY_S) else 1.0)
+	_time_left -= d
 	if _time_left <= 0.0:
 		_end(false)
 		return
-	_ew_timer = maxf(_ew_timer - delta, 0.0)
+	_ew_timer = maxf(_ew_timer - d, 0.0)
 	# Pad movement.
 	var dir: float = 0.0
 	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
@@ -87,17 +116,18 @@ func _process(delta: float) -> void:
 		dir += 1.0
 	_pad_x = clampf(_pad_x + dir * 480.0 * delta, PAD_W / 2.0 + 16.0, size.x - PAD_W / 2.0 - 16.0)
 	# Spawn.
-	_spawn_timer -= delta
+	_spawn_timer -= d
 	if _spawn_timer <= 0.0:
-		_spawn_timer = randf_range(0.5, 0.9) / _speed
+		_spawn_timer = randf_range(0.45, 0.8) / _speed
 		_items.append({"x": randf_range(60.0, size.x - 60.0), "y": 96.0,
 			"kind": _roll_kind()})
+		_maybe_bonus_good()
 	# Fall + catch.
 	var pad_y := size.y - 80.0
 	var i := _items.size() - 1
 	while i >= 0:
 		var it: Dictionary = _items[i]
-		it["y"] = float(it["y"]) + FALL_SPEED * delta / _speed
+		it["y"] = float(it["y"]) + FALL_SPEED * d / _speed
 		if float(it["y"]) >= pad_y - 10.0:
 			if absf(float(it["x"]) - _pad_x) <= PAD_W / 2.0:
 				_catch_item(String(it["kind"]),

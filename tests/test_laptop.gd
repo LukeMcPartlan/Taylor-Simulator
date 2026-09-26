@@ -176,10 +176,13 @@ func _run_tests() -> void:
 	_check(absf((lh.get("_hamper") as Rect2).size.x - 150.0) < 0.01, "hamper magnets: wider hamper")
 	lh.queue_free()
 
-	# Moon shoes: Taylor jumps 35% higher.
+	# Moon shoes: hold jump to charge, release to leap. A quick tap (charge 0)
+	# is the normal -400 hop; a full charge at T1 is -640.
 	var taylor = world.get_tree().get_nodes_in_group("player")[0]
-	_check(absf(float(taylor.call("_jump_velocity")) - (-540.0)) < 0.01,
-		"moon shoes: jump -400 -> -540")
+	_check(absf(float(taylor.call("_charged_jump_velocity", 0.0)) - (-400.0)) < 0.01,
+		"moon shoes: uncharged jump is the normal -400")
+	_check(absf(float(taylor.call("_charged_jump_velocity", 1.0)) - (-640.0)) < 0.01,
+		"moon shoes: full charge T1 -> -640")
 
 	# Collectibles raise the serotonin cap.
 	_check(absf(float(GS.call("get_serotonin_cap")) - 200.0) < 0.01, "cap: base 200")

@@ -12,35 +12,45 @@ extends CharacterBody2D
 
 const SPEED = 300.0
 const JUMP_VELOCITY = -400.0
+## Seconds of holding jump for a full charge.
+const JUMP_CHARGE_TIME = 1.0
 const _UPGRADE_DEFS = preload("res://scripts/upgrade_defs.gd")
 
 
-func _jump_velocity() -> float:
-	# Amazon Moon Shoes (night-shift): tiered jump boost.
-	var mult := _UPGRADE_DEFS.tier_fx("moon_shoes", GameState.upgrade_tier("moon_shoes"), "jump_mult", 1.0)
-	return JUMP_VELOCITY * mult
+func _charge_max_mult() -> float:
+	# Moon Shoes: how high a FULLY charged jump goes (tiered). 1.0 = no
+	# shoes, so holding jump does nothing special.
+	return _UPGRADE_DEFS.tier_fx("moon_shoes",
+		GameState.upgrade_tier("moon_shoes"), "charge_mult", 1.0)
+
+
+func _charged_jump_velocity(charge: float) -> float:
+	## Jump velocity for a release at the given charge (0 = untapped tap =
+	## the normal jump, 1 = fully charged).
+	return JUMP_VELOCITY * lerpf(1.0, _charge_max_mult(), clampf(charge, 0.0, 1.0))
 
 @onready var sprite_2d: AnimatedSprite2D = $AnimatedSprite2D
 
-var _jump_queued: bool = false
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	# WASD support: queue a jump on W/Space keypress (ui_accept already covers
-	# Space/Enter via the default input map; this just adds W).
-	if event is InputEventKey:
-		var key_event := event as InputEventKey
-		if key_event.pressed and not key_event.echo and key_event.keycode == KEY_W:
-			_jump_queued = true
+var _jump_charge: float = 0.0
+var _was_jump_held: bool = false
 
 
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity += get_gravity() * delta
 
-	if (Input.is_action_just_pressed("ui_accept") or _jump_queued) and is_on_floor():
-		velocity.y = _jump_velocity()
-	_jump_queued = false
+	# Jump: HOLD to charge (Moon Shoes), RELEASE to leap. A quick tap is an
+	# uncharged jump — exactly the old hop. W/Space/Enter all count as jump.
+	var jump_held := Input.is_action_pressed("ui_accept") or Input.is_key_pressed(KEY_W)
+	if is_on_floor():
+		if jump_held:
+			_jump_charge = minf(_jump_charge + delta / JUMP_CHARGE_TIME, 1.0)
+		elif _was_jump_held:
+			velocity.y = _charged_jump_velocity(_jump_charge)
+			_jump_charge = 0.0
+	else:
+		_jump_charge = 0.0
+	_was_jump_held = jump_held
 
 	var direction := Input.get_axis("ui_left", "ui_right")
 	if Input.is_key_pressed(KEY_A):

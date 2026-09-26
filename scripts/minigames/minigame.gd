@@ -55,6 +55,16 @@ func start() -> void:
 	_speed = maxf(_speed, 0.1)
 
 
+func _upgrade_tier(product_id: String) -> int:
+	## Permanent Amazon upgrade tier for product_id (0 when unowned).
+	## Resolved at runtime through the GameState autoload so minigame
+	## scripts never depend on the autoload's compile-time identifier.
+	var gs := get_node_or_null("/root/GameState")
+	if gs != null and gs.has_method("upgrade_tier"):
+		return int(gs.call("upgrade_tier", product_id))
+	return 0
+
+
 func _draw() -> void:
 	var font := ThemeDB.fallback_font
 	# Chrome: title + instructions, drawn by the base class so every game

@@ -10,6 +10,14 @@ const WIN_SPOONFULS: int = 5
 const MAX_MISSES: int = 3
 const BAR_W: float = 460.0
 const ZONE_W: float = 110.0
+const _UPGRADE_DEFS = preload("res://scripts/upgrade_defs.gd")
+
+
+func _zone_w() -> float:
+	## Effective green-zone width: Steady Hands (purchasable upgrade) widens
+	## it. Base width unchanged without the upgrade.
+	return ZONE_W * _UPGRADE_DEFS.tier_fx("green_zone",
+		_upgrade_tier("green_zone"), "zone_mult", 1.0)
 
 var _spoonfuls: int = 0
 var _misses: int = 0
@@ -53,7 +61,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _try_spoon() -> void:
 	var x := _bar.position.x + _marker_t * BAR_W
-	var zone := Rect2(_bar.get_center() - Vector2(ZONE_W / 2.0, 0), Vector2(ZONE_W, _bar.size.y))
+	var zone := Rect2(_bar.get_center() - Vector2(_zone_w() / 2.0, 0), Vector2(_zone_w(), _bar.size.y))
 	if zone.has_point(Vector2(x, _bar.get_center().y)):
 		_spoonfuls += 1
 		_marker_speed += 0.12  # baby gets wigglier each bite
@@ -81,7 +89,7 @@ func _draw_game() -> void:
 	# Track.
 	draw_rect(_bar, Color(0.22, 0.22, 0.28))
 	# Green zone.
-	var zone := Rect2(_bar.get_center() - Vector2(ZONE_W / 2.0, 0), Vector2(ZONE_W, _bar.size.y))
+	var zone := Rect2(_bar.get_center() - Vector2(_zone_w() / 2.0, 0), Vector2(_zone_w(), _bar.size.y))
 	draw_rect(zone, Color(0.3, 0.75, 0.35))
 	# Marker.
 	var mx := _bar.position.x + _marker_t * BAR_W

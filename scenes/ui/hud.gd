@@ -94,7 +94,7 @@ func _on_cortisol_tick(amount: float) -> void:
 	lab.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	lab.add_theme_constant_override("outline_size", 4)
 	add_child(lab)
-	var r: Rect2 = task_panel.get_global_rect()
+	var r: Rect2 = task_panel_vbox.get_global_rect()
 	lab.position = Vector2(maxf(r.position.x - 150.0, 8.0), r.position.y + 20.0)
 	var tw := create_tween().set_parallel(true)
 	tw.tween_property(lab, "position:y", lab.position.y - 44.0, 1.4)

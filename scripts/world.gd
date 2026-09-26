@@ -73,8 +73,9 @@ static func register_station_def(def: Dictionary) -> bool:
 	return true
 
 # Walk-up store kiosk scripts for the modes that use them (DELEGATION uses a
-# Station instead; CLASSIC has none).
+# Station instead).
 const STORE_SCRIPTS: Dictionary = {
+	0: "res://scripts/modes/store_cortisol.gd",     # Mode.CLASSIC (Cortisol Mode)
 	1: "res://scripts/modes/store_night_shift.gd",  # Mode.NIGHT_SHIFT
 	2: "res://scripts/modes/store_meltdown.gd",     # Mode.MELTDOWN
 	4: "res://scripts/modes/store_combo_mom.gd",    # Mode.COMBO_MOM
@@ -187,7 +188,8 @@ func _station_spawn_pos(spawns: Node, def: Dictionary) -> Vector2:
 
 
 func _spawn_store() -> void:
-	# Walk-up kiosk stores for NIGHT_SHIFT / MELTDOWN / COMBO_MOM.
+	# Walk-up kiosk stores: the laptop (CORTISOL / NIGHT_SHIFT) and the
+	# mode-specific shops (MELTDOWN / COMBO_MOM / PRACTICE).
 	var path: String = String(STORE_SCRIPTS.get(ModeManager.current_mode, ""))
 	if path == "":
 		return

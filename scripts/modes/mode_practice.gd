@@ -38,6 +38,12 @@ func start_cortisol() -> float:
 	return 0.0
 
 
+func start_serotonin() -> float:
+	# Practice starts at 0 serotonin — earn it (birds, fun) before the
+	# laptop's WORK tab can turn it into dollars.
+	return 0.0
+
+
 func neglect_cortisol_rate() -> float:
 	# Open tasks push nothing in the sandbox.
 	return 0.0

@@ -337,6 +337,13 @@ func get_start_cortisol() -> float:
 	return float(v) if v != null else START_CORTISOL
 
 
+func get_start_serotonin() -> float:
+	## Practice mode starts the day at 0 serotonin instead of
+	## START_SEROTONIN — earn it before working the laptop.
+	var v = _hook("start_serotonin")
+	return float(v) if v != null else START_SEROTONIN
+
+
 func minigames_always_open() -> bool:
 	## Practice mode: every station's minigame is playable on E, no open
 	## task required.
@@ -677,6 +684,8 @@ func _product_owned(mode: int, pid: String) -> bool:
 	# ModeManager.Mode ints: CLASSIC 0, NIGHT_SHIFT 1, MELTDOWN 2,
 	# DELEGATION 3, COMBO_MOM 4, PRACTICE 5.
 	match mode:
+		0:  # CLASSIC (Cortisol Mode): any tier held (permanent or this run).
+			return upgrade_tier(pid) > 0
 		5:  # PRACTICE: the one and only product is the Classic unlock.
 			return pid == "classic_unlock" and is_mode_unlocked(0)
 		1:  # NIGHT_SHIFT: any tier held (permanent or this run) counts.
@@ -859,7 +868,7 @@ func start_new_day() -> void:
 
 func _begin_day() -> void:
 	time_hours = DAY_START_HOUR
-	serotonin = START_SEROTONIN
+	serotonin = get_start_serotonin()
 	cortisol = get_start_cortisol()
 	dopamine = START_DOPAMINE
 	_day_end_reason = ""

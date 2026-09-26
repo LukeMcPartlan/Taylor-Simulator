@@ -106,7 +106,7 @@ func _run() -> void:
 	pp = GS.call("product_progress", 4)
 	_check(int(pp[1]) == 4, "birds: combo mom inventory is 4 items")
 	pp = GS.call("product_progress", MODE_CLASSIC)
-	_check(int(pp[0]) == 0 and int(pp[1]) == 0, "birds: classic has no inventory yet (line hidden)")
+	_check(int(pp[0]) == 0 and int(pp[1]) == 6, "birds: classic inventory is the 6-product cortisol catalog")
 
 	# --- Shared permanent products work in every mode ---------------------------
 	# The night-shift Amazon catalog is shared: permanent tiers resolve

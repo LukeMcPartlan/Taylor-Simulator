@@ -20,12 +20,34 @@ const DEFS: Array = [
 	{
 		"id": "moon_shoes", "name": "Moon Shoes", "kind": "gadget",
 		"tiers": [
-			{"label": "2000s Moon Shoes", "desc": "+35% jump velocity. Banned in 3 states.",
-				"run_cost": 50.0, "perm_cost": 175.0, "fx": {"jump_mult": 1.35}},
-			{"label": "Moon Shoes XL", "desc": "+60% jump. The floor is a suggestion.",
-				"run_cost": 100.0, "perm_cost": 350.0, "fx": {"jump_mult": 1.6}},
-			{"label": "Moon Shoes: Lunar Edition", "desc": "+90% jump. Taylor can see her house from up here.",
-				"run_cost": 200.0, "perm_cost": 700.0, "fx": {"jump_mult": 1.9}},
+			{"label": "2000s Moon Shoes", "desc": "Hold jump to charge: release for up to 1.6x jump. A quick tap is a normal hop. Banned in 3 states.",
+				"run_cost": 50.0, "perm_cost": 175.0, "fx": {"charge_mult": 1.6}},
+			{"label": "Moon Shoes XL", "desc": "Charge up to 2.1x jump. The floor is a suggestion.",
+				"run_cost": 100.0, "perm_cost": 350.0, "fx": {"charge_mult": 2.1}},
+			{"label": "Moon Shoes: Lunar Edition", "desc": "Charge up to 2.7x jump. Taylor can see her house from up here.",
+				"run_cost": 200.0, "perm_cost": 700.0, "fx": {"charge_mult": 2.7}},
+		],
+	},
+	{
+		"id": "good_drops", "name": "Lucky Diapers", "kind": "gadget",
+		"tiers": [
+			{"label": "Lucky Diapers", "desc": "Diaper Catch: +30% chance of a BONUS good item with every spawn. The gross stuff keeps coming at the same rate.",
+				"run_cost": 40.0, "perm_cost": 150.0, "fx": {"bonus_chance": 0.3}},
+			{"label": "Luckier Diapers", "desc": "+55% bonus good-item chance. The stork owes you money.",
+				"run_cost": 80.0, "perm_cost": 300.0, "fx": {"bonus_chance": 0.55}},
+			{"label": "Luckiest Diapers", "desc": "+80% bonus good-item chance. Practically raining diapers.",
+				"run_cost": 160.0, "perm_cost": 600.0, "fx": {"bonus_chance": 0.8}},
+		],
+	},
+	{
+		"id": "green_zone", "name": "Steady Hands", "kind": "gadget",
+		"tiers": [
+			{"label": "Steady Hands", "desc": "Spoon Timing: green zone 1.3x wider. The baby notices.",
+				"run_cost": 30.0, "perm_cost": 100.0, "fx": {"zone_mult": 1.3}},
+			{"label": "Steadier Hands", "desc": "Green zone 1.6x wider. The baby is impressed.",
+				"run_cost": 60.0, "perm_cost": 200.0, "fx": {"zone_mult": 1.6}},
+			{"label": "Surgeon's Hands", "desc": "Green zone 2x wider. Practically the whole bar.",
+				"run_cost": 120.0, "perm_cost": 400.0, "fx": {"zone_mult": 2.0}},
 		],
 	},
 	{
@@ -120,18 +142,34 @@ static func def(id: String) -> Dictionary:
 
 ## Per-mode product inventories, for the "purchased product progress" line on
 ## the main-menu mode cards (e.g. Practice shows 0/1, Night Shift 0/9).
-## Keyed by ModeManager.Mode int. Modes with no inventory yet (Classic) get an
+## Keyed by ModeManager.Mode int. Modes with no inventory yet get an
 ## empty list — the card hides the line until their inventory lands.
 ## Entries: {"id", "name"}; shared-catalog ids also carry "tiers".
 ## Add new modes/products here; GameState.product_progress() does the counting.
 static func products_for_mode(mode: int) -> Array:
 	match mode:
+		0:  # CLASSIC (Cortisol Mode) — the 6 shared Amazon/permanent products
+			# in this mode's catalog. Purchases are permanent and apply in
+			# every mode via GameState.upgrade_tier().
+			var out0: Array = []
+			for pid in ["extra_ball", "sponge", "pipes", "good_drops",
+					"green_zone", "moon_shoes"]:
+				var d := def(pid)
+				if not d.is_empty():
+					out0.append({"id": pid, "name": String(d["name"]), "tiers": 3})
+			return out0
 		5:  # PRACTICE
 			return [{"id": "classic_unlock", "name": "Cortisol Mode"}]
-		1:  # NIGHT_SHIFT — the 9 shared Amazon/permanent products
+		1:  # NIGHT_SHIFT — the 9 original shared Amazon/permanent products.
+			# (good_drops/green_zone are Cortisol-catalog products for now;
+			# Luke curates each mode's list, so this stays explicit instead
+			# of auto-including every new DEFS entry.)
 			var out: Array = []
-			for d in DEFS:
-				out.append({"id": String(d["id"]), "name": String(d["name"]), "tiers": 3})
+			for pid in ["roomba", "moon_shoes", "extra_ball", "pipes",
+					"sponge", "paddle", "hamper", "raquaza", "kh_boxset"]:
+				var d1 := def(pid)
+				if not d1.is_empty():
+					out.append({"id": pid, "name": String(d1["name"]), "tiers": 3})
 			return out
 		2:  # MELTDOWN — 5 durable coping products. The 3 repeatable vents
 			# (pillow/pantry/bake) are consumables: never counted as owned,
