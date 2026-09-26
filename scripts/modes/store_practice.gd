@@ -8,7 +8,11 @@ extends "res://scripts/modes/store_night_shift.gd"
 ## Buying it unlocks Classic on the main menu forever (saved in the bank
 ## file). After that the store just shows OWNED.
 
+## Buying one unlocks that mode on the main menu forever (saved in the bank
+## file). After that the store just shows OWNED.
+
 const CLASSIC_PRICE: float = 60.0
+const DOPAMINE_PRICE: float = 100.0
 
 
 func store_title() -> String:
@@ -19,30 +23,55 @@ func show_title_label() -> bool:
 	return false
 
 
-func get_rows() -> Array:
-	var unlocked := GameState.is_mode_unlocked(ModeManager.Mode.CLASSIC)
-	return [{
-		"number": 1, "kind": "unlock", "id": "classic",
+func _unlock_row(number: int, mode: int, id: String, name: String, desc: String, price: float) -> Dictionary:
+	var unlocked := GameState.is_mode_unlocked(mode)
+	return {
+		"number": number, "kind": "unlock", "id": id,
 		"section": "📦 AMAZON",
-		"name": "Cortisol Mode — the full 16-hour day",
-		"desc": "Order 😰 Cortisol Mode from Amazon. Same-day delivery straight to the main menu. Forever.",
-		"price": "$%d" % int(CLASSIC_PRICE),
+		"name": name,
+		"desc": desc,
+		"price": "$%d" % int(price),
 		"status": "OWNED" if unlocked else "",
-		"affordable": (not unlocked) and GameState.dollars >= CLASSIC_PRICE,
-	}]
+		"affordable": (not unlocked) and GameState.dollars >= price,
+	}
+
+
+func get_rows() -> Array:
+	return [
+		_unlock_row(1, ModeManager.Mode.CLASSIC, "classic",
+			"Cortisol Mode — the full 16-hour day",
+			"Order 😰 Cortisol Mode from Amazon. Same-day delivery straight to the main menu. Forever.",
+			CLASSIC_PRICE),
+		_unlock_row(2, ModeManager.Mode.DOPAMINE, "dopamine",
+			"Dopamine Mode — cortisol rules, dopamine drains 5x",
+			"Order 📱 Dopamine Mode from Amazon. Same brutal chores, but the phone is life support. Forever.",
+			DOPAMINE_PRICE),
+	]
 
 
 func buy_row(kind: String, id: String) -> Dictionary:
-	if kind != "unlock" or id != "classic":
+	if kind != "unlock":
 		return {"ok": false, "msg": "Click a tab, boss."}
-	if GameState.is_mode_unlocked(ModeManager.Mode.CLASSIC):
+	if id == "classic":
+		return _buy_unlock(ModeManager.Mode.CLASSIC, "classic", CLASSIC_PRICE,
+			"PACKAGE DELIVERED! 📦 Cortisol Mode is on the main menu!",
+			"📦 ORDER DELIVERED! ☀️ CLASSIC MODE UNLOCKED! Find it on the main menu.")
+	if id == "dopamine":
+		return _buy_unlock(ModeManager.Mode.DOPAMINE, "dopamine", DOPAMINE_PRICE,
+			"PACKAGE DELIVERED! 📦 Dopamine Mode is on the main menu!",
+			"📦 ORDER DELIVERED! 📱 DOPAMINE MODE UNLOCKED! Find it on the main menu.")
+	return {"ok": false, "msg": "Click a tab, boss."}
+
+
+func _buy_unlock(mode: int, id: String, price: float, say_msg: String, ok_msg: String) -> Dictionary:
+	if GameState.is_mode_unlocked(mode):
 		return {"ok": false, "msg": "Already unlocked!"}
-	if GameState.dollars < CLASSIC_PRICE:
-		return {"ok": false, "msg": "Need $%d" % int(CLASSIC_PRICE)}
-	GameState.add_dollars(-CLASSIC_PRICE)
-	GameState.unlock_mode(ModeManager.Mode.CLASSIC)
-	GameState.say("TAYLOR", "PACKAGE DELIVERED! 📦 Cortisol Mode is on the main menu!")
-	return {"ok": true, "msg": "📦 ORDER DELIVERED! ☀️ CLASSIC MODE UNLOCKED! Find it on the main menu."}
+	if GameState.dollars < price:
+		return {"ok": false, "msg": "Need $%d" % int(price)}
+	GameState.add_dollars(-price)
+	GameState.unlock_mode(mode)
+	GameState.say("TAYLOR", say_msg)
+	return {"ok": true, "msg": ok_msg}
 
 
 func _mode() -> Node:

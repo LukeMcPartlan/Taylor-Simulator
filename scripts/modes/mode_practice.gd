@@ -9,16 +9,16 @@ extends Node
 ## - ALL MINIGAMES OPEN: every chore/fun station plays its minigame on E,
 ##   task or no task. Stations never dim.
 ## - ALL 5 BIRDS AS ONE-TIME COLLECTIBLES: every bird is out in the gallery;
-##   each species is touchable once EVER (+50 serotonin, banked forever).
+##   each species is touchable once EVER (+50 serotonin cap, banked forever).
 ## - THE LAPTOP (scripts/modes/store_practice.gd): WORK tab turns serotonin
 ##   into dollars (-10 serotonin, +$10 per verdict, same as night-shift);
-##   the AMAZON tab sells the only item in the store — CLASSIC MODE ($60).
-##   Buying it unlocks Classic on the main menu forever.
+##   the AMAZON tab sells the mode unlocks — CLASSIC MODE ($60) and
+##   DOPAMINE MODE ($100). Buying one unlocks it on the main menu forever.
 ## - ALL TASKS OPEN AT DAWN: every chore task opens the moment the day
 ##   starts and stays open all day — the task list is a full checklist.
 ##   No random procs, no re-procs: done stays done.
-## - The day still runs 6am–11pm; leftover dollars sweep to savings at day
-##   end like everywhere else.
+## - ENDLESS: the 7-day run limit doesn't apply — the sandbox never ends,
+##   and dollars still sweep to savings at each day end.
 ##
 ## Godot conventions:
 ## - get_parent() is the GameState autoload (it added us). We read/write its
@@ -75,5 +75,10 @@ func disable_task_procs() -> bool:
 	return true
 
 
+func endless_run() -> bool:
+	# The sandbox never ends: no 7-day run limit, dollars sweep daily.
+	return true
+
+
 func day_summary_extras() -> Dictionary:
-	return {"extra_lines": "Practice day complete — the 5 birds are one-time collectibles (+50 serotonin each, once ever) — and work the laptop to save up for Cortisol Mode!"}
+	return {"extra_lines": "Practice day complete — the 5 birds are one-time collectibles (+50 serotonin cap each, once ever) — and work the laptop to save up for Cortisol Mode or Dopamine Mode!"}

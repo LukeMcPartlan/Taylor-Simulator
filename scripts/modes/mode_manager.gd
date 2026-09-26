@@ -12,7 +12,7 @@ extends Node
 ## implements them (checked with has_method()). The CLASSIC mode implements
 ## nothing, so it behaves exactly like the original game.
 
-enum Mode { CLASSIC, NIGHT_SHIFT, MELTDOWN, DELEGATION, COMBO_MOM, PRACTICE }
+enum Mode { CLASSIC, NIGHT_SHIFT, MELTDOWN, DELEGATION, COMBO_MOM, PRACTICE, DOPAMINE }
 
 ## The mode currently selected. The main menu sets this before loading Main.
 var current_mode: int = Mode.CLASSIC
@@ -24,6 +24,7 @@ const MODE_SCRIPT_PATHS: Dictionary = {
 	Mode.DELEGATION: "res://scripts/modes/mode_delegation.gd",
 	Mode.COMBO_MOM: "res://scripts/modes/mode_combo_mom.gd",
 	Mode.PRACTICE: "res://scripts/modes/mode_practice.gd",
+	Mode.DOPAMINE: "res://scripts/modes/mode_dopamine.gd",
 }
 
 ## Display data for the main menu cards (in selection order). PRACTICE is
@@ -33,13 +34,19 @@ const MODE_CARDS: Array = [
 	{
 		"mode": Mode.PRACTICE,
 		"name": "🌱 Practice Taylor",
-		"desc": "The safe sandbox. All minigames open, zero cortisol, all 5 birds as one-time collectibles. Earn serotonin, work the laptop for dollars, buy Cortisol Mode.",
+		"desc": "The safe sandbox. All minigames open, zero cortisol, all 5 birds as one-time collectibles. Earn serotonin, work the laptop for dollars, buy Cortisol Mode or Dopamine Mode.",
 	},
 	{
 		"mode": Mode.CLASSIC,
 		"name": "😰 Cortisol Mode",
 		"desc": "Complete your tasks as fast as possible to keep your cortisol down and finish the day.",
 		"locked_desc": "Locked — buy it for $60 at the practice laptop (🔓 UNLOCK tab).",
+	},
+	{
+		"mode": Mode.DOPAMINE,
+		"name": "📱 Dopamine Mode",
+		"desc": "Cortisol Mode, but dopamine drains 5x faster. The phone is life support — keep swiping or the day ends early.",
+		"locked_desc": "Locked — buy it for $100 at the practice laptop (📦 AMAZON tab).",
 	},
 	{
 		"mode": Mode.NIGHT_SHIFT,

@@ -158,8 +158,13 @@ static func products_for_mode(mode: int) -> Array:
 				if not d.is_empty():
 					out0.append({"id": pid, "name": String(d["name"]), "tiers": 3})
 			return out0
-		5:  # PRACTICE
-			return [{"id": "classic_unlock", "name": "Cortisol Mode"}]
+		6:  # DOPAMINE (Dopamine Mode) — same 6-product catalog as Cortisol.
+			return products_for_mode(0)
+		5:  # PRACTICE — the two mode unlocks
+			return [
+				{"id": "classic_unlock", "name": "Cortisol Mode"},
+				{"id": "dopamine_unlock", "name": "Dopamine Mode"},
+			]
 		1:  # NIGHT_SHIFT — the 9 original shared Amazon/permanent products.
 			# (good_drops/green_zone are Cortisol-catalog products for now;
 			# Luke curates each mode's list, so this stays explicit instead

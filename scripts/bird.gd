@@ -12,9 +12,10 @@ extends Area2D
 ##
 ## Exported knobs (per-bird, set in the editor):
 ##   bird_id: String         must be unique; one of GameState.BIRD_IDS
-##   bird_name: String       shown in the "+50 serotonin (Robin!)" popup
+##   bird_name: String       shown in the "+50 serotonin cap (Robin!)" popup
 ##   sprite_texture: Texture2D  Luke's art goes here
-##   reward_serotonin: float default 50.0
+##   reward_serotonin: float default 50.0 (legacy export; the reward is now
+##     +50 serotonin CAP per species — kept so saved scenes still load)
 
 @export var bird_id: String = "robin"
 @export var bird_name: String = "Robin"
@@ -82,13 +83,13 @@ func _on_body_entered(body: Node2D) -> void:
 		return
 	if not body.is_in_group("player"):
 		return
-	if not GameState.collect_bird(bird_id, reward_serotonin):
+	if not GameState.collect_bird(bird_id):
 		return
 	_active_today = false
 	var world := get_parent()
 	if world != null and world.has_method("spawn_float_text"):
 		world.spawn_float_text(global_position + Vector2(0, -60),
-			"+%d serotonin (%s!)" % [int(reward_serotonin), bird_name],
+			"+50 serotonin cap (%s!)" % bird_name,
 			Color(1.0, 0.9, 0.4))
 	GameState.say("TAYLOR", "Oh! A %s! Hi little guy!" % bird_name.to_lower())
 	_fly_away()

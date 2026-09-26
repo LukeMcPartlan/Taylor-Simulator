@@ -81,6 +81,10 @@ const TASK_COMPLETION_SEROTONIN: float = 8.0
 const START_DOPAMINE: float = 100.0
 const MAX_DOPAMINE: float = 100.0
 const DOPAMINE_DRAIN_PER_HOUR: float = 4.0
+## A run is 7 in-game days. Day 7's end completes the run: leftover dollars
+## sweep to savings and the run-over screen shows. (Practice opts out via
+## the endless_run hook — the sandbox never ends.)
+const RUN_LENGTH_DAYS: int = 7
 
 const CORTISOL_PER_TASK_PER_HOUR: float = 3.0
 const SEROTONIN_DRAIN_PER_TASK_PER_HOUR: float = 3.0
@@ -128,8 +132,8 @@ func _check_clock_tasks() -> void:
 
 # --- One-time bird collectibles ------------------------------------------------
 # One fixed species per real mode (GameState.MODE_BIRDS; the five Bird nodes
-# live in Main.tscn). Touching a species collects it FOREVER: +50 serotonin,
-# banked in the save. Practice shows all five as a gallery.
+# live in Main.tscn). Touching a species collects it FOREVER: +50 serotonin
+# cap, banked in the save. Practice shows all five as a gallery.
 const BIRD_IDS: Array = ["robin", "crow", "bluejay", "pigeon", "owl"]
 const BIRD_REWARD_SEROTONIN: float = 50.0
 
@@ -174,12 +178,14 @@ var volume: float = 1.0
 var unlocked_modes: Array = []
 
 
-## PRACTICE is the front door (always unlocked). CLASSIC unlocks once bought
-## in the practice store. Everything else is locked for now.
+## PRACTICE is the front door (always unlocked). CLASSIC and DOPAMINE unlock
+## once bought in the practice store. Everything else is locked for now.
 func is_mode_unlocked(mode: int) -> bool:
 	if mode == ModeManager.Mode.PRACTICE:
 		return true
 	if mode == ModeManager.Mode.CLASSIC:
+		return mode in unlocked_modes
+	if mode == ModeManager.Mode.DOPAMINE:
 		return mode in unlocked_modes
 	return false
 
@@ -215,7 +221,7 @@ var birds_found: Array = []
 ## PRACTICE (5) has no single bird — all five are out as a gallery.
 ## ModeManager.Mode ints: CLASSIC 0, NIGHT_SHIFT 1, MELTDOWN 2,
 ## DELEGATION 3, COMBO_MOM 4, PRACTICE 5.
-const MODE_BIRDS := {0: "robin", 1: "crow", 2: "bluejay", 3: "pigeon", 4: "owl"}
+const MODE_BIRDS := {0: "robin", 1: "crow", 2: "bluejay", 3: "pigeon", 4: "owl", 6: "robin"}
 var sim_running: bool = true
 var day_pressure_mult: float = 1.0
 var day_serotonin_integral: float = 0.0
@@ -261,6 +267,7 @@ func _process(delta: float) -> void:
 		_emit_clock_if_changed()
 		serotonin = 0.0
 		_day_end_reason = "past_bedtime"
+		_wipe_run_dollars()
 		_end_day()
 		return
 	_emit_clock_if_changed()
@@ -287,13 +294,16 @@ func _process(delta: float) -> void:
 	if cortisol >= METER_MAX and not _hook("intercept_cortisol_max"):
 		serotonin = 0.0
 		_day_end_reason = "cortisol"
+		_wipe_run_dollars()
 		_end_day()
 		return
 	# Dopamine drains over the day; the phone tops it back up. Hitting zero
 	# ends the day on the spot — same severity as maxing cortisol.
-	dopamine = clampf(dopamine - DOPAMINE_DRAIN_PER_HOUR * game_hours, 0.0, MAX_DOPAMINE)
+	# (Dopamine Mode multiplies the drain 5x via the dopamine_drain_mult hook.)
+	dopamine = clampf(dopamine - DOPAMINE_DRAIN_PER_HOUR * _dopamine_drain_mult() * game_hours, 0.0, MAX_DOPAMINE)
 	if dopamine <= 0.0:
 		_day_end_reason = "dopamine"
+		_wipe_run_dollars()
 		_end_day()
 		return
 	day_serotonin_integral += serotonin * game_hours
@@ -316,6 +326,13 @@ func _hook(method: String, args: Array = []):
 func get_seconds_per_game_hour() -> float:
 	var v = _hook("seconds_per_game_hour")
 	return float(v) if v != null else SECONDS_PER_GAME_HOUR
+
+
+func _dopamine_drain_mult() -> float:
+	## Dopamine drain multiplier. Dopamine Mode returns 5.0; everything
+	## else drains at the base rate.
+	var v = _hook("dopamine_drain_mult")
+	return float(v) if v != null else 1.0
 
 
 func get_neglect_cortisol_rate() -> float:
@@ -650,7 +667,8 @@ func add_cortisol(amount: float) -> void:
 
 
 func add_dollars(amount: float) -> void:
-	## Work-laptop earnings (night-shift). No cap; swept to savings at day end.
+	## Work-laptop earnings. No cap; dollars live in-run now — they carry
+	## across days and sweep to savings only when the run ends.
 	dollars = maxf(dollars + amount, 0.0)
 	dollars_changed.emit(dollars)
 
@@ -658,10 +676,12 @@ func add_dollars(amount: float) -> void:
 # --- Savings account + permanent upgrades -----------------------------------
 
 func get_serotonin_cap() -> float:
-	## Base cap plus collectible tier bonuses (permanent and in-run both count).
+	## Base cap plus collectible tier bonuses (permanent and in-run both
+	## count), plus 50 per collected bird species (banked forever).
 	var cap := BASE_SEROTONIN_CAP
 	cap += _UPGRADE_DEFS.tier_fx("raquaza", upgrade_tier("raquaza"), "cap_bonus", 0.0)
 	cap += _UPGRADE_DEFS.tier_fx("kh_boxset", upgrade_tier("kh_boxset"), "cap_bonus", 0.0)
+	cap += 50.0 * float(birds_found.size())
 	return cap
 
 
@@ -698,12 +718,16 @@ func product_progress(mode: int) -> Array:
 
 func _product_owned(mode: int, pid: String) -> bool:
 	# ModeManager.Mode ints: CLASSIC 0, NIGHT_SHIFT 1, MELTDOWN 2,
-	# DELEGATION 3, COMBO_MOM 4, PRACTICE 5.
+	# DELEGATION 3, COMBO_MOM 4, PRACTICE 5, DOPAMINE 6.
 	match mode:
-		0:  # CLASSIC (Cortisol Mode): any tier held (permanent or this run).
+		0, 6:  # CLASSIC / DOPAMINE: any tier held (permanent or this run).
 			return upgrade_tier(pid) > 0
-		5:  # PRACTICE: the one and only product is the Classic unlock.
-			return pid == "classic_unlock" and is_mode_unlocked(0)
+		5:  # PRACTICE: the two mode unlocks.
+			if pid == "classic_unlock":
+				return is_mode_unlocked(0)
+			if pid == "dopamine_unlock":
+				return is_mode_unlocked(6)
+			return false
 		1:  # NIGHT_SHIFT: any tier held (permanent or this run) counts.
 			return upgrade_tier(pid) > 0
 		3:  # DELEGATION: persisted upgrade list in its own save file.
@@ -760,7 +784,8 @@ func buy_permanent_upgrade(id: String) -> Dictionary:
 
 
 func sweep_to_savings() -> void:
-	## Move all leftover dollars into savings. Called at day end and run end.
+	## Move all leftover dollars into savings. Called at run end (and at
+	## day end in endless modes like practice, which have no run end).
 	if dollars > 0.0:
 		savings += dollars
 		dollars = 0.0
@@ -821,10 +846,11 @@ func clear_all_save_data() -> void:
 
 
 ## One-time bird collectibles. Each real mode has one fixed species
-## (MODE_BIRDS); touching it collects it forever (+50 serotonin, banked).
-## Practice shows all five as a gallery. Returns true if this touch was the
-## first ever for the species (the bird plays its fly-away); false if the
-## species was already found.
+## (MODE_BIRDS); touching it collects it forever (banked). Every collected
+## species permanently raises the serotonin cap by 50 — that's the reward,
+## no instant serotonin. Practice shows all five as a gallery. Returns true
+## if this touch was the first ever for the species (the bird plays its
+## fly-away); false if the species was already found.
 func bird_active_today(bird_id: String) -> bool:
 	if bird_id in birds_found:
 		# In practice the found birds stay out as a gallery (dimmed, not
@@ -835,12 +861,12 @@ func bird_active_today(bird_id: String) -> bool:
 	return String(MODE_BIRDS.get(ModeManager.current_mode, "")) == bird_id
 
 
-func collect_bird(bird_id: String, amount: float = BIRD_REWARD_SEROTONIN) -> bool:
+func collect_bird(bird_id: String) -> bool:
 	if bird_id in birds_found:
 		return false
 	birds_found.append(bird_id)
-	add_serotonin(amount)
 	save_bank()
+	meters_changed.emit(serotonin, cortisol)  # the cap just rose
 	return true
 
 
@@ -962,11 +988,38 @@ func _emit_clock_if_changed() -> void:
 
 
 func _end_day() -> void:
-	# Leftover dollars sweep into the savings account; spent days are broke.
-	sweep_to_savings()
+	# Dollars live in-run now: they carry across days and only sweep into
+	# savings when the whole run ends. (Losses wipe them first — see the
+	# _wipe_run_dollars() calls in _process.)
 	sim_running = false
 	set_process(false)
+	if _hook("endless_run"):
+		# Endless modes (practice) have no run end: keep the old daily sweep.
+		sweep_to_savings()
+		day_ended.emit()
+		return
+	if day_number >= RUN_LENGTH_DAYS:
+		# 7-day run complete: sweep leftovers, run over.
+		var swept := dollars
+		sweep_to_savings()
+		var summary := get_day_summary()
+		var stats := "Days survived: %d\nTasks: %d/%d\nAvg serotonin: %d\nRating: %s\n$%d swept to savings" % [
+			RUN_LENGTH_DAYS,
+			int(summary["tasks_done"]), int(summary["tasks_total"]),
+			int(round(float(summary["avg_serotonin"]))), String(summary["rating"]),
+			int(swept),
+		]
+		end_run("🏁 7 DAYS COMPLETE", stats, "run")
+		return
 	day_ended.emit()
+
+
+func _wipe_run_dollars() -> void:
+	## A lost day (cortisol maxed, dopamine zeroed, up past 1 AM): the
+	## in-run dollars are wiped — never swept. Savings are untouched.
+	if dollars > 0.0:
+		dollars = 0.0
+		dollars_changed.emit(dollars)
 
 
 func end_run(title: String, stats: String, restart_kind: String = "run") -> void:

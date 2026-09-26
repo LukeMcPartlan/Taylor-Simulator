@@ -71,19 +71,22 @@ func _run() -> void:
 	MM.set_mode(MODE_CLASSIC)
 	_check(String(GS.MODE_BIRDS.get(0, "")) == "robin", "birds: classic's bird is the robin")
 	_check(String(GS.MODE_BIRDS.get(1, "")) == "crow", "birds: night shift's bird is the crow")
-	_check(GS.MODE_BIRDS.size() == 5, "birds: five real modes have a fixed species")
+	_check(GS.MODE_BIRDS.size() == 6, "birds: six real modes have a fixed species")
+	_check(String(GS.MODE_BIRDS.get(6, "")) == "robin", "birds: dopamine's bird is the robin")
 	_check(not GS.MODE_BIRDS.has(MODE_PRACTICE), "birds: practice has no single species (gallery)")
 
 	# --- Active until found ----------------------------------------------------
 	_check(GS.call("bird_active_today", "robin"), "birds: classic's robin active before collection")
 	_check(not GS.call("bird_active_today", "crow"), "birds: other species inactive in classic")
 
-	# --- One-time collection ----------------------------------------------------
+	# --- One-time collection: the reward is +50 serotonin CAP, banked forever --
+	var cap0: float = GS.call("get_serotonin_cap")
 	var s0: float = GS.get("serotonin")
-	_check(GS.call("collect_bird", "robin", 50.0), "birds: first touch collects")
-	_check(float(GS.get("serotonin")) == s0 + 50.0, "birds: collection grants +50 serotonin")
-	_check(not GS.call("collect_bird", "robin", 50.0), "birds: second touch gives nothing")
-	_check(float(GS.get("serotonin")) == s0 + 50.0, "birds: no double serotonin")
+	_check(GS.call("collect_bird", "robin"), "birds: first touch collects")
+	_check(float(GS.call("get_serotonin_cap")) == cap0 + 50.0, "birds: collection grants +50 serotonin cap")
+	_check(float(GS.get("serotonin")) == s0, "birds: collection grants no instant serotonin")
+	_check(not GS.call("collect_bird", "robin"), "birds: second touch gives nothing")
+	_check(float(GS.call("get_serotonin_cap")) == cap0 + 50.0, "birds: no double cap")
 	_check(GS.call("bird_found", "robin"), "birds: robin marked found")
 	_check(not GS.call("bird_active_today", "robin"), "birds: found bird no longer active in its mode")
 
@@ -91,12 +94,12 @@ func _run() -> void:
 	_attach_mode_hook(MODE_PRACTICE)
 	_check(GS.call("bird_active_today", "crow"), "birds: practice shows uncollected species")
 	_check(GS.call("bird_active_today", "robin"), "birds: practice gallery includes found birds")
-	_check(GS.call("collect_bird", "crow", 50.0), "birds: practice touch collects new species")
-	_check(not GS.call("collect_bird", "crow", 50.0), "birds: practice re-touch gives nothing")
+	_check(GS.call("collect_bird", "crow"), "birds: practice touch collects new species")
+	_check(not GS.call("collect_bird", "crow"), "birds: practice re-touch gives nothing")
 
 	# --- Product progress ----------------------------------------------------------
 	var pp: Array = GS.call("product_progress", MODE_PRACTICE)
-	_check(int(pp[1]) == 1, "birds: practice inventory is 1 product (classic unlock)")
+	_check(int(pp[1]) == 2, "birds: practice inventory is 2 products (both mode unlocks)")
 	pp = GS.call("product_progress", MODE_NIGHT_SHIFT)
 	_check(int(pp[1]) == 9, "birds: night shift inventory is 9 products")
 	pp = GS.call("product_progress", 2)
