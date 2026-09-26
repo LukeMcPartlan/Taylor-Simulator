@@ -24,8 +24,8 @@ func get_rows() -> Array:
 	return [{
 		"number": 1, "kind": "unlock", "id": "classic",
 		"section": "📦 AMAZON",
-		"name": "Classic Mode — the full 16-hour day",
-		"desc": "Order ☀️ Classic Taylor from Amazon. Same-day delivery straight to the main menu. Forever.",
+		"name": "Cortisol Mode — the full 16-hour day",
+		"desc": "Order 😰 Cortisol Mode from Amazon. Same-day delivery straight to the main menu. Forever.",
 		"price": "$%d" % int(CLASSIC_PRICE),
 		"status": "OWNED" if unlocked else "",
 		"affordable": (not unlocked) and GameState.dollars >= CLASSIC_PRICE,
@@ -41,7 +41,7 @@ func buy_row(kind: String, id: String) -> Dictionary:
 		return {"ok": false, "msg": "Need $%d" % int(CLASSIC_PRICE)}
 	GameState.add_dollars(-CLASSIC_PRICE)
 	GameState.unlock_mode(ModeManager.Mode.CLASSIC)
-	GameState.say("TAYLOR", "PACKAGE DELIVERED! 📦 Classic mode is on the main menu!")
+	GameState.say("TAYLOR", "PACKAGE DELIVERED! 📦 Cortisol Mode is on the main menu!")
 	return {"ok": true, "msg": "📦 ORDER DELIVERED! ☀️ CLASSIC MODE UNLOCKED! Find it on the main menu."}
 
 

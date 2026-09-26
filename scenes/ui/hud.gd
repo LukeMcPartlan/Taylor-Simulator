@@ -25,6 +25,7 @@ extends CanvasLayer
 @onready var mode_tag: Label = $ModeTag
 @onready var mode_dock: VBoxContainer = $ModeDock
 @onready var task_list: VBoxContainer = $TaskPanel/Margin/VBox/TaskList
+@onready var task_panel_vbox: VBoxContainer = $TaskPanel/Margin/VBox
 @onready var day_over_overlay: Control = $DayOverOverlay
 @onready var day_over_label: Label = $DayOverOverlay/Center/Panel/Margin/VBox/DayOverLabel
 @onready var stats_label: Label = $DayOverOverlay/Center/Panel/Margin/VBox/StatsLabel
@@ -51,6 +52,7 @@ func _ready() -> void:
 	GameState.dollars_changed.connect(_on_dollars_changed)
 	GameState.clock_changed.connect(_on_clock_changed)
 	GameState.task_list_changed.connect(_on_task_list_changed)
+	GameState.cortisol_tick.connect(_on_cortisol_tick)
 	GameState.day_ended.connect(_on_day_ended)
 	GameState.run_ended.connect(_on_run_ended)
 	GameState.luke_said.connect(_on_luke_said)
@@ -70,6 +72,34 @@ func _ready() -> void:
 	# Mode tag under the clock (empty in CLASSIC) and mode-specific widgets.
 	mode_tag.text = GameState.get_hud_tag()
 	_build_mode_widgets()
+	# Permanent hint under the task list: what talking to Luke does.
+	var luke_hint := Label.new()
+	luke_hint.text = "Speaking to Luke will increase dopamine, serotonin, and cortisol levels."
+	luke_hint.add_theme_font_size_override("font_size", 12)
+	luke_hint.add_theme_color_override("font_color", Color(0.65, 0.65, 0.65))
+	luke_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	luke_hint.custom_minimum_size = Vector2(220, 0)
+	task_panel_vbox.add_child(luke_hint)
+
+
+func _on_cortisol_tick(amount: float) -> void:
+	## Flash a "+x cortisol" indicator next to the task list each time open
+	## tasks generate cortisol. Rises and fades, then frees itself.
+	if amount <= 0.0:
+		return
+	var lab := Label.new()
+	lab.text = "+%s cortisol" % str(snappedf(amount, 0.1))
+	lab.add_theme_font_size_override("font_size", 18)
+	lab.add_theme_color_override("font_color", Color(1.0, 0.35, 0.35))
+	lab.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	lab.add_theme_constant_override("outline_size", 4)
+	add_child(lab)
+	var r: Rect2 = task_panel.get_global_rect()
+	lab.position = Vector2(maxf(r.position.x - 150.0, 8.0), r.position.y + 20.0)
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(lab, "position:y", lab.position.y - 44.0, 1.4)
+	tw.tween_property(lab, "modulate:a", 0.0, 1.4)
+	tw.chain().tween_callback(lab.queue_free)
 
 
 func _build_mode_widgets() -> void:

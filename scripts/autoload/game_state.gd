@@ -44,6 +44,9 @@ signal dollars_changed(dollars: float)
 signal savings_changed(savings: float)
 signal clock_changed(time_string: String)
 signal task_list_changed(tasks: Array)
+## Emitted each time open tasks generate cortisol (discrete pressure tick);
+## the HUD flashes a "+x cortisol" indicator next to the task list.
+signal cortisol_tick(amount: float)
 signal day_ended
 ## Emitted when Luke (or anyone) says something; the HUD shows it in the dialogue box.
 signal luke_said(speaker: String, line: String)
@@ -77,7 +80,7 @@ const START_DOPAMINE: float = 100.0
 const MAX_DOPAMINE: float = 100.0
 const DOPAMINE_DRAIN_PER_HOUR: float = 4.0
 
-const CORTISOL_PER_TASK_PER_HOUR: float = 6.0
+const CORTISOL_PER_TASK_PER_HOUR: float = 3.0
 const SEROTONIN_DRAIN_PER_TASK_PER_HOUR: float = 3.0
 const SEROTONIN_BASELINE_DECAY_PER_HOUR: float = 1.0
 
@@ -85,19 +88,19 @@ const SEROTONIN_BASELINE_DECAY_PER_HOUR: float = 1.0
 # One random chore procs every few REAL seconds (not game-hours, so pacing is
 # identical across modes). Each def has its own daily cap (max_procs); once a
 # task hits its cap it can't proc again until tomorrow. Ticks only activate a
-# task that isn't already open — an open chore just sits there accruing
-# neglect (see escalation below), it never double-procs.
+# task that isn't already open — an open chore just sits there generating
+# cortisol at its flat rate (see pressure ticks below), it never double-procs.
 const PROC_TICK_MIN_S: float = 3.0
 const PROC_TICK_MAX_S: float = 8.0
 const PROC_MAX_PER_DAY: int = 5
 
-# --- Neglect escalation ---------------------------------------------------------
-# Ignoring a chore gets worse the longer it sits open. Each open task's
-# pressure weight grows by NEGLECT_ESCALATION_PER_HOUR for every game-hour it
-# stays uncompleted, up to NEGLECT_ESCALATION_MAX_MULT. The clock resets every
-# time the task procs — it's a new mess, not the old one.
-const NEGLECT_ESCALATION_PER_HOUR: float = 0.5
-const NEGLECT_ESCALATION_MAX_MULT: float = 5.0
+# --- Cortisol pressure ticks ------------------------------------------------------
+# Open tasks push cortisol up in discrete ticks every CORTISOL_TICK_SECONDS
+# (real seconds), not continuously — each tick emits cortisol_tick(amount) so
+# the HUD can flash a "+x cortisol" indicator next to the task list. Every
+# open task generates a FLAT rate: its neglect weight (get_neglect_weight)
+# times CORTISOL_PER_TASK_PER_HOUR. No escalation over time.
+const CORTISOL_TICK_SECONDS: float = 3.0
 
 # --- Fixed-clock tasks ----------------------------------------------------------
 # These proc at fixed clock times instead of through the random proc
@@ -200,6 +203,8 @@ var task_defs: Array = TASK_DEFS.duplicate(true)
 var _proc_state: Dictionary = {}
 ## Countdown (real seconds) to the next global proc tick.
 var _next_proc_in_s: float = 0.0
+## Accumulator (real seconds) for the discrete cortisol pressure ticks.
+var _cortisol_tick_t: float = 0.0
 ## One-time bird collectibles: species ids found EVER (persisted in the
 ## bank). Touching a bird collects it once; afterwards it's yours forever.
 var birds_found: Array = []
@@ -256,15 +261,15 @@ func _process(delta: float) -> void:
 	_update_task_procs(delta)
 	_check_clock_tasks()
 
+	# --- Cortisol pressure ticks ------------------------------------------------
+	# Discrete ticks (see consts above): each open task adds its flat rate,
+	# and cortisol_tick(amount) tells the HUD to flash "+x cortisol".
+	_cortisol_tick_t += delta
+	while _cortisol_tick_t >= CORTISOL_TICK_SECONDS:
+		_cortisol_tick_t -= CORTISOL_TICK_SECONDS
+		_fire_cortisol_tick(sec_per_hour)
+
 	var game_hours: float = delta / sec_per_hour
-	var pressure: float = 0.0
-	for t in tasks:
-		if not t["done"]:
-			pressure += get_neglect_weight(String(t["id"])) \
-				* get_task_neglect_mult(t)
-	if pressure > 0.0:
-		cortisol += get_neglect_cortisol_rate() * get_cortisol_gain_mult() \
-			* day_pressure_mult * pressure * game_hours
 
 	serotonin = maxf(serotonin, 0.0)  # nothing drains serotonin passively
 	cortisol = clampf(cortisol, 0.0, METER_MAX)
@@ -360,23 +365,37 @@ func get_move_speed_mult() -> float:
 	return float(v) if v != null else 1.0
 
 
+func _fire_cortisol_tick(sec_per_hour: float) -> void:
+	## One discrete pressure tick: every open task generates its FLAT rate
+	## (neglect weight x per-task hourly rate x tick length in game-hours),
+	## scaled by the mode's cortisol hooks and the day pressure multiplier.
+	## Emits cortisol_tick(amount) so the HUD can flash "+x cortisol".
+	var tick_hours: float = CORTISOL_TICK_SECONDS / sec_per_hour
+	var task_hours: float = 0.0
+	for t in tasks:
+		if not t["done"]:
+			task_hours += get_neglect_weight(String(t["id"])) * tick_hours
+	if task_hours <= 0.0:
+		return
+	var amt: float = get_neglect_cortisol_rate() * get_cortisol_gain_mult() \
+		* day_pressure_mult * task_hours
+	if amt <= 0.0:
+		return
+	cortisol = clampf(cortisol + amt, 0.0, METER_MAX)
+	cortisol_tick.emit(amt)
+
+
 func get_neglect_weight(task_id: String) -> float:
-	## BASE neglect weight of one open task (delegation mode halves some with
-	## upgrades). The live pressure is this times the escalation multiplier
-	## (get_task_neglect_mult), which grows the longer the task sits open.
-	## Queried per task every frame.
+	## FLAT neglect weight of one open task (delegation mode halves some with
+	## upgrades). Queried per task every pressure tick.
 	var v = _hook("neglect_weight", [task_id])
 	return float(v) if v != null else 1.0
 
 
-func get_task_neglect_mult(task: Dictionary) -> float:
-	## Escalation multiplier for one open task: 1.0 when it procs, growing by
-	## NEGLECT_ESCALATION_PER_HOUR per game-hour it stays uncompleted, capped
-	## at NEGLECT_ESCALATION_MAX_MULT. Resets whenever the task procs again.
-	var open_h: float = maxf(
-		time_hours - float(task.get("open_since_h", time_hours)), 0.0)
-	return minf(1.0 + NEGLECT_ESCALATION_PER_HOUR * open_h,
-		NEGLECT_ESCALATION_MAX_MULT)
+func get_task_neglect_mult(_task: Dictionary) -> float:
+	## Flat now (was: escalation multiplier growing the longer a task sat
+	## open). Kept returning 1.0 for compatibility.
+	return 1.0
 
 
 func get_task_relief_mult() -> float:
@@ -433,8 +452,7 @@ func register_task(id: String, label: String, cortisol_relief: float) -> void:
 		"done": false,
 		"delegated": false,
 		"completed_by": "",
-		# Fresh neglect clock: escalation (get_task_neglect_mult) counts from
-		# the moment the task appears.
+		# Each task generates cortisol at a flat rate while open.
 		"open_since_h": time_hours,
 	})
 	task_list_changed.emit(tasks)
@@ -546,8 +564,7 @@ func _activate_task(def: Dictionary) -> void:
 	var relief := float(def.get("relief", 10.0))
 	for t in tasks:
 		if String(t["id"]) == id:
-			# Re-proc: flip a completed task back open with a FRESH neglect
-			# clock — the escalation multiplier restarts at 1.0.
+			# Re-proc: flip a completed task back open.
 			t["done"] = false
 			t["delegated"] = false
 			t["completed_by"] = ""
@@ -814,9 +831,10 @@ func bird_found(bird_id: String) -> bool:
 
 
 func interact_luke() -> void:
-	## Talking to Luke: +10 joy AND +10 stress.
+	## Talking to Luke: +10 serotonin, +3 cortisol, +5 dopamine.
 	add_serotonin(10.0)
-	add_cortisol(10.0)
+	add_cortisol(3.0)
+	add_dopamine(5.0)
 
 
 func interact_luke_mean() -> void:

@@ -127,7 +127,7 @@ static func def(id: String) -> Dictionary:
 static func products_for_mode(mode: int) -> Array:
 	match mode:
 		5:  # PRACTICE
-			return [{"id": "classic_unlock", "name": "Classic Mode"}]
+			return [{"id": "classic_unlock", "name": "Cortisol Mode"}]
 		1:  # NIGHT_SHIFT — the 9 shared Amazon/permanent products
 			var out: Array = []
 			for d in DEFS:

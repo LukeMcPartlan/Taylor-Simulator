@@ -14,7 +14,10 @@ extends CharacterBody2D
 ## If Taylor never wakes him, he sleeps through the whole day (no garbage).
 
 const SPEED: float = 95.0
-const CHRIS_BED_POS := Vector2(-1700.0, -110.0)
+# Chris's sleep/spawn spot: the Spawns/chris marker in Main.tscn (draggable
+# in the editor). He also walks back in at this Y when he comes home.
+const CHRIS_BED_FALLBACK := Vector2(-1700.0, -110.0)
+var _bed_pos: Vector2 = CHRIS_BED_FALLBACK
 const HOME_EDGE_X: float = -120.0   # east edge: where he walks in at 2:30pm
 const HOME_HOUR: float = 14.5       # 2:30 PM
 const WANDER_MIN_X: float = -1600.0
@@ -91,6 +94,11 @@ func _ready() -> void:
 	add_child(_prompt)
 
 	GameState.day_started.connect(_on_day_started)
+	# Spawn/sleep spot comes from the scene marker so it stays in sync with
+	# the editor on every mode.
+	var marker := get_parent().get_node_or_null("Spawns/chris")
+	if marker is Node2D:
+		_bed_pos = (marker as Node2D).global_position
 	_go_to_sleep(true)
 
 
@@ -174,7 +182,7 @@ func _wake_up() -> void:
 
 func _come_home() -> void:
 	visible = true
-	global_position = Vector2(HOME_EDGE_X, CHRIS_BED_POS.y)
+	global_position = Vector2(HOME_EDGE_X, _bed_pos.y)
 	_state = State.WANDER
 	_sprite.rotation = 0.0
 	_idle_timer = 0.5
@@ -205,7 +213,7 @@ func _go_to_sleep(teleport: bool) -> void:
 	velocity = Vector2.ZERO
 	visible = true
 	if teleport:
-		global_position = CHRIS_BED_POS
+		global_position = _bed_pos
 	_sprite.rotation = PI / 2.0
 	_sprite.play(&"idle")
 	_refresh_prompt()

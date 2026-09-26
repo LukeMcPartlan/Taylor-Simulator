@@ -70,4 +70,4 @@ func disable_task_procs() -> bool:
 
 
 func day_summary_extras() -> Dictionary:
-	return {"extra_lines": "Practice day complete — the 5 birds are one-time collectibles (+50 serotonin each, once ever) — and work the laptop to save up for Classic mode!"}
+	return {"extra_lines": "Practice day complete — the 5 birds are one-time collectibles (+50 serotonin each, once ever) — and work the laptop to save up for Cortisol Mode!"}

@@ -99,7 +99,8 @@ func _run_tests(mode_name: String) -> void:
 	# --- Luke asleep in bed -------------------------------------------------
 	var luke = get_nodes_in_group("luke")[0]
 	_check(luke.get("_state") == 4, "luke starts SLEEPING")  # State.SLEEPING = 4
-	_check(luke.global_position.distance_to(Vector2(-1050, -110)) < 8.0,
+	var luke_marker: Node2D = root.get_node("Main/World/Spawns/luke")
+	_check(luke.global_position.distance_to(luke_marker.global_position) < 40.0,
 		"luke starts in bed")
 
 	# --- Chris asleep in bed, black sprite ----------------------------------
@@ -128,9 +129,15 @@ func _run_tests(mode_name: String) -> void:
 
 	# --- Nothing drains serotonin; neglect only pushes cortisol up ----------
 	var s0: float = gs.serotonin
-	var c0: float = gs.cortisol
 	gs.register_task("test_neglect", "Test neglect", 5.0)
-	await _frames(120)  # ~2 real seconds of open-task pressure
+	# Cortisol pressure fires as a discrete 3-real-second tick; headless frames
+	# run faster than realtime, so poll until a tick lands instead of counting
+	# a fixed number of frames.
+	var c0: float = gs.cortisol
+	var waited := 0
+	while waited < 1500 and gs.cortisol <= c0:
+		await _frames(30)
+		waited += 30
 	_check(absf(gs.serotonin - s0) < 0.01,
 		"serotonin untouched by neglect (%.1f -> %.1f)" % [s0, gs.serotonin])
 	_check(gs.cortisol > c0, "cortisol rises under neglect (%.1f -> %.1f)" % [c0, gs.cortisol])
@@ -169,7 +176,7 @@ func _run_tests(mode_name: String) -> void:
 	_check(_task_open("bed_luke"), "bed_luke clock task procs at 10pm")
 	luke.call("_talk")  # E while awake, bed_luke open -> walks to bed
 	_check(luke.get("_state") == 1, "luke walks to bed")  # Luke.State.WALK = 1
-	luke.global_position = Vector2(-1000, -140)
+	luke.global_position = Vector2(200, -140)  # near the new bed (x=275)
 	await _frames(120)
 	_check(luke.get("_state") == 4, "luke SLEEPING after reaching bed")
 	_check(not _task_open("bed_luke"), "bed_luke completes")

@@ -32,12 +32,12 @@ const MODE_CARDS: Array = [
 	{
 		"mode": Mode.PRACTICE,
 		"name": "🌱 Practice Taylor",
-		"desc": "The safe sandbox. All minigames open, zero cortisol, all 5 birds as one-time collectibles. Earn serotonin, work the laptop for dollars, buy Classic mode.",
+		"desc": "The safe sandbox. All minigames open, zero cortisol, all 5 birds as one-time collectibles. Earn serotonin, work the laptop for dollars, buy Cortisol Mode.",
 	},
 	{
 		"mode": Mode.CLASSIC,
-		"name": "☀️ Classic Taylor",
-		"desc": "The original 16-hour day. Chores, fun, Luke. No gimmicks — just vibes.",
+		"name": "😰 Cortisol Mode",
+		"desc": "Complete your tasks as fast as possible to keep your cortisol down and finish the day.",
 		"locked_desc": "Locked — buy it for $60 at the practice laptop (🔓 UNLOCK tab).",
 	},
 	{
@@ -92,7 +92,7 @@ func mode_name() -> String:
 			return "Combo-Mom"
 		Mode.PRACTICE:
 			return "Practice"
-	return "Classic"
+	return "Cortisol"
 
 
 func set_mode(mode: int) -> void:

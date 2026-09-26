@@ -38,9 +38,11 @@ const NAG_RESPONSES: Array[String] = [
 
 enum State { IDLE, WALK, GAMING, DELEGATED, SLEEPING }
 
-# Luke's bed: next to his game setup. He starts every day asleep there
-# (wake him at 6am) and the "put Luke to bed" task sends him back at 10pm.
-const LUKE_BED_POS := Vector2(-1050.0, -110.0)
+# Luke's bed: the Spawns/luke marker in Main.tscn (draggable in the editor).
+# He starts every day asleep there (wake him at 6am) and the "put Luke to
+# bed" task sends him back at 10pm.
+const LUKE_BED_FALLBACK := Vector2(-400.0, -110.0)
+var _bed_pos: Vector2 = LUKE_BED_FALLBACK
 
 var _state: int = State.IDLE
 var _idle_timer: float = 1.0
@@ -128,6 +130,11 @@ func _ready() -> void:
 
 	GameState.task_list_changed.connect(_on_tasks_changed)
 	GameState.day_started.connect(_on_day_started)
+	# Spawn/sleep spot comes from the scene marker so it stays in sync with
+	# the editor on every mode.
+	var marker := get_parent().get_node_or_null("Spawns/luke")
+	if marker is Node2D:
+		_bed_pos = (marker as Node2D).global_position
 	# Every day starts with Luke asleep in bed — the 6am "wake up Luke"
 	# clock task is how Taylor gets him moving.
 	_go_to_sleep(true)
@@ -204,7 +211,7 @@ func _talk() -> void:
 		GameState.say("LUKE", String(m.mean_line()))
 		GameState.interact_luke_mean()
 		return
-	# The core Luke interaction: unhinged wisdom, +10 joy AND +10 stress.
+	# The core Luke interaction: unhinged wisdom, +10 serotonin, +3 cortisol, +5 dopamine.
 	GameState.say("LUKE", LINES[randi_range(0, LINES.size() - 1)])
 	GameState.interact_luke()
 	if _state == State.GAMING and _remind_task_active():
@@ -289,7 +296,7 @@ func _send_to_bed() -> void:
 	_drop_delegation()
 	_going_to_bed = true
 	_going_to_game = false
-	_target_x = LUKE_BED_POS.x
+	_target_x = _bed_pos.x
 	_state = State.WALK
 	GameState.say("LUKE", "fine, i'm going to bed. don't let chris eat my leftovers.")
 	_refresh_prompt()
@@ -302,7 +309,7 @@ func _go_to_sleep(teleport: bool) -> void:
 	_going_to_game = false
 	_drop_delegation()
 	if teleport:
-		global_position = LUKE_BED_POS
+		global_position = _bed_pos
 	# Flat on his back, out cold.
 	_sprite.rotation = PI / 2.0
 	_sprite.play(&"idle")
