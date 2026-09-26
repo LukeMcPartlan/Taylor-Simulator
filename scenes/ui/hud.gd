@@ -239,6 +239,10 @@ func _on_day_ended() -> void:
 		day_over_label.text = "Day %d cut short — cortisol maxed out!" % int(summary["day"])
 	elif String(summary.get("end_reason", "")) == "dopamine":
 		day_over_label.text = "Day %d cut short — dopamine hit zero!" % int(summary["day"])
+	elif String(summary.get("end_reason", "")) == "past_bedtime":
+		day_over_label.text = "Day %d cut short — up past 1 AM, serotonin wiped!" % int(summary["day"])
+	elif String(summary.get("end_reason", "")) == "bedtime":
+		day_over_label.text = "Day %d complete — good night!" % int(summary["day"])
 	else:
 		day_over_label.text = "Day %d complete" % int(summary["day"])
 	var stats := "Tasks: %d/%d\nAvg serotonin: %d\nRating: %s" % [

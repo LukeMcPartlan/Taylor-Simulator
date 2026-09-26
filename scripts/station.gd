@@ -62,7 +62,7 @@ const STATION_SPRITES := {
 }
 # Stations whose furniture visual stays fully transparent (labels/prompts
 # still show; the player just walks up to the text).
-const TRANSPARENT_VISUALS: Array[String] = ["feed_baby", "change_baby"]
+const TRANSPARENT_VISUALS: Array[String] = ["feed_baby", "change_baby", "go_to_bed"]
 # Per-station furniture art overrides. Default is 2x scale, bottom of the
 # sprite on the station floor. amazon_boxes is 1x1, nudged one tile lower.
 const STATION_SPRITE_SCALE: Dictionary = {
@@ -154,6 +154,8 @@ func _ready() -> void:
 	if kind == Kind.STORE:
 		_prompt = _make_label("", Vector2(-110, -140), Vector2(220, 24), 16)
 		_build_shop()
+	elif station_id == "go_to_bed":
+		_prompt = _make_label("E: Go to bed", Vector2(-90, prompt_y), Vector2(180, 24), 16)
 	else:
 		var game_name := MinigameLauncher.display_name(minigame_id)
 		_prompt = _make_label("E: " + game_name, Vector2(-90, prompt_y), Vector2(180, 24), 16)
@@ -239,6 +241,12 @@ func _on_chore_e_pressed(d: Node) -> void:
 	## something (DELEGATION), E starts the hold-E repair instead. A chore
 	## delegated to Luke is HIS job — no double-dipping.
 	## PRACTICE mode: every minigame is open, task or no task.
+	## The bed is not a minigame: E with the "Go to bed" task open ends
+	## the day on the spot.
+	if station_id == "go_to_bed":
+		if _own_task_open():
+			GameState.go_to_bed()
+		return
 	if GameState.minigames_always_open():
 		if minigame_id != "":
 			MinigameLauncher.open(minigame_id, _on_minigame_done)

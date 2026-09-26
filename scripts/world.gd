@@ -43,6 +43,7 @@ const STATION_DEFS: Array = [
 	{"id": "take_out_trash", "title": "Trash bins", "kind": 0, "x": -1350.0, "floor_y": -96.0, "game": "trash", "work": 2.5},
 	{"id": "microwave", "title": "Microwave", "kind": 0, "x": -1600.0, "floor_y": -96.0, "game": "microwave", "work": 3.0},
 	{"id": "amazon_boxes", "title": "Amazon boxes", "kind": 0, "x": -750.0, "floor_y": -96.0, "game": "amazon_break", "work": 3.0},
+	{"id": "go_to_bed", "title": "Go to bed", "kind": 0, "x": 198.0, "floor_y": -346.0, "game": "", "work": 0.0},
 	# DELEGATION mode only: the Night Store as a station (see station.gd).
 	{"id": "__store__", "title": "Night Store", "kind": 2, "x": -700.0, "floor_y": -96.0, "work": 0.0},
 ]

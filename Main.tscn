@@ -857,6 +857,9 @@ position = Vector2(687, -353)
 [node name="luke" type="Marker2D" parent="World/Spawns" unique_id=487209044]
 position = Vector2(275, -340)
 
+[node name="go_to_bed" type="Marker2D" parent="World/Spawns"]
+position = Vector2(198, -346)
+
 [node name="Preview" type="Sprite2D" parent="World/Spawns/luke" unique_id=1849922678]
 position = Vector2(0, -32)
 scale = Vector2(2, 2)

@@ -65,7 +65,9 @@ signal run_ended(title: String, stats: String, restart_kind: String)
 # --- Tuning (base defaults; modes override via hooks) -----------------------
 const SECONDS_PER_GAME_HOUR: float = 15.0
 const DAY_START_HOUR: float = 6.0    # 6:00 AM — Luke needs waking at 6
-const DAY_END_HOUR: float = 23.0     # 11:00 PM
+const DAY_END_HOUR: float = 23.0     # 11:00 PM — shops close, late night begins
+const BEDTIME_HOUR: float = 21.0     # 9:00 PM — the "Go to bed" chore spawns
+const DAY_LATEST_HOUR: float = 25.0  # 1:00 AM — up-all-night forced day end
 const METER_MAX: float = 100.0  # caps CORTISOL only; serotonin is intentionally uncapped
 
 const START_SEROTONIN: float = 60.0
@@ -92,7 +94,7 @@ const SEROTONIN_BASELINE_DECAY_PER_HOUR: float = 1.0
 # cortisol at its flat rate (see pressure ticks below), it never double-procs.
 const PROC_TICK_MIN_S: float = 3.0
 const PROC_TICK_MAX_S: float = 8.0
-const PROC_MAX_PER_DAY: int = 5
+const PROC_MAX_PER_DAY: int = 3
 
 # --- Cortisol pressure ticks ------------------------------------------------------
 # Open tasks push cortisol up in discrete ticks every CORTISOL_TICK_SECONDS
@@ -109,6 +111,7 @@ const CORTISOL_TICK_SECONDS: float = 3.0
 const CLOCK_TASKS: Array = [
 	{"hour": 6.0, "id": "wake_luke", "label": "Wake up Luke", "relief": 12.0},
 	{"hour": 7.0, "id": "wake_chris", "label": "Wake up Chris", "relief": 12.0},
+	{"hour": 21.0, "id": "go_to_bed", "label": "Go to bed", "relief": 0.0},
 	{"hour": 22.0, "id": "bed_luke", "label": "Put Luke to bed", "relief": 12.0},
 ]
 var _clock_tasks_fired: Dictionary = {}  # task id -> day_number
@@ -136,14 +139,14 @@ const METER_EMIT_THROTTLE: float = 0.25
 # optional overrides (max_procs — see the PROC_* defaults above). New tasks
 # are added at runtime with register_task_def(); no core-logic edits needed.
 const TASK_DEFS: Array = [
-	{"id": "laundry", "label": "Do the laundry", "relief": 15.0, "day_min": 1, "max_procs": 5},
-	{"id": "dishes", "label": "Wash the dishes", "relief": 12.0, "day_min": 1, "max_procs": 5},
-	{"id": "feed_baby", "label": "Feed the baby", "relief": 18.0, "day_min": 1, "max_procs": 5},
-	{"id": "change_baby", "label": "Change the baby", "relief": 14.0, "day_min": 1, "max_procs": 5},
-	{"id": "basement_toilet", "label": "Clean the basement toilet", "relief": 20.0, "day_min": 1, "max_procs": 5},
-	{"id": "take_out_trash", "label": "Take out the trash", "relief": 8.0, "day_min": 3, "max_procs": 5},
-	{"id": "microwave", "label": "Clean the microwave", "relief": 10.0, "day_min": 2, "max_procs": 5},
-	{"id": "amazon_boxes", "label": "Break down the Amazon boxes", "relief": 12.0, "day_min": 1, "max_procs": 5},
+	{"id": "laundry", "label": "Do the laundry", "relief": 15.0, "day_min": 1, "max_procs": 3},
+	{"id": "dishes", "label": "Wash the dishes", "relief": 12.0, "day_min": 1, "max_procs": 3},
+	{"id": "feed_baby", "label": "Feed the baby", "relief": 18.0, "day_min": 1, "max_procs": 3},
+	{"id": "change_baby", "label": "Change the baby", "relief": 14.0, "day_min": 1, "max_procs": 3},
+	{"id": "basement_toilet", "label": "Clean the basement toilet", "relief": 20.0, "day_min": 1, "max_procs": 3},
+	{"id": "take_out_trash", "label": "Take out the trash", "relief": 8.0, "day_min": 3, "max_procs": 3},
+	{"id": "microwave", "label": "Clean the microwave", "relief": 10.0, "day_min": 2, "max_procs": 3},
+	{"id": "amazon_boxes", "label": "Break down the Amazon boxes", "relief": 12.0, "day_min": 1, "max_procs": 3},
 ]
 const REMIND_LUKE_TASK: Dictionary = {
 	"id": "remind_luke", "label": "Remind Luke to get back to work", "relief": 12.0,
@@ -251,9 +254,13 @@ func _process(delta: float) -> void:
 
 	var sec_per_hour: float = get_seconds_per_game_hour()
 	time_hours += delta / sec_per_hour
-	if time_hours >= DAY_END_HOUR:
-		time_hours = DAY_END_HOUR
+	if time_hours >= DAY_LATEST_HOUR:
+		# Up all night: 1 AM without going to bed wipes serotonin and
+		# ends the day on the spot — same severity as maxing cortisol.
+		time_hours = DAY_LATEST_HOUR
 		_emit_clock_if_changed()
+		serotonin = 0.0
+		_day_end_reason = "past_bedtime"
 		_end_day()
 		return
 	_emit_clock_if_changed()
@@ -613,6 +620,15 @@ func complete_task(id: String, by: String = "taylor") -> bool:
 	return false
 
 
+func go_to_bed() -> void:
+	## The 9pm "Go to bed" chore: Taylor turns in for the night. The day
+	## ends normally with serotonin kept — the kind end, as opposed to the
+	## 1am forced end which wipes it.
+	complete_task("go_to_bed")
+	_day_end_reason = "bedtime"
+	_end_day()
+
+
 func add_serotonin(amount: float) -> void:
 	# Serotonin caps at get_serotonin_cap() (raised by collectible upgrades).
 	serotonin = clampf(serotonin + amount, 0.0, get_serotonin_cap())
@@ -910,7 +926,7 @@ func get_day_summary() -> Dictionary:
 	for t in tasks:
 		if t["done"]:
 			done += 1
-	var day_length: float = DAY_END_HOUR - DAY_START_HOUR
+	var day_length: float = maxf(time_hours - DAY_START_HOUR, 0.01)
 	var avg_serotonin: float = day_serotonin_integral / maxf(day_length, 0.01)
 	var rating: String = "Total meltdown"
 	if avg_serotonin >= 70.0:
@@ -982,7 +998,7 @@ func retry_day() -> void:
 
 func _format_time() -> String:
 	var total_minutes: int = int(round(time_hours * 60.0))
-	var h24: int = total_minutes / 60
+	var h24: int = (total_minutes / 60) % 24  # wrap past midnight (25:00 -> 1 AM)
 	var m: int = total_minutes % 60
 	var suffix: String = "AM" if h24 < 12 else "PM"
 	var h12: int = h24 % 12
