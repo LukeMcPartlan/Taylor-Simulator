@@ -15,19 +15,19 @@ HEADLINES = [
     "Men: Are they as evil as they seem? (Yes)",
     "Heroic mother slays her 3 vile children",
     "Meet NYC's sexiest new assassin",
-    "Girlboss divorces husband for oat milk latte",
-    "Scientists confirm touching grass is a red flag",
-    "POV: your therapist is just 3 raccoons in a trenchcoat",
-    "BREAKING: water found wet, women vindicated",
-    "Man discovers 'boundaries', immediately arrested",
+    "The world is LITTERALLY ending (fr this time)",
+    "Storytime: How my dream about cheating led to my divorce",
+    "67 reasons why having kids is immoral in 2026 #proudpuppiemama",
+    "Data Centers have WATER their is WATER in the data centers how could this be allowed????",
+    "GOFUNDME : I lost 100 grand on Kalshi. Fund my next bet!",
     "Influencer cures anxiety with $400 candle (doctors HATE her)",
-    "New study: 9 out of 10 boyfriends are just NPCs",
-    "Girl math proves rent is actually free",
-    "EXCLUSIVE: the moon is a psyop (emotional)",
-    "Day in my life as a 23-year-old CEO of vibes",
-    "He texted back in 4 minutes?? Red flag. Here's why",
-    "Nutritionists BEG you to stop eating air (1 weird trick)",
-    "Woman manifests parking spot, economy collapses",
+    "Here is how I made 50 million dollars on Onlyfans (filmed in a dilapidated trailer)",
+    "Recent studies show that Lizzos 5000 calorie diet cures all ailments",
+    "CONSUME CONSUME CONSUME CONSUME CONSUME CONSUME CONSUME CONSUME CONSUME CONSUME CONSUME CONSUME CONSUME CONSUME CONSUME CONSUME",
+    "Orange man IS BAD and does BAD thing!!!! (we should be furios)",
+    "He texted back after is 4 minuet allocated response time??? Red flag...",
+    "Look at ISREAL. Do not look outside look at what's happening in ISREAL please look at Israel don't worry about anything else stay focused on ISREAL dont lose focus guys just only think about Israel post more online about ISREAL",
+    "Terminator was originally going to be about a human, but on the last shot of the day Arnold Schwarzenegger improvised peeling his flesh off to reveal a metal skeleton. The director liked the idea so much that they reshot the movie!",
 ]
 
 BG_PAIRS = [
@@ -58,10 +58,31 @@ def vgrad(w, h, top, bottom):
         draw.line([(0, y), (w, y)], fill=c)
     return img
 
+def fit_headline(d, headline, max_w, start_size=34, min_size=16, max_lines=7):
+    # Wrap by measured pixel width; shrink the font until the headline fits
+    # in max_lines. Long headlines stay on-screen instead of clipping.
+    size = start_size
+    while True:
+        font = load_font(size)
+        words = headline.split()
+        lines, cur = [], ""
+        for w in words:
+            trial = (cur + " " + w).strip()
+            if not cur or d.textlength(trial, font=font) <= max_w:
+                cur = trial
+            else:
+                lines.append(cur)
+                cur = w
+        if cur:
+            lines.append(cur)
+        if len(lines) <= max_lines or size <= min_size:
+            return font, lines, size
+        size -= 2
+
+
 def main():
     random.seed(20260923)
     W, H = 360, 640
-    title_font = load_font(34)
     small_font = load_font(18)
     tiny_font = load_font(14)
     for i, headline in enumerate(HEADLINES):
@@ -70,8 +91,9 @@ def main():
         d = ImageDraw.Draw(img)
         # vignette-ish dark bottom for the caption
         d.rectangle([0, H - 150, W, H], fill=(0, 0, 0, 255))
-        # headline, wrapped, white with black outline
-        lines = textwrap.wrap(headline, width=18)
+        # headline, wrapped to pixel width, white with black outline
+        title_font, lines, size = fit_headline(d, headline, W - 28)
+        line_h = size + 12
         y = 150
         for line in lines:
             tw = d.textlength(line, font=title_font)
@@ -79,7 +101,7 @@ def main():
             for ox, oy in [(-2, 0), (2, 0), (0, -2), (0, 2)]:
                 d.text((x + ox, y + oy), line, font=title_font, fill=(0, 0, 0))
             d.text((x, y), line, font=title_font, fill=(255, 255, 255))
-            y += 44
+            y += line_h
         # big play triangle in the middle
         cx, cy = W // 2, 400
         d.polygon([(cx - 28, cy - 36), (cx - 28, cy + 36), (cx + 36, cy)],
