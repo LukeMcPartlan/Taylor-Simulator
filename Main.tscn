@@ -679,6 +679,7 @@ tile_set = SubResource("TileSet_cm0pq")
 [node name="HUD" parent="." unique_id=516852715 instance=ExtResource("7_hud0")]
 
 [node name="ParallaxBG" type="ParallaxBackground" parent="." unique_id=421904337]
+layer = -100
 
 [node name="Sky" type="ParallaxLayer" parent="ParallaxBG" unique_id=782341190]
 motion_scale = Vector2(0, 1)
