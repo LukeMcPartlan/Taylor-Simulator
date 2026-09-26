@@ -83,6 +83,9 @@ func _ready() -> void:
 	_effects = Node2D.new()
 	_effects.name = "Effects"
 	add_child(_effects)
+	var day_night := DayNight.new()
+	day_night.name = "DayNight"
+	add_child(day_night)
 	_hide_spawn_previews()
 	_spawn_stations()
 	_spawn_store()

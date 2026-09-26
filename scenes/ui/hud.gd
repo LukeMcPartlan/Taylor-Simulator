@@ -188,7 +188,9 @@ func _on_dollars_changed(dollars: float) -> void:
 
 
 func _on_clock_changed(time_string: String) -> void:
-	clock_label.text = "Day %d — %s" % [GameState.day_number, time_string]
+	# Phase icon makes the day/night cycle readable at a glance.
+	var icon := DayNight.phase_icon_for_hour(float(GameState.time_hours))
+	clock_label.text = "Day %d — %s %s" % [GameState.day_number, icon, time_string]
 
 
 func _on_task_list_changed(tasks: Array) -> void:
