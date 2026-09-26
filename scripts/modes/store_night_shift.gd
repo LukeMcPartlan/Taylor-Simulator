@@ -317,7 +317,18 @@ func _switch_tab(tab: String) -> void:
 	_tab_amazon_btn.disabled = tab == "amazon"
 	_work_panel.visible = tab == "work"
 	_amazon_panel.visible = tab == "amazon"
+	# Work verdicts don't follow you onto the Amazon tab — it shows only the
+	# order list.
+	_status_label.text = ""
 	_refresh_menu()
+
+
+func _make_buy_button(text: String) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.add_theme_font_size_override("font_size", 15)
+	b.custom_minimum_size = Vector2(110, 36)
+	return b
 
 
 func _refresh_menu() -> void:
@@ -333,14 +344,27 @@ func _refresh_menu() -> void:
 			var line := "%d. %s — %s%s" % [
 				int(row["number"]), String(row["name"]), String(row["price"]),
 				(" — " + status) if status != "" else ""]
+			var hbox := HBoxContainer.new()
+			hbox.add_theme_constant_override("separation", 12)
+			var info := VBoxContainer.new()
+			info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			info.add_theme_constant_override("separation", 2)
 			var label := _make_menu_label(line, Color(1, 1, 1))
 			if status == "OWNED":
 				label.modulate = Color(0.45, 0.45, 0.45)
 			elif not bool(row["affordable"]):
 				label.modulate = Color(1.0, 0.5, 0.5)
-			_menu_items.add_child(label)
+			info.add_child(label)
 			var desc := _make_menu_label("     " + String(row["desc"]), Color(0.75, 0.75, 0.8))
-			_menu_items.add_child(desc)
+			info.add_child(desc)
+			hbox.add_child(info)
+			# A real button per row — no more hunting for the number keys.
+			if status != "OWNED" and status != "MAXED":
+				var buy := _make_buy_button("BUY %s" % String(row["price"]))
+				buy.disabled = not bool(row["affordable"])
+				buy.pressed.connect(_buy_number.bind(int(row["number"])))
+				hbox.add_child(buy)
+			_menu_items.add_child(hbox)
 
 
 func _refresh_work_panel() -> void:

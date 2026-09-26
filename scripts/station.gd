@@ -63,6 +63,14 @@ const STATION_SPRITES := {
 # Stations whose furniture visual stays fully transparent (labels/prompts
 # still show; the player just walks up to the text).
 const TRANSPARENT_VISUALS: Array[String] = ["feed_baby", "change_baby"]
+# Per-station furniture art overrides. Default is 2x scale, bottom of the
+# sprite on the station floor. amazon_boxes is 1x1, nudged one tile lower.
+const STATION_SPRITE_SCALE: Dictionary = {
+	"amazon_boxes": 1.0,
+}
+const STATION_SPRITE_Y_OFF: Dictionary = {
+	"amazon_boxes": 32.0,
+}
 
 var _player_inside: bool = false
 # Fix-up flow only (DELEGATION): hold-E to repair Luke's mess (2s).
@@ -104,15 +112,18 @@ func _ready() -> void:
 	var title_y := -104.0
 	var prompt_y := -140.0
 	if tex != null:
-		# Furniture art at 2x scale, bottom of the sprite on the floor.
+		# Furniture art at 2x scale, bottom of the sprite on the floor
+		# (per-station overrides in STATION_SPRITE_SCALE / STATION_SPRITE_Y_OFF).
+		var art_scale := float(STATION_SPRITE_SCALE.get(station_id, 2.0))
+		var y_off := float(STATION_SPRITE_Y_OFF.get(station_id, 0.0))
 		var spr := Sprite2D.new()
 		spr.texture = tex
-		spr.scale = Vector2(2, 2)
-		spr.position = Vector2(0, -tex.get_height())
+		spr.scale = Vector2(art_scale, art_scale)
+		spr.position = Vector2(0, -tex.get_height() * art_scale * 0.5 + y_off)
 		spr.z_index = -1  # furniture draws behind the player
 		add_child(spr)
 		_visual = spr
-		title_y = -(tex.get_height() * 2.0 + 36.0)
+		title_y = -(tex.get_height() * art_scale + 36.0) + y_off
 		prompt_y = title_y - 34.0
 	else:
 		# No art for this station (e.g. the STORE): the old colored box.
