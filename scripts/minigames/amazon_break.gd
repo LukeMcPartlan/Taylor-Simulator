@@ -3,7 +3,7 @@ extends Minigame
 ## Amazon boxes station — "Box Breaker". Brick-breaker: flatten the Amazon
 ## boxes with the tape-gun paddle — or thread a ball through to the gold
 ## JACKPOT LINE at the back for an instant win. 3 lost balls and the boxes
-## win. 120s timer.
+## win. No timer — take as long as you need.
 ##
 ## Controls: A/D or Left/Right. The paddle stays where you leave it.
 
@@ -16,7 +16,6 @@ const PADDLE_W: float = 120.0
 const PADDLE_SPEED: float = 480.0
 const BALL_R: float = 9.0
 const BASE_BALL_SPEED: float = 400.0
-const TIME_LIMIT: float = 120.0
 const MAX_LIVES: int = 3
 
 const TEX_BOX := preload("res://placeholder art/Sprites/amazon_box.png")
@@ -30,7 +29,6 @@ var _pw: float = PADDLE_W  # paddle width; Paddle Extender buff widens it
 var _balls: Array = []  # Dictionaries {pos: Vector2, vel: Vector2}
 var _respawn_timer: float = 0.0
 var _lives: int = MAX_LIVES
-var _time_left: float = TIME_LIMIT
 var _top := Vector2.ZERO
 var _box_cols: Array = []
 
@@ -78,7 +76,6 @@ func start() -> void:
 	_top = Vector2((size.x - BOX_COLS * BOX_SIZE.x) / 2.0, BOX_TOP)
 	_paddle_x = size.x / 2.0
 	_lives = MAX_LIVES
-	_time_left = TIME_LIMIT
 	_serve_ball()
 
 
@@ -99,10 +96,6 @@ func _serve_ball() -> void:
 
 func _process(delta: float) -> void:
 	if _over:
-		return
-	_time_left -= delta
-	if _time_left <= 0.0:
-		_end(false)
 		return
 	# Paddle: keyboard only; it stays where you leave it (like Diaper Catch).
 	var dir: float = 0.0
@@ -218,10 +211,6 @@ func test_miss_ball() -> void:
 		_respawn_timer = 0.01
 
 
-func test_timeout() -> void:
-	_end(false)
-
-
 func test_hit_jackpot() -> void:
 	# Park a ball on the jackpot line; the next _process frame wins the run.
 	if _balls.is_empty():
@@ -262,5 +251,5 @@ func _draw_game() -> void:
 	for i in MAX_LIVES:
 		balls += "● " if i < _lives else "○ "
 	draw_string(font, Vector2(24, 120),
-		"Boxes left: %d   Balls: %s  Time: %ds" % [_boxes_left, balls, int(_time_left)],
+		"Boxes left: %d   Balls: %s" % [_boxes_left, balls],
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.9, 0.9, 0.9))
