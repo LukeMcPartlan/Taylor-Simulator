@@ -2,17 +2,21 @@ extends "res://scripts/modes/store_night_shift.gd"
 ## Taylor's LAPTOP in PRACTICE mode. Same hardware as night-shift's laptop —
 ## WORK tab turns serotonin into dollars (-10 serotonin, +$10 per verdict,
 ## a new deranged email every press) — but the shop tab is an AMAZON order
-## page selling exactly ONE thing: CLASSIC MODE, the first real game mode,
-## for $60.
+## page selling exactly ONE mode unlock plus the 6-product catalog:
+##   1. CLASSIC MODE unlock ($60) — Cortisol Mode, forever.
+##   2-7. The same 6 in-run upgrade products Cortisol Mode sells
+##      (extra_ball, sponge, pipes, good_drops, green_zone, moon_shoes).
 ##
-## Buying it unlocks Classic on the main menu forever (saved in the bank
-## file). After that the store just shows OWNED.
-
-## Buying one unlocks that mode on the main menu forever (saved in the bank
-## file). After that the store just shows OWNED.
+## The DOPAMINE MODE unlock is NOT sold here — you buy it from the Cortisol
+## store's laptop instead. Buying the classic unlock puts Cortisol Mode on
+## the main menu forever (saved in the bank file).
 
 const CLASSIC_PRICE: float = 60.0
-const DOPAMINE_PRICE: float = 100.0
+
+## Same ids as StoreCortisol._CORTISOL_IDS (kept in sync manually).
+const _CORTISOL_IDS: Array = [
+	"extra_ball", "sponge", "pipes", "good_drops", "green_zone", "moon_shoes",
+]
 
 
 func store_title() -> String:
@@ -23,55 +27,56 @@ func show_title_label() -> bool:
 	return false
 
 
-func _unlock_row(number: int, mode: int, id: String, name: String, desc: String, price: float) -> Dictionary:
-	var unlocked := GameState.is_mode_unlocked(mode)
-	return {
-		"number": number, "kind": "unlock", "id": id,
-		"section": "📦 AMAZON",
-		"name": name,
-		"desc": desc,
-		"price": "$%d" % int(price),
-		"status": "OWNED" if unlocked else "",
-		"affordable": (not unlocked) and GameState.dollars >= price,
-	}
+func _cortisol_defs() -> Array:
+	var defs: Array = []
+	for pid in _CORTISOL_IDS:
+		var d: Dictionary = _UPGRADE_DEFS.def(pid)
+		if not d.is_empty():
+			defs.append(d)
+	return defs
 
 
 func get_rows() -> Array:
-	return [
-		_unlock_row(1, ModeManager.Mode.CLASSIC, "classic",
-			"Cortisol Mode — the full 16-hour day",
-			"Order 😰 Cortisol Mode from Amazon. Same-day delivery straight to the main menu. Forever.",
-			CLASSIC_PRICE),
-		_unlock_row(2, ModeManager.Mode.DOPAMINE, "dopamine",
-			"Dopamine Mode — cortisol rules, dopamine drains 5x",
-			"Order 📱 Dopamine Mode from Amazon. Same brutal chores, but the phone is life support. Forever.",
-			DOPAMINE_PRICE),
+	# Row 1: the one mode unlock. Rows 2-7: the cortisol product catalog
+	# (in-run tiers, shared row builder from StoreLaptop).
+	var rows: Array = [
+		{
+			"number": 1, "kind": "unlock", "id": "classic",
+			"section": "📦 AMAZON",
+			"name": "Cortisol Mode — the full 16-hour day",
+			"desc": "Order 😰 Cortisol Mode from Amazon. Same-day delivery straight to the main menu. Forever.",
+			"price": "$%d" % int(CLASSIC_PRICE),
+			"status": "OWNED" if GameState.is_mode_unlocked(ModeManager.Mode.CLASSIC) else "",
+			"affordable": (not GameState.is_mode_unlocked(ModeManager.Mode.CLASSIC)) \
+				and GameState.dollars >= CLASSIC_PRICE,
+		},
 	]
+	var m := _mode()
+	if m != null:
+		rows.append_array(_product_rows(m, _cortisol_defs(), 1))
+	return rows
 
 
 func buy_row(kind: String, id: String) -> Dictionary:
-	if kind != "unlock":
-		return {"ok": false, "msg": "Click a tab, boss."}
-	if id == "classic":
-		return _buy_unlock(ModeManager.Mode.CLASSIC, "classic", CLASSIC_PRICE,
-			"PACKAGE DELIVERED! 📦 Cortisol Mode is on the main menu!",
-			"📦 ORDER DELIVERED! ☀️ CLASSIC MODE UNLOCKED! Find it on the main menu.")
-	if id == "dopamine":
-		return _buy_unlock(ModeManager.Mode.DOPAMINE, "dopamine", DOPAMINE_PRICE,
-			"PACKAGE DELIVERED! 📦 Dopamine Mode is on the main menu!",
-			"📦 ORDER DELIVERED! 📱 DOPAMINE MODE UNLOCKED! Find it on the main menu.")
+	if kind == "unlock" and id == "classic":
+		return _buy_classic_unlock()
+	if kind == "upgrade":
+		var m := _mode()
+		if m == null:
+			return {"ok": false, "msg": "The laptop bluescreens."}
+		return m.buy_run_upgrade(id)
 	return {"ok": false, "msg": "Click a tab, boss."}
 
 
-func _buy_unlock(mode: int, id: String, price: float, say_msg: String, ok_msg: String) -> Dictionary:
-	if GameState.is_mode_unlocked(mode):
+func _buy_classic_unlock() -> Dictionary:
+	if GameState.is_mode_unlocked(ModeManager.Mode.CLASSIC):
 		return {"ok": false, "msg": "Already unlocked!"}
-	if GameState.dollars < price:
-		return {"ok": false, "msg": "Need $%d" % int(price)}
-	GameState.add_dollars(-price)
-	GameState.unlock_mode(mode)
-	GameState.say("TAYLOR", say_msg)
-	return {"ok": true, "msg": ok_msg}
+	if GameState.dollars < CLASSIC_PRICE:
+		return {"ok": false, "msg": "Need $%d" % int(CLASSIC_PRICE)}
+	GameState.add_dollars(-CLASSIC_PRICE)
+	GameState.unlock_mode(ModeManager.Mode.CLASSIC)
+	GameState.say("TAYLOR", "PACKAGE DELIVERED! 📦 Cortisol Mode is on the main menu!")
+	return {"ok": true, "msg": "📦 ORDER DELIVERED! ☀️ CLASSIC MODE UNLOCKED! Find it on the main menu."}
 
 
 func _mode() -> Node:
@@ -85,5 +90,5 @@ func _mode() -> Node:
 
 func _build_menu() -> void:
 	super._build_menu()
-	# The shop tab is an Amazon order page — the one and only unlock.
+	# The shop tab is an Amazon order page — unlock + the cortisol catalog.
 	_tab_amazon_btn.text = "📦 AMAZON"

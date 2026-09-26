@@ -136,9 +136,16 @@ func get_rows() -> Array:
 	var m := _mode()
 	if m == null:
 		return []
+	return _product_rows(m, _amazon_defs())
+
+
+func _product_rows(m: Node, defs: Array, start_number: int = 0) -> Array:
+	## Build AMAZON product rows (numbered from start_number + 1) for a mode
+	## node carrying run_tier()/buy_run_upgrade() and a list of upgrade defs.
+	## Shared by the cortisol-family stores and the practice store.
 	var rows: Array = []
-	var number := 0
-	for def in _amazon_defs():
+	var number := start_number
+	for def in defs:
 		number += 1
 		var id := String(def["id"])
 		var section := "UPGRADES — in-run tiers, last the run"

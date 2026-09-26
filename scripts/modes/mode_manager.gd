@@ -46,7 +46,7 @@ const MODE_CARDS: Array = [
 		"mode": Mode.DOPAMINE,
 		"name": "📱 Dopamine Mode",
 		"desc": "Cortisol Mode, but dopamine drains 5x faster. The phone is life support — keep swiping or the day ends early.",
-		"locked_desc": "Locked — buy it for $100 at the practice laptop (📦 AMAZON tab).",
+		"locked_desc": "Locked — buy it for $100 at the cortisol laptop (📦 AMAZON tab).",
 	},
 	{
 		"mode": Mode.NIGHT_SHIFT,

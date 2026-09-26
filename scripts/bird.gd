@@ -6,9 +6,7 @@ extends Area2D
 ##
 ## Each real game mode has one fixed species (GameState.MODE_BIRDS); only
 ## that mode's bird appears, and only while it's still uncollected. Touching
-## it collects it FOREVER (+50 serotonin, banked). In PRACTICE mode all five
-## birds are out every day as a gallery: uncollected ones are touchable,
-## collected ones stay visible but dimmed and no longer reward.
+## it collects it FOREVER (+50 serotonin cap, banked).
 ##
 ## Exported knobs (per-bird, set in the editor):
 ##   bird_id: String         must be unique; one of GameState.BIRD_IDS
@@ -66,15 +64,13 @@ func _on_day_started(_day: int) -> void:
 
 func _update_for_day() -> void:
 	_active_today = GameState.bird_active_today(bird_id)
-	# Found birds stay visible in practice (gallery) but dimmed and
-	# untouchable; everywhere else they simply don't appear.
-	var found := GameState.bird_found(bird_id)
-	visible = _active_today or (found and GameState.all_birds_daily())
-	modulate.a = 0.45 if found else 1.0
+	# A collected species never appears again — one touch per species, ever.
+	visible = _active_today
+	modulate.a = 1.0
 	# Deferred: this can run inside signal callbacks (day_started,
 	# body_entered), where flipping monitoring directly is blocked.
-	set_deferred("monitoring", _active_today and not found)
-	set_deferred("monitorable", _active_today and not found)
+	set_deferred("monitoring", _active_today)
+	set_deferred("monitorable", _active_today)
 	_sprite.position = Vector2.ZERO
 
 

@@ -159,9 +159,18 @@ func _run_tests(mode_name: String) -> void:
 	_check(garbage.size() >= 1, "chris drops garbage")
 	if garbage.size() >= 1:
 		var g = garbage[0]
+		# The trash spawns above Chris's head and falls: wait until it
+		# lands before walking over it.
+		var fall_waited := 0
+		while fall_waited < 900 and is_instance_valid(g) and bool(g.get("_falling")):
+			await _frames(30)
+			fall_waited += 30
 		var player = get_nodes_in_group("player")[0]
 		var c_before: float = gs.cortisol
 		player.global_position = g.global_position
+		# A mid-air teleport keeps the player's momentum; kill it so the
+		# overlap actually registers.
+		player.set("velocity", Vector2.ZERO)
 		await _frames(10)
 		_check(get_nodes_in_group("garbage").size() < garbage.size(),
 			"walking over garbage picks it up")

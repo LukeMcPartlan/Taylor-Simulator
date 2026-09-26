@@ -12,6 +12,8 @@ const _CORTISOL_IDS: Array = [
 	"extra_ball", "sponge", "pipes", "good_drops", "green_zone", "moon_shoes",
 ]
 
+const DOPAMINE_PRICE: float = 100.0
+
 
 func _store_mode_id() -> int:
 	return ModeManager.Mode.CLASSIC
@@ -24,3 +26,42 @@ func _amazon_defs() -> Array:
 		if not d.is_empty():
 			defs.append(d)
 	return defs
+
+
+func get_rows() -> Array:
+	## The 6 products, plus — only in the REAL Cortisol store — the one
+	## next-mode unlock: DOPAMINE MODE ($100). (StoreDopamine inherits this
+	## script but reports _store_mode_id() == DOPAMINE, so it never sells
+	## its own unlock.)
+	var rows: Array = super.get_rows()
+	if _store_mode_id() != ModeManager.Mode.CLASSIC:
+		return rows
+	var m := _mode()
+	if m == null:
+		return rows
+	var unlocked := GameState.is_mode_unlocked(ModeManager.Mode.DOPAMINE)
+	rows.append({
+		"number": rows.size() + 1, "kind": "unlock", "id": "dopamine",
+		"section": "📦 AMAZON",
+		"name": "Dopamine Mode — cortisol rules, dopamine drains 5x",
+		"desc": "Order 📱 Dopamine Mode from Amazon. Same brutal chores, but the phone is life support. Forever.",
+		"price": "$%d" % int(DOPAMINE_PRICE),
+		"status": "OWNED" if unlocked else "",
+		"affordable": (not unlocked) and GameState.dollars >= DOPAMINE_PRICE,
+	})
+	return rows
+
+
+func buy_row(kind: String, id: String) -> Dictionary:
+	if kind == "unlock" and id == "dopamine":
+		if _store_mode_id() != ModeManager.Mode.CLASSIC:
+			return {"ok": false, "msg": "Click a tab, boss."}
+		if GameState.is_mode_unlocked(ModeManager.Mode.DOPAMINE):
+			return {"ok": false, "msg": "Already unlocked!"}
+		if GameState.dollars < DOPAMINE_PRICE:
+			return {"ok": false, "msg": "Need $%d" % int(DOPAMINE_PRICE)}
+		GameState.add_dollars(-DOPAMINE_PRICE)
+		GameState.unlock_mode(ModeManager.Mode.DOPAMINE)
+		GameState.say("TAYLOR", "PACKAGE DELIVERED! 📦 Dopamine Mode is on the main menu!")
+		return {"ok": true, "msg": "📦 ORDER DELIVERED! 📱 DOPAMINE MODE UNLOCKED! Find it on the main menu."}
+	return super.buy_row(kind, id)

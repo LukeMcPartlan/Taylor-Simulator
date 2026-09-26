@@ -3,8 +3,10 @@ extends SceneTree
 ## (2026-09-26):
 ##  - Mode.DOPAMINE is id 6; ids are stable (no renumbering)
 ##  - dopamine drains 5x in Dopamine Mode, 1x everywhere else
-##  - Dopamine Mode is bought for $100 in the practice store, unlocks the
+##  - Dopamine Mode is bought for $100 in the CORTISOL store, unlocks the
 ##    main-menu card, and uses the same laptop + 6-product catalog as Cortisol
+##  - the practice store sells the classic unlock + the 6 cortisol products
+##    (one unlock per store for the next mode)
 ##  - one fixed bird is active per mode (dopamine's is the robin)
 ##  - collecting a bird raises the serotonin cap by 50 (no instant serotonin)
 ##  - dollars persist across days; they sweep to savings only at run end
@@ -153,31 +155,56 @@ func _test_dopamine_drain_5x_integration() -> void:
 # ---------------------------------------------------------------- unlock
 
 func _test_store_unlock() -> void:
-	_set_mode(5)  # practice store sells the unlocks
+	# Dopamine Mode is bought from the CORTISOL store ($100) — not practice.
+	_set_mode(0)  # cortisol store gates on the classic hook
 	# Snapshot the real unlock list — the test buys modes and must not
 	# permanently unlock them in the player's bank file.
 	var real_unlocks: Array = (GS.get("unlocked_modes") as Array).duplicate()
 	GS.get("unlocked_modes").erase(6)
 	GS.get("unlocked_modes").erase(0)
 	_check(not GS.is_mode_unlocked(6), "dopamine locked before purchase")
-	var store = load("res://scripts/modes/store_practice.gd").new()
+	var store = load("res://scripts/modes/store_cortisol.gd").new()
 	var rows: Array = store.get_rows()
-	_check(rows.size() == 2, "practice store lists 2 unlocks")
-	_check(String(rows[0]["id"]) == "classic" and String(rows[0]["price"]) == "$60",
-		"row 1 is cortisol mode $60")
-	_check(String(rows[1]["id"]) == "dopamine" and String(rows[1]["price"]) == "$100",
-		"row 2 is dopamine mode $100")
+	_check(rows.size() == 7, "cortisol store lists 6 products + the dopamine unlock")
+	_check(String(rows[6]["id"]) == "dopamine" and String(rows[6]["kind"]) == "unlock" \
+		and String(rows[6]["price"]) == "$100",
+		"row 7 is dopamine mode $100")
 	var broke: Dictionary = store.buy_row("unlock", "dopamine")
 	_check(not bool(broke.get("ok", false)), "dopamine unlock refused when broke")
 	GS.add_dollars(100.0)
 	var bought: Dictionary = store.buy_row("unlock", "dopamine")
-	_check(bool(bought.get("ok", false)), "dopamine unlock bought for $100")
+	_check(bool(bought.get("ok", false)), "dopamine unlock bought for $100 in the cortisol store")
 	_check(GS.is_mode_unlocked(6), "dopamine unlocked after purchase")
 	_check(absf(GS.get("dollars")) < 0.01, "purchase took the $100")
 	var again: Dictionary = store.buy_row("unlock", "dopamine")
 	_check(not bool(again.get("ok", false)), "dopamine unlock not re-buyable")
 	store.free()
+
+	# The practice store sells the classic unlock + the 6 products — but NOT
+	# the dopamine unlock.
+	_set_mode(5)
+	var pstore = load("res://scripts/modes/store_practice.gd").new()
+	var p_rows: Array = pstore.get_rows()
+	_check(p_rows.size() == 7, "practice store lists the classic unlock + 6 products")
+	_check(String(p_rows[0]["kind"]) == "unlock" and String(p_rows[0]["id"]) == "classic",
+		"practice row 1 is the classic unlock")
+	_check(String(p_rows[1]["kind"]) == "upgrade" and String(p_rows[1]["id"]) == "extra_ball",
+		"practice row 2 starts the cortisol product catalog")
+	for r in p_rows:
+		_check(not (String(r.get("kind", "")) == "unlock" and String(r.get("id", "")) == "dopamine"),
+			"practice store does not sell the dopamine unlock")
+	# ...and the practice catalog is actually buyable (in-run tiers on the
+	# practice hook's own shelf).
+	GS.set("dollars", 0.0)
+	GS.add_dollars(30.0)
+	var pb: Dictionary = pstore.buy_row("upgrade", "sponge")
+	_check(bool(pb.get("ok", false)), "practice store sells sponge T1")
+	_check(int(GS.mode_node().call("run_tier", "sponge")) == 1,
+		"practice run tier recorded on the practice hook")
+	pstore.free()
+
 	# Classic unlock still works and is independent.
+	_set_mode(5)
 	GS.set("dollars", 0.0)
 	GS.add_dollars(60.0)
 	var classic: Dictionary = load("res://scripts/modes/store_practice.gd").new().buy_row("unlock", "classic")
@@ -189,7 +216,8 @@ func _test_store_unlock() -> void:
 
 
 func _test_dopamine_catalog() -> void:
-	# Same laptop hardware and 6-product catalog as cortisol mode.
+	# Same laptop hardware and 6-product catalog as cortisol mode — and NO
+	# next-mode unlock row (there is no mode after dopamine yet).
 	var store = load("res://scripts/modes/store_dopamine.gd").new()
 	_check(store._store_mode_id() == 6, "dopamine store gates on mode 6")
 	_set_mode(6)
@@ -197,10 +225,10 @@ func _test_dopamine_catalog() -> void:
 	_set_mode(0)
 	var cortisol_store = load("res://scripts/modes/store_cortisol.gd").new()
 	var c_rows: Array = cortisol_store.get_rows()
-	_check(d_rows.size() == 6 and c_rows.size() == 6,
-		"dopamine and cortisol stores both sell 6 products")
+	_check(d_rows.size() == 6, "dopamine store sells 6 products, no unlock row")
+	_check(c_rows.size() == 7, "cortisol store sells 6 products + the dopamine unlock")
 	var same := true
-	for i in d_rows.size():
+	for i in 6:
 		if String(d_rows[i].get("id", "")) != String(c_rows[i].get("id", "")):
 			same = false
 	_check(same, "dopamine catalog matches cortisol catalog product-for-product")
@@ -240,7 +268,7 @@ func _test_bird_cap_reward() -> void:
 	_check(absf(GS.get_serotonin_cap() - 300.0) < 0.01, "cap rises 50 per species (300 after two)")
 	_check(not GS.bird_active_today("robin"), "found robin no longer active in classic")
 	_set_mode(5)
-	_check(GS.bird_active_today("robin"), "found robin still visible in practice gallery")
+	_check(not GS.bird_active_today("robin"), "found robin no longer appears in practice either")
 	GS.get("birds_found").clear()
 
 

@@ -15,7 +15,6 @@ extends Node
 ##   baseline_decay_rate() -> float        default 1.0
 ##   cortisol_gain_mult() -> float         default 1.0
 ##   start_cortisol() -> float             default START_CORTISOL (practice: 0)
-##   all_birds_daily() -> bool             default false (practice: all 5)
 ##   minigames_always_open() -> bool       default false (practice: stations
 ##     always playable, never dim)
 ##   minigame_speed_mult() -> float        default 1.0
@@ -133,7 +132,7 @@ func _check_clock_tasks() -> void:
 # --- One-time bird collectibles ------------------------------------------------
 # One fixed species per real mode (GameState.MODE_BIRDS; the five Bird nodes
 # live in Main.tscn). Touching a species collects it FOREVER: +50 serotonin
-# cap, banked in the save. Practice shows all five as a gallery.
+# cap, banked in the save.
 const BIRD_IDS: Array = ["robin", "crow", "bluejay", "pigeon", "owl"]
 const BIRD_REWARD_SEROTONIN: float = 50.0
 
@@ -218,10 +217,10 @@ var _cortisol_tick_t: float = 0.0
 ## bank). Touching a bird collects it once; afterwards it's yours forever.
 var birds_found: Array = []
 ## Each real game mode has one fixed bird species (its collectible).
-## PRACTICE (5) has no single bird — all five are out as a gallery.
+## PRACTICE (5) has the robin; DOPAMINE (6) shares the robin too.
 ## ModeManager.Mode ints: CLASSIC 0, NIGHT_SHIFT 1, MELTDOWN 2,
 ## DELEGATION 3, COMBO_MOM 4, PRACTICE 5.
-const MODE_BIRDS := {0: "robin", 1: "crow", 2: "bluejay", 3: "pigeon", 4: "owl", 6: "robin"}
+const MODE_BIRDS := {0: "robin", 1: "crow", 2: "bluejay", 3: "pigeon", 4: "owl", 5: "robin", 6: "robin"}
 var sim_running: bool = true
 var day_pressure_mult: float = 1.0
 var day_serotonin_integral: float = 0.0
@@ -848,16 +847,13 @@ func clear_all_save_data() -> void:
 ## One-time bird collectibles. Each real mode has one fixed species
 ## (MODE_BIRDS); touching it collects it forever (banked). Every collected
 ## species permanently raises the serotonin cap by 50 — that's the reward,
-## no instant serotonin. Practice shows all five as a gallery. Returns true
+## no instant serotonin. Returns true
 ## if this touch was the first ever for the species (the bird plays its
 ## fly-away); false if the species was already found.
 func bird_active_today(bird_id: String) -> bool:
 	if bird_id in birds_found:
-		# In practice the found birds stay out as a gallery (dimmed, not
-		# touchable); in other modes a found bird simply doesn't appear.
-		return all_birds_daily()
-	if all_birds_daily():
-		return true
+		# A found bird never appears again — one touch per species, ever.
+		return false
 	return String(MODE_BIRDS.get(ModeManager.current_mode, "")) == bird_id
 
 
@@ -868,13 +864,6 @@ func collect_bird(bird_id: String) -> bool:
 	save_bank()
 	meters_changed.emit(serotonin, cortisol)  # the cap just rose
 	return true
-
-
-## Practice mode shows all five birds every day (gallery); other modes show
-## only their own species while it's still uncollected.
-func all_birds_daily() -> bool:
-	var v = _hook("all_birds_daily")
-	return v is bool and bool(v)
 
 
 func bird_found(bird_id: String) -> bool:
@@ -928,8 +917,8 @@ func _begin_day() -> void:
 	if all_open is bool and bool(all_open):
 		for def in task_defs:
 			_activate_task(def)
-	# Birds are one-time collectibles now: no daily reset. Unfound species
-	# appear (each mode its own; practice shows all five as a gallery).
+	# Birds are one-time collectibles now: no daily reset. Each mode's own
+	# unfound species appears.
 	sim_running = true
 	set_process(true)
 	clock_changed.emit(get_time_string())

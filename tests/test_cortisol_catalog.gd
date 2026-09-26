@@ -99,8 +99,10 @@ func _run_tests() -> void:
 	var ids: Array = []
 	for row in rows:
 		ids.append(String(row["id"]))
-	_check(ids == ["extra_ball", "sponge", "pipes", "good_drops", "green_zone", "moon_shoes"],
+	_check(ids.slice(0, 6) == ["extra_ball", "sponge", "pipes", "good_drops", "green_zone", "moon_shoes"],
 		"cortisol catalog: exactly the 6 products, in order")
+	_check(String(rows[6]["kind"]) == "unlock" and String(rows[6]["id"]) == "dopamine",
+		"cortisol row 7 is the dopamine-mode unlock")
 	# Main-menu product progress counts the catalog.
 	var prog: Array = GS.call("product_progress", 0)
 	_check(int(prog[0]) == 0 and int(prog[1]) == 6, "product progress 0/6 before buying")

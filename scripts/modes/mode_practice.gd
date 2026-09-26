@@ -8,12 +8,13 @@ extends Node
 ##   the stress meter can never climb. The day can't be cut short.
 ## - ALL MINIGAMES OPEN: every chore/fun station plays its minigame on E,
 ##   task or no task. Stations never dim.
-## - ALL 5 BIRDS AS ONE-TIME COLLECTIBLES: every bird is out in the gallery;
-##   each species is touchable once EVER (+50 serotonin cap, banked forever).
+## - ONE BIRD: the robin is out every day, touchable once EVER (+50
+##   serotonin cap, banked forever).
 ## - THE LAPTOP (scripts/modes/store_practice.gd): WORK tab turns serotonin
 ##   into dollars (-10 serotonin, +$10 per verdict, same as night-shift);
-##   the AMAZON tab sells the mode unlocks — CLASSIC MODE ($60) and
-##   DOPAMINE MODE ($100). Buying one unlocks it on the main menu forever.
+##   the AMAZON tab sells the CLASSIC MODE unlock ($60) plus the same
+##   6-product catalog as Cortisol Mode. Buying the unlock puts it on the
+##   main menu forever.
 ## - ALL TASKS OPEN AT DAWN: every chore task opens the moment the day
 ##   starts and stays open all day — the task list is a full checklist.
 ##   No random procs, no re-procs: done stays done.
@@ -23,6 +24,16 @@ extends Node
 ## Godot conventions:
 ## - get_parent() is the GameState autoload (it added us). We read/write its
 ##   sim vars directly — it's our owner, so this coupling is intentional.
+
+
+signal buffs_changed
+
+const _UPGRADE_DEFS = preload("res://scripts/upgrade_defs.gd")
+
+## In-run upgrade tiers bought from the practice laptop's AMAZON tab.
+## Same shelf as Cortisol Mode (mirrors its run_tier/buy_run_upgrade);
+## permanent tiers live in GameState.
+var run_upgrades: Dictionary = {}
 
 
 func mode_id() -> int:
@@ -55,11 +66,6 @@ func cortisol_multiplier() -> float:
 	return 0.0
 
 
-func all_birds_daily() -> bool:
-	# All five birds are out every day, each collectible once.
-	return true
-
-
 func minigames_always_open() -> bool:
 	# Every station's minigame is playable on E, no open task required.
 	return true
@@ -80,5 +86,41 @@ func endless_run() -> bool:
 	return true
 
 
+func reset_run() -> void:
+	## Called by GameState.new_run(): clear run-long state.
+	run_upgrades.clear()
+
+
+func run_tier(id: String) -> int:
+	## This run's tier for an upgrade (0 = not bought this run).
+	return int(run_upgrades.get(id, 0))
+
+
+func buy_run_upgrade(id: String) -> Dictionary:
+	## Spend DOLLARS on the next in-run tier. Lasts the run only.
+	## (Mirrors Cortisol Mode's shelf — the practice laptop sells the same
+	## 6-product catalog.)
+	var gs := get_parent()
+	var def := _UPGRADE_DEFS.def(id)
+	if def.is_empty():
+		return {"ok": false, "msg": "Unknown item?!"}
+	var cur := run_tier(id)
+	if cur >= _UPGRADE_DEFS.max_tier():
+		return {"ok": false, "msg": "Already maxed!"}
+	var perm := 0
+	if gs.has_method("permanent_tier"):
+		perm = int(gs.call("permanent_tier", id))
+	if perm >= cur + 1:
+		return {"ok": false, "msg": "Your permanent T%d already covers this!" % perm}
+	var tier_def: Dictionary = (def["tiers"] as Array)[cur]
+	var cost := float(tier_def["run_cost"])
+	if gs.dollars < cost:
+		return {"ok": false, "msg": "Need $%d" % int(cost)}
+	gs.add_dollars(-cost)
+	run_upgrades[id] = cur + 1
+	buffs_changed.emit()
+	return {"ok": true, "msg": "Delivered! %s" % String(tier_def["label"])}
+
+
 func day_summary_extras() -> Dictionary:
-	return {"extra_lines": "Practice day complete — the 5 birds are one-time collectibles (+50 serotonin cap each, once ever) — and work the laptop to save up for Cortisol Mode or Dopamine Mode!"}
+	return {"extra_lines": "Practice day complete — the robin is a one-time collectible (+50 serotonin cap, once ever) — and work the laptop to save up for Cortisol Mode (Dopamine Mode unlocks in the Cortisol store)!"}
