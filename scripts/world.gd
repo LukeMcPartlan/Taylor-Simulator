@@ -37,7 +37,7 @@ const STATION_DEFS: Array = [
 	{"id": "laundry", "title": "Laundry", "kind": 0, "x": -560.0, "floor_y": -96.0, "game": "laundry", "work": 3.0},
 	{"id": "dishes", "title": "Dishes", "kind": 0, "x": -400.0, "floor_y": -96.0, "game": "dishes", "work": 2.5},
 	{"id": "book", "title": "Book", "kind": 1, "x": -240.0, "floor_y": -96.0, "game": "book", "work": 0.0},
-	{"id": "feed_baby", "title": "Feed baby", "kind": 0, "x": -80.0, "floor_y": -96.0, "game": "feed_baby", "work": 4.0},
+	{"id": "feed_baby", "title": "Feed baby", "kind": 0, "x": -112.0, "floor_y": -96.0, "game": "feed_baby", "work": 4.0},
 	{"id": "change_baby", "title": "Change baby", "kind": 0, "x": -880.0, "floor_y": -96.0, "game": "change_baby", "work": 3.0},
 	{"id": "basement_toilet", "title": "Basement toilet", "kind": 0, "x": -1760.0, "floor_y": 64.0, "game": "toilet", "work": 5.0},
 	{"id": "take_out_trash", "title": "Trash bins", "kind": 0, "x": -1350.0, "floor_y": -96.0, "game": "trash", "work": 2.5},
