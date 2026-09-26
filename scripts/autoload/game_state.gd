@@ -158,6 +158,10 @@ var savings: float = 0.0
 ## savings in the main-menu shop. In-run tiers stack via upgrade_tier().
 var permanent_upgrades: Dictionary = {}
 const SAVINGS_PATH := "user://taylor_savings.cfg"
+## Master volume 0.0-1.0 (options menu slider). No SFX exist yet — this is
+## stored for later, and applied to the Master bus live when SFX land.
+signal volume_changed(volume: float)
+var volume: float = 1.0
 ## Mode unlocks: PRACTICE is always open; CLASSIC is bought with dollars at
 ## the practice laptop; every other mode is locked for now. Persisted in the
 ## bank file alongside savings.
@@ -729,6 +733,7 @@ func save_bank() -> void:
 	cfg.set_value("bank", "permanent_upgrades", permanent_upgrades)
 	cfg.set_value("bank", "birds_found", birds_found)
 	cfg.set_value("unlocks", "modes", unlocked_modes)
+	cfg.set_value("settings", "volume", volume)
 	cfg.save(SAVINGS_PATH)
 
 
@@ -746,6 +751,16 @@ func load_bank() -> void:
 	var m: Variant = cfg.get_value("unlocks", "modes", [])
 	if m is Array:
 		unlocked_modes = m
+	set_volume(float(cfg.get_value("settings", "volume", 1.0)))
+
+
+## Master volume 0.0-1.0. Persists to the bank file and applies to the
+## Master bus live (matters once SFX exist).
+func set_volume(v: float) -> void:
+	volume = clampf(v, 0.0, 1.0)
+	var db := linear_to_db(maxi(volume, 0.0001))
+	AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Master"), db)
+	volume_changed.emit(volume)
 
 
 ## Wipes every save file (bank + per-mode saves) and resets in-memory state

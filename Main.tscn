@@ -15,6 +15,7 @@
 [ext_resource type="Texture2D" uid="uid://c40m1ejqe0d50" path="res://Birds/bird_pigeon.png" id="13_bird"]
 [ext_resource type="Texture2D" uid="uid://cr4hhnh0g435d" path="res://Birds/bird_owl.png" id="14_bird"]
 [ext_resource type="Script" uid="uid://jkp4cqrkg85d" path="res://scripts/killbox.gd" id="15_killbox"]
+[ext_resource type="Script" uid="uid://gi0eo878mv0" path="res://scripts/options_menu.gd" id="29_options"]
 [ext_resource type="Texture2D" uid="uid://c1mknvpihkvs6" path="res://art/furniture/bed.png" id="16_decor"]
 [ext_resource type="Texture2D" uid="uid://c2vww3mhonk8g" path="res://art/furniture/tv.png" id="17_decor"]
 [ext_resource type="Texture2D" uid="uid://dyhe88nbludup" path="res://art/furniture/couch.png" id="18_decor"]
@@ -634,6 +635,9 @@ size = Vector2(3600, 200)
 
 [node name="Main" type="Node2D" unique_id=234738594]
 
+[node name="OptionsMenu" type="CanvasLayer" parent="." unique_id=776123450]
+script = ExtResource("29_options")
+
 [node name="Taylor" type="CharacterBody2D" parent="." unique_id=1330087313 groups=["player"]]
 physics_interpolation_mode = 1
 position = Vector2(0, -115)
@@ -851,7 +855,7 @@ texture = ExtResource("32_preview")
 position = Vector2(687, -353)
 
 [node name="luke" type="Marker2D" parent="World/Spawns" unique_id=487209044]
-position = Vector2(191, -343)
+position = Vector2(275, -340)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/luke" unique_id=1849922678]
 position = Vector2(0, -32)
@@ -859,7 +863,7 @@ scale = Vector2(2, 2)
 texture = SubResource("AtlasTexture_gojo_luke")
 
 [node name="chris" type="Marker2D" parent="World/Spawns" unique_id=1676780021]
-position = Vector2(478, 6)
+position = Vector2(290, 30)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/chris" unique_id=1896849335]
 modulate = Color(0, 0, 0, 1)
