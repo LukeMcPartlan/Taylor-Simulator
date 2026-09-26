@@ -6,10 +6,8 @@ extends SceneTree
 ##  - Luke sleeps -> woken at 6am -> put to bed at 10pm
 ##  - Chris (black Luke sprite): woken 7am, home 2:30pm, drops garbage
 ##  - Amazon boxes chore + Box Breaker minigame
-##  - Meltdown mode intercepts 100 cortisol with its own meltdown
 ##
 ## Run: godot --headless --script tests/test_mega_spec.gd -- --mode=classic
-##      godot --headless --script tests/test_mega_spec.gd -- --mode=meltdown
 ##
 ## NOTE: bare autoload names (GameState, ModeManager) do not resolve when a
 ## script is compiled as the --script main loop, so we look the singletons up
@@ -20,7 +18,6 @@ var _checks: int = 0
 var GS = null         # /root/GameState
 var MM = null         # /root/ModeManager
 const MODE_CLASSIC: int = 0
-const MODE_MELTDOWN: int = 2
 
 
 func _check(cond: bool, name: String) -> void:
@@ -65,7 +62,7 @@ func _boot() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--mode="):
 			mode_name = a.get_slice("=", 1)
-	var mode: int = MODE_MELTDOWN if mode_name == "meltdown" else MODE_CLASSIC
+	var mode: int = MODE_CLASSIC
 	MM.set_mode(mode)
 	var old_hook = GS.get("mode_hook")
 	if old_hook != null:
@@ -98,7 +95,7 @@ func _run_tests(mode_name: String) -> void:
 
 	# --- Luke asleep in bed -------------------------------------------------
 	var luke = get_nodes_in_group("luke")[0]
-	_check(luke.get("_state") == 4, "luke starts SLEEPING")  # State.SLEEPING = 4
+	_check(luke.get("_state") == 3, "luke starts SLEEPING")  # State.SLEEPING = 3
 	var luke_marker: Node2D = root.get_node("Main/World/Spawns/luke")
 	_check(luke.global_position.distance_to(luke_marker.global_position) < 40.0,
 		"luke starts in bed")
@@ -187,7 +184,7 @@ func _run_tests(mode_name: String) -> void:
 	_check(luke.get("_state") == 1, "luke walks to bed")  # Luke.State.WALK = 1
 	luke.global_position = Vector2(200, -140)  # near the new bed (x=275)
 	await _frames(120)
-	_check(luke.get("_state") == 4, "luke SLEEPING after reaching bed")
+	_check(luke.get("_state") == 3, "luke SLEEPING after reaching bed")
 	_check(not _task_open("bed_luke"), "bed_luke completes")
 
 	# --- Box Breaker minigame ------------------------------------------------
@@ -310,27 +307,12 @@ func _run_tests(mode_name: String) -> void:
 	trash2.queue_free()
 
 	# --- 100 cortisol rule ----------------------------------------------------
-	if mode_name == "meltdown":
-		var m = gs.get("mode_hook")
-		var lives0: int = m.get("sanity_lives")
-		var s_before: float = gs.serotonin
-		gs.add_cortisol(1000.0)
-		await _frames(5)
-		# Meltdown intercepts the standard rule with its own signature flow:
-		# sanity life lost, cortisol vented, day restarts — serotonin NOT zeroed.
-		_check(m.get("sanity_lives") == lives0 - 1, "meltdown: loses a sanity life")
-		_check(absf(gs.cortisol - 40.0) < 0.01, "meltdown: cortisol vents to 40")
-		_check(absf(gs.serotonin - s_before) < 0.01,
-			"meltdown: standard zero-serotonin rule did NOT fire")
-		_check(String(gs.get_day_summary().get("end_reason", "")) == "",
-			"meltdown: no standard cortisol day-end recorded")
-	else:
-		gs.add_cortisol(1000.0)
-		await _frames(5)
-		_check(not gs.sim_running, "100 cortisol ends the day")
-		_check(gs.serotonin == 0.0, "day ends with zero serotonin")
-		_check(String(gs.get_day_summary().get("end_reason", "")) == "cortisol",
-			"day summary flags the cortisol ending")
+	gs.add_cortisol(1000.0)
+	await _frames(5)
+	_check(not gs.sim_running, "100 cortisol ends the day")
+	_check(gs.serotonin == 0.0, "day ends with zero serotonin")
+	_check(String(gs.get_day_summary().get("end_reason", "")) == "cortisol",
+		"day summary flags the cortisol ending")
 
 	print("----")
 	print("checks: %d  failures: %d" % [_checks, _failures.size()])

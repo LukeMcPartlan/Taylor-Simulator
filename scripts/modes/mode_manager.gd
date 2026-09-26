@@ -1,5 +1,5 @@
 extends Node
-## ModeManager — picks which of the 6 Taylor Simulator game modes is active.
+## ModeManager — picks which of the 3 Taylor Simulator game modes is active.
 ##
 ## This is an Autoload singleton (registered in project.godot BEFORE GameState,
 ## so GameState can read the chosen mode in its own _ready()). The main menu
@@ -12,29 +12,26 @@ extends Node
 ## implements them (checked with has_method()). The CLASSIC mode implements
 ## nothing, so it behaves exactly like the original game.
 
-enum Mode { CLASSIC, NIGHT_SHIFT, MELTDOWN, DELEGATION, COMBO_MOM, PRACTICE, DOPAMINE }
+## Mode IDs are persisted in save files — never reuse or shift them.
+enum Mode { CLASSIC = 0, PRACTICE = 5, DOPAMINE = 6 }
 
 ## The mode currently selected. The main menu sets this before loading Main.
 var current_mode: int = Mode.CLASSIC
 
 const MODE_SCRIPT_PATHS: Dictionary = {
 	Mode.CLASSIC: "res://scripts/modes/mode_cortisol.gd",
-	Mode.NIGHT_SHIFT: "res://scripts/modes/mode_night_shift.gd",
-	Mode.MELTDOWN: "res://scripts/modes/mode_meltdown.gd",
-	Mode.DELEGATION: "res://scripts/modes/mode_delegation.gd",
-	Mode.COMBO_MOM: "res://scripts/modes/mode_combo_mom.gd",
 	Mode.PRACTICE: "res://scripts/modes/mode_practice.gd",
 	Mode.DOPAMINE: "res://scripts/modes/mode_dopamine.gd",
 }
 
 ## Display data for the main menu cards (in selection order). PRACTICE is
 ## the front door — always unlocked. CLASSIC is bought in the practice
-## laptop store. Every other mode is locked for now (more unlocks later).
+## laptop store; DOPAMINE is bought in the cortisol laptop store.
 const MODE_CARDS: Array = [
 	{
 		"mode": Mode.PRACTICE,
 		"name": "🌱 Practice Taylor",
-		"desc": "The safe sandbox. All minigames open, zero cortisol, all 5 birds as one-time collectibles. Earn serotonin, work the laptop for dollars, buy Cortisol Mode or Dopamine Mode.",
+		"desc": "The safe sandbox. All minigames open, zero cortisol, one bird to find. Earn serotonin, work the laptop for dollars, buy Cortisol Mode.",
 	},
 	{
 		"mode": Mode.CLASSIC,
@@ -47,30 +44,6 @@ const MODE_CARDS: Array = [
 		"name": "📱 Dopamine Mode",
 		"desc": "Cortisol Mode, but dopamine drains 5x faster. The phone is life support — keep swiping or the day ends early.",
 		"locked_desc": "Locked — buy it for $100 at the cortisol laptop (📦 AMAZON tab).",
-	},
-	{
-		"mode": Mode.NIGHT_SHIFT,
-		"name": "🌙 Night-Shift Taylor",
-		"desc": "The night store opens 9–11pm. Buy permanent buffs, one-day trades, even a babysitter. Sugar rush now, sugar crash later. Meltdown at 100 cortisol = run over.",
-		"locked_desc": "Locked — more unlocks coming soon.",
-	},
-	{
-		"mode": Mode.MELTDOWN,
-		"name": "😱 Meltdown Taylor",
-		"desc": "3 sanity lives. Cortisol hits 100 = instant meltdown, lose a life. Buy coping mechanisms and vent at the night store. 3 meltdowns = game over.",
-		"locked_desc": "Locked — more unlocks coming soon.",
-	},
-	{
-		"mode": Mode.DELEGATION,
-		"name": "🤝 Delegation Taylor",
-		"desc": "Press Q to delegate chores to Luke (he's slow). Buy permanent upgrades: dishwasher, baby monitor, robot mop. Hope he doesn't break things.",
-		"locked_desc": "Locked — more unlocks coming soon.",
-	},
-	{
-		"mode": Mode.COMBO_MOM,
-		"name": "⚡ Combo-Mom Taylor",
-		"desc": "4-minute days. Chain chores for a x1–x8 combo multiplier and rack up Taylor Points. Coffee and speed perks persist between runs.",
-		"locked_desc": "Locked — more unlocks coming soon.",
 	},
 ]
 
@@ -91,16 +64,10 @@ func create_mode() -> Node:
 
 func mode_name() -> String:
 	match current_mode:
-		Mode.NIGHT_SHIFT:
-			return "Night-Shift"
-		Mode.MELTDOWN:
-			return "Meltdown"
-		Mode.DELEGATION:
-			return "Delegation"
-		Mode.COMBO_MOM:
-			return "Combo-Mom"
 		Mode.PRACTICE:
 			return "Practice"
+		Mode.DOPAMINE:
+			return "Dopamine"
 	return "Cortisol"
 
 

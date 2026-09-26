@@ -165,40 +165,6 @@ static func products_for_mode(mode: int) -> Array:
 				{"id": "classic_unlock", "name": "Cortisol Mode"},
 				{"id": "dopamine_unlock", "name": "Dopamine Mode"},
 			]
-		1:  # NIGHT_SHIFT — the 9 original shared Amazon/permanent products.
-			# (good_drops/green_zone are Cortisol-catalog products for now;
-			# Luke curates each mode's list, so this stays explicit instead
-			# of auto-including every new DEFS entry.)
-			var out: Array = []
-			for pid in ["roomba", "moon_shoes", "extra_ball", "pipes",
-					"sponge", "paddle", "hamper", "raquaza", "kh_boxset"]:
-				var d1 := def(pid)
-				if not d1.is_empty():
-					out.append({"id": pid, "name": String(d1["name"]), "tiers": 3})
-			return out
-		2:  # MELTDOWN — 5 durable coping products. The 3 repeatable vents
-			# (pillow/pantry/bake) are consumables: never counted as owned,
-			# so they stay out of the product inventory entirely.
-			return [
-				{"id": "headphones", "name": "Noise-cancelling Headphones"},
-				{"id": "mealprep", "name": "Meal Prep Sundays"},
-				{"id": "gym", "name": "Gym Membership (never used)"},
-				{"id": "therapy", "name": "Therapy Fund"},
-				{"id": "whitenoise", "name": "Industrial White-Noise Fan"},
-			]
-		3:  # DELEGATION — 3 permanent upgrades
-			return [
-				{"id": "dishwasher", "name": "Dishwasher"},
-				{"id": "baby_monitor", "name": "Baby Monitor"},
-				{"id": "robot_mop", "name": "Robot Mop"},
-			]
-		4:  # COMBO_MOM — Coffee IV, Comfy Shoes, Second Wind, Industrial Advil
-			return [
-				{"id": "coffee_iv", "name": "Coffee IV"},
-				{"id": "comfy_shoes", "name": "Comfy Shoes"},
-				{"id": "second_wind", "name": "Second Wind"},
-				{"id": "advil", "name": "Industrial Advil"},
-			]
 	return []
 
 

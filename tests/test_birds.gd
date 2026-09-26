@@ -17,8 +17,8 @@ var _checks: int = 0
 var GS = null         # /root/GameState
 var MM = null         # /root/ModeManager
 const MODE_CLASSIC: int = 0
-const MODE_NIGHT_SHIFT: int = 1
 const MODE_PRACTICE: int = 5
+const MODE_DOPAMINE: int = 6
 
 
 func _check(cond: bool, name: String) -> void:
@@ -70,8 +70,7 @@ func _run() -> void:
 	# --- Fixed species per mode ------------------------------------------------
 	MM.set_mode(MODE_CLASSIC)
 	_check(String(GS.MODE_BIRDS.get(0, "")) == "robin", "birds: classic's bird is the robin")
-	_check(String(GS.MODE_BIRDS.get(1, "")) == "crow", "birds: night shift's bird is the crow")
-	_check(GS.MODE_BIRDS.size() == 7, "birds: all seven modes have a fixed species")
+	_check(GS.MODE_BIRDS.size() == 3, "birds: three modes have a fixed species")
 	_check(String(GS.MODE_BIRDS.get(6, "")) == "robin", "birds: dopamine's bird is the robin")
 	_check(String(GS.MODE_BIRDS.get(MODE_PRACTICE, "")) == "robin", "birds: practice's bird is the robin")
 
@@ -101,35 +100,29 @@ func _run() -> void:
 	# --- Product progress ----------------------------------------------------------
 	var pp: Array = GS.call("product_progress", MODE_PRACTICE)
 	_check(int(pp[1]) == 2, "birds: practice inventory is 2 products (both mode unlocks)")
-	pp = GS.call("product_progress", MODE_NIGHT_SHIFT)
-	_check(int(pp[1]) == 9, "birds: night shift inventory is 9 products")
-	pp = GS.call("product_progress", 2)
-	_check(int(pp[1]) == 5, "birds: meltdown inventory is 5 durable coping products (vents excluded)")
-	pp = GS.call("product_progress", 3)
-	_check(int(pp[1]) == 3, "birds: delegation inventory is 3 upgrades")
-	pp = GS.call("product_progress", 4)
-	_check(int(pp[1]) == 4, "birds: combo mom inventory is 4 items")
 	pp = GS.call("product_progress", MODE_CLASSIC)
 	_check(int(pp[0]) == 0 and int(pp[1]) == 6, "birds: classic inventory is the 6-product cortisol catalog")
+	pp = GS.call("product_progress", MODE_DOPAMINE)
+	_check(int(pp[1]) == 6, "birds: dopamine inventory is the same 6-product catalog")
 
 	# --- Shared permanent products work in every mode ---------------------------
-	# The night-shift Amazon catalog is shared: permanent tiers resolve
+	# The Amazon catalog is shared: permanent tiers resolve
 	# through GameState.upgrade_tier() regardless of the active mode hook.
 	_attach_mode_hook(MODE_CLASSIC)
 	var perms: Dictionary = GS.get("permanent_upgrades")
-	for pid in ["roomba", "moon_shoes", "extra_ball", "pipes", "sponge",
-			"paddle", "hamper", "raquaza", "kh_boxset"]:
+	for pid in ["moon_shoes", "extra_ball", "pipes", "sponge", "good_drops",
+			"green_zone"]:
 		perms[pid] = 2
 	_check(int(GS.call("upgrade_tier", "moon_shoes")) == 2,
 		"birds: moon shoes tier resolves in classic mode")
 	_check(int(GS.call("upgrade_tier", "pipes")) == 2,
 		"birds: stronger pipes tier resolves in classic mode")
-	_check(int(GS.call("upgrade_tier", "raquaza")) == 2,
-		"birds: raquaza tier resolves in classic mode")
-	pp = GS.call("product_progress", MODE_NIGHT_SHIFT)
-	_check(int(pp[0]) == 9, "birds: night shift shows 9/9 products when all owned")
-	for pid in ["roomba", "moon_shoes", "extra_ball", "pipes", "sponge",
-			"paddle", "hamper", "raquaza", "kh_boxset"]:
+	_check(int(GS.call("upgrade_tier", "green_zone")) == 2,
+		"birds: steady hands tier resolves in classic mode")
+	pp = GS.call("product_progress", MODE_CLASSIC)
+	_check(int(pp[0]) == 6, "birds: classic shows 6/6 products when all owned")
+	for pid in ["moon_shoes", "extra_ball", "pipes", "sponge", "good_drops",
+			"green_zone"]:
 		perms.erase(pid)
 
 	# Restore clean state for other tests (and the bank file we touched via

@@ -21,13 +21,13 @@ extends Node
 ##   minigame_fail_cortisol() -> float     default 0.0
 ##   minigame_fail_text() -> String        default "Failed! Press E to retry."
 ##   task_auto_covered(task_id) -> bool    default false (proc scheduler skips
-##     procs for fully automated chores, e.g. delegation's bought upgrades)
+##     procs for fully automated chores)
 ##   day_summary_extras() -> Dictionary    default {}
 ##   hud_tag() -> String                   default "" (shown under the clock)
 ## Mode nodes can also connect to GameState's signals for their own logic
-## (e.g. babysitter ticks, meltdown checks, combo scoring). Note: GameState
-## _ready() runs start_new_day() BEFORE the mode node's _ready() connects, so
-## mode nodes must initialize day-1 state explicitly (see combo-mom's scorer).
+## (custom per-mode logic). Note: GameState _ready() runs start_new_day()
+## BEFORE the mode node's _ready() connects, so mode nodes must initialize
+## day-1 state explicitly.
 ##
 ## Godot conventions used in this file:
 ## - Autoload: registered in project.godot under [autoload]; instantiated once
@@ -56,9 +56,9 @@ signal day_started(day: int)
 signal minigame_failed
 ## Emitted when a chore procs (becomes active) during the day.
 signal task_procced(task_id: String)
-## Emitted when a mode ends the whole run (night-shift meltdown at 100
-## cortisol, meltdown mode's third strike). The HUD shows the overlay with
-## this title/stats instead of the normal day-over panel.
+## Emitted when a mode ends the whole run (e.g. dopamine hitting 0).
+## The HUD shows the overlay with this title/stats instead of the normal
+## day-over panel.
 signal run_ended(title: String, stats: String, restart_kind: String)
 
 # --- Tuning (base defaults; modes override via hooks) -----------------------
@@ -159,7 +159,7 @@ const REMIND_LUKE_TASK: Dictionary = {
 var serotonin: float = START_SEROTONIN
 var cortisol: float = START_CORTISOL
 var dopamine: float = START_DOPAMINE
-var dollars: float = 0.0  # earned at the work laptop (night-shift); swept into savings at day end
+var dollars: float = 0.0  # earned at the work laptop; swept into savings at day end
 ## Savings account: global, persists across days AND runs. Leftover dollars
 ## sweep here at day end; spent in the main-menu shop on permanent upgrades.
 var savings: float = 0.0
@@ -200,12 +200,12 @@ const _UPGRADE_DEFS = preload("res://scripts/upgrade_defs.gd")
 var time_hours: float = DAY_START_HOUR
 var day_number: int = 0
 # Task dicts: {id, label, cortisol_relief, done, delegated, completed_by}.
-# `delegated`/`completed_by` only matter in DELEGATION mode; harmless elsewhere.
+# `delegated`/`completed_by` are inert data (kept for save compatibility).
 var tasks: Array = []
 ## All known task defs: built-in TASK_DEFS plus anything added at runtime via
 ## register_task_def(). The proc scheduler only manages defs listed here;
-## dynamically registered tasks (Luke's remind_luke, delegation's fix task)
-## bypass the scheduler entirely.
+## dynamically registered tasks (Luke's remind_luke) bypass the scheduler
+## entirely.
 var task_defs: Array = TASK_DEFS.duplicate(true)
 ## Per-def successful proc counts today: id -> int. Reset every day.
 var _proc_state: Dictionary = {}
@@ -218,9 +218,8 @@ var _cortisol_tick_t: float = 0.0
 var birds_found: Array = []
 ## Each real game mode has one fixed bird species (its collectible).
 ## PRACTICE (5) has the robin; DOPAMINE (6) shares the robin too.
-## ModeManager.Mode ints: CLASSIC 0, NIGHT_SHIFT 1, MELTDOWN 2,
-## DELEGATION 3, COMBO_MOM 4, PRACTICE 5.
-const MODE_BIRDS := {0: "robin", 1: "crow", 2: "bluejay", 3: "pigeon", 4: "owl", 5: "robin", 6: "robin"}
+## ModeManager.Mode ints: CLASSIC 0, PRACTICE 5, DOPAMINE 6.
+const MODE_BIRDS := {0: "robin", 5: "robin", 6: "robin"}
 var sim_running: bool = true
 var day_pressure_mult: float = 1.0
 var day_serotonin_integral: float = 0.0
@@ -248,7 +247,7 @@ func _ready() -> void:
 ## Returns the active mode node (null in CLASSIC). Mode UIs and NPCs use
 ## this to reach mode-specific APIs, e.g.:
 ##   var m := GameState.mode_node()
-##   if m is ModeDelegation: m.try_delegate(id)
+##   if m != null and m.has_method("run_tier"): m.run_tier(id)
 func mode_node() -> Node:
 	return mode_hook
 
@@ -288,8 +287,8 @@ func _process(delta: float) -> void:
 	cortisol = clampf(cortisol, 0.0, METER_MAX)
 	# Standard rule, every mode: nothing drains serotonin any more — open
 	# tasks only ever push cortisol UP. But 100 cortisol ends the day on the
-	# spot with serotonin zeroed. (Meltdown mode intercepts this with its own
-	# sanity-lives meltdown via the intercept_cortisol_max hook.)
+	# spot with serotonin zeroed. (A mode node may intercept this with its
+	# own flow via the intercept_cortisol_max hook.)
 	if cortisol >= METER_MAX and not _hook("intercept_cortisol_max"):
 		serotonin = 0.0
 		_day_end_reason = "cortisol"
@@ -383,14 +382,14 @@ func get_last_award() -> Dictionary:
 
 
 func record_minigame_clear(game_id: String, elapsed_seconds: float) -> int:
-	## Clear-time scoring (combo-mom): beating a minigame's par time extends
-	## the combo window and awards Taylor Points. Returns bonus points.
+	## Clear-time scoring hook: a mode may award bonus points for beating a
+	## minigame's par time. Returns bonus points.
 	var v = _hook("record_minigame_clear", [game_id, elapsed_seconds])
 	return int(v) if v != null else 0
 
 
 func get_move_speed_mult() -> float:
-	## Scales Taylor's move speed (combo-mom's Comfy Shoes 1.15x).
+	## Scales Taylor's move speed (a mode may raise it via upgrades).
 	var v = _hook("move_speed_multiplier")
 	return float(v) if v != null else 1.0
 
@@ -416,8 +415,7 @@ func _fire_cortisol_tick(sec_per_hour: float) -> void:
 
 
 func get_neglect_weight(task_id: String) -> float:
-	## FLAT neglect weight of one open task (delegation mode halves some with
-	## upgrades). Queried per task every pressure tick.
+	## FLAT neglect weight of one open task. Queried per task every pressure tick.
 	var v = _hook("neglect_weight", [task_id])
 	return float(v) if v != null else 1.0
 
@@ -429,19 +427,19 @@ func get_task_neglect_mult(_task: Dictionary) -> float:
 
 
 func get_task_relief_mult() -> float:
-	## Scales chore cortisol relief (meltdown's Gym Membership 1.25x).
+	## Scales chore cortisol relief.
 	var v = _hook("task_relief_multiplier")
 	return float(v) if v != null else 1.0
 
 
 func get_fun_mult() -> float:
-	## Scales serotonin gains from fun stations (night-shift Gremlin Mode 2x).
+	## Scales serotonin gains from fun stations.
 	var v = _hook("fun_multiplier")
 	return float(v) if v != null else 1.0
 
 
 func get_serotonin_drain_mult() -> float:
-	## Scales serotonin DRAINS (night-shift Weighted Blanket 0.75x).
+	## Scales serotonin DRAINS (stores/vents spend serotonin).
 	var v = _hook("serotonin_drain_multiplier")
 	return float(v) if v != null else 1.0
 
@@ -659,8 +657,7 @@ func add_dopamine(amount: float) -> void:
 
 
 func add_cortisol(amount: float) -> void:
-	## All cortisol GAINS route through here so modes can scale them
-	## (e.g. night-shift Headphones, meltdown coping items).
+	## All cortisol GAINS route through here so modes can scale them.
 	cortisol = clampf(cortisol + amount * get_cortisol_gain_mult(), 0.0, METER_MAX)
 	meters_changed.emit(serotonin, cortisol)
 
@@ -686,7 +683,7 @@ func get_serotonin_cap() -> float:
 
 func upgrade_tier(id: String) -> int:
 	## Effective tier of an upgrade: max(permanent tier, this run's tier).
-	## 0 = not owned. Works in every mode (run tier is night-shift only).
+	## 0 = not owned. Works in every mode.
 	var perm := int(permanent_upgrades.get(id, 0))
 	var run := 0
 	var m := mode_node()
@@ -716,8 +713,7 @@ func product_progress(mode: int) -> Array:
 
 
 func _product_owned(mode: int, pid: String) -> bool:
-	# ModeManager.Mode ints: CLASSIC 0, NIGHT_SHIFT 1, MELTDOWN 2,
-	# DELEGATION 3, COMBO_MOM 4, PRACTICE 5, DOPAMINE 6.
+	# ModeManager.Mode ints: CLASSIC 0, PRACTICE 5, DOPAMINE 6.
 	match mode:
 		0, 6:  # CLASSIC / DOPAMINE: any tier held (permanent or this run).
 			return upgrade_tier(pid) > 0
@@ -726,31 +722,6 @@ func _product_owned(mode: int, pid: String) -> bool:
 				return is_mode_unlocked(0)
 			if pid == "dopamine_unlock":
 				return is_mode_unlocked(6)
-			return false
-		1:  # NIGHT_SHIFT: any tier held (permanent or this run) counts.
-			return upgrade_tier(pid) > 0
-		3:  # DELEGATION: persisted upgrade list in its own save file.
-			var cfg := ConfigFile.new()
-			if cfg.load("user://delegation_save.cfg") == OK:
-				return String(pid) in Array(cfg.get_value("upgrades", "owned", []))
-			return false
-		4:  # COMBO_MOM: coffee/shoes persist; second wind is daily, advil
-			# is instant-use — neither counts as an owned product.
-			var cfg := ConfigFile.new()
-			if cfg.load("user://combo_save.cfg") != OK:
-				return false
-			if pid == "coffee_iv":
-				return int(cfg.get_value("perks", "coffee_tier", 0)) > 0
-			if pid == "comfy_shoes":
-				return bool(cfg.get_value("perks", "shoes_owned", false))
-			return false
-		2:  # MELTDOWN: coping is run-long (not persisted) — owned only
-			# while a meltdown run is actually in progress. Vents are
-			# repeatable and never count as owned.
-			var m := mode_node()
-			if m != null and m.has_method("mode_id") and int(m.call("mode_id")) == 2 \
-					and m.get("coping_owned") is Dictionary:
-				return (m.get("coping_owned") as Dictionary).has(pid)
 			return false
 	return false
 
@@ -876,12 +847,6 @@ func interact_luke() -> void:
 	add_cortisol(3.0)
 	add_dopamine(5.0)
 
-
-func interact_luke_mean() -> void:
-	## MELTDOWN mode: when cortisol is over 70 Luke drops the act and roasts
-	## you. Still funny (+10 serotonin) but it stings (+15 cortisol).
-	add_serotonin(10.0)
-	add_cortisol(15.0)
 
 
 func apply_minigame_fail() -> void:
@@ -1014,9 +979,8 @@ func _wipe_run_dollars() -> void:
 func end_run(title: String, stats: String, restart_kind: String = "run") -> void:
 	## A mode ends the whole RUN (not just the day). Same freeze as _end_day,
 	## but the HUD shows the run-over panel instead of the day-over one.
-	## restart_kind: "run" = R starts a fresh run from day 1 (night-shift
-	## meltdown, meltdown x3); "day" = R retries the SAME day (meltdown's
-	## non-fatal meltdowns, lives and coping kept).
+	## restart_kind: "run" = R starts a fresh run from day 1 (dopamine loss);
+	## "day" = R retries the SAME day (day_number kept).
 	sim_running = false
 	set_process(false)
 	run_ended.emit(title, stats, restart_kind)
@@ -1033,8 +997,8 @@ func new_run() -> void:
 
 
 func retry_day() -> void:
-	## Restart the CURRENT day (meltdown mode): clock/tasks/meters reset,
-	## day_number kept, mode keeps its run-long state (lives, coping items).
+	## Restart the CURRENT day: clock/tasks/meters reset, day_number kept,
+	## mode keeps its run-long state.
 	_begin_day()
 
 

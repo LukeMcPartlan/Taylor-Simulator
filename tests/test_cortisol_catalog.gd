@@ -124,8 +124,8 @@ func _run_tests() -> void:
 	var bp: Dictionary = GS.call("buy_permanent_upgrade", "moon_shoes")
 	_check(bool(bp.get("ok", false)), "permanent: bought Moon Shoes T1 with savings")
 	_check(int(GS.call("upgrade_tier", "moon_shoes")) == 1, "effective moon_shoes T1 in cortisol")
-	# Switch to night-shift: the permanent tier is still there.
-	MM.set_mode(1)
+	# Switch to dopamine mode: the permanent tier is still there.
+	MM.set_mode(6)
 	var old2 = GS.get("mode_hook")
 	GS.remove_child(old2)
 	old2.free()
@@ -135,7 +135,7 @@ func _run_tests() -> void:
 	GS.set("mode_hook", hook2)
 	hook2.set("run_upgrades", {})
 	_check(int(GS.call("upgrade_tier", "moon_shoes")) == 1,
-		"permanent moon_shoes applies in night-shift too")
+		"permanent moon_shoes applies in dopamine mode too")
 
 	# Lucky Diapers: the gross-item rate is untouched (0.65), bonus spawns are
 	# goods only.

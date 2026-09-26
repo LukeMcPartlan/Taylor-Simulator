@@ -10,9 +10,9 @@ extends ModeStoreBase
 ## - AMAZON: spend dollars on upgrade tiers (3 each). In-run only — they last
 ##   the run, not the save. Permanent versions are sold in the main menu.
 ##
-## Per-mode subclasses (store_night_shift.gd, store_cortisol.gd) override
-## _store_mode_id() and _amazon_defs(): the laptop is the same, but each mode
-## sells its own catalog. Purchased tiers are permanent or run-long and their
+## Per-mode subclasses (store_cortisol.gd, store_practice.gd, store_dopamine.gd)
+## override _store_mode_id() and the catalog: the laptop is the same, but each
+## mode sells its own rows. Purchased tiers are permanent or run-long and their
 ## effects apply in EVERY mode via GameState.upgrade_tier().
 
 const _UPGRADE_DEFS = preload("res://scripts/upgrade_defs.gd")

@@ -1,5 +1,5 @@
-extends "res://scripts/modes/store_night_shift.gd"
-## Taylor's LAPTOP in PRACTICE mode. Same hardware as night-shift's laptop —
+extends StoreLaptop
+## Taylor's LAPTOP in PRACTICE mode. Same hardware as the other laptops —
 ## WORK tab turns serotonin into dollars (-10 serotonin, +$10 per verdict,
 ## a new deranged email every press) — but the shop tab is an AMAZON order
 ## page selling exactly ONE mode unlock plus the 6-product catalog:
@@ -80,7 +80,7 @@ func _buy_classic_unlock() -> Dictionary:
 
 
 func _mode() -> Node:
-	# The parent laptop only recognizes night-shift; this one only practice.
+	# The base laptop serves no mode by default; this one only practice.
 	var m := GameState.mode_node()
 	if m != null and m.has_method("mode_id") \
 			and m.mode_id() == ModeManager.Mode.PRACTICE:

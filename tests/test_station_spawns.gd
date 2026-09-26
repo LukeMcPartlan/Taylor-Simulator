@@ -74,7 +74,7 @@ func _run() -> void:
 	var station_count := 0
 	for n in world.get_children():
 		var sid = n.get("station_id")
-		if sid == null or String(sid) == "__store__":
+		if sid == null:
 			continue
 		station_count += 1
 		var id := String(sid)

@@ -11,16 +11,14 @@ extends Node2D
 ##   interior, so the design was adapted: the leaking toilet flooded the low
 ##   yard, and Taylor cleans it up there.
 ##
-## Night stores (one per mode, x=-700 on the ground floor):
-##   NIGHT_SHIFT: Taylor's laptop — WORK emails for dollars + AMAZON store,
-##     open any time (scripts/modes/store_night_shift.gd).
+## Walk-up laptop stores (x=-700 on the ground floor, open any time):
+##   CLASSIC / DOPAMINE: Taylor's laptop — WORK emails for dollars + the
+##     6-product AMAZON catalog (scripts/modes/store_cortisol.gd,
+##     store_dopamine.gd). CLASSIC's store also sells the Dopamine Mode
+##     unlock ($100).
 ##   PRACTICE: the same laptop hardware, but the shop tab sells exactly one
-##     thing — CLASSIC MODE ($60). WORK tab still turns serotonin to dollars.
-##   NIGHT_SHIFT / MELTDOWN / COMBO_MOM / PRACTICE: a walk-up Area2D kiosk
-##     script (scripts/modes/store_*.gd), each with its own inventory and
-##     currency.
-##   DELEGATION: a Station of Kind.STORE (see station.gd) — same spot.
-##   CLASSIC: no store. Taylor shops nowhere. She has no time.
+##     thing — CLASSIC MODE ($60) — plus the 6-product catalog. WORK tab
+##     still turns serotonin to dollars.
 ##
 ## Player spawn markers live in the scene (Main.tscn -> World/Spawns): one
 ## Marker2D per station game plus "default". The killbox (World/Killbox,
@@ -31,8 +29,7 @@ const STATION_SCRIPT := preload("res://scripts/station.gd")
 const LUKE_SCRIPT := preload("res://scripts/luke.gd")
 const CHRIS_SCRIPT := preload("res://scripts/chris.gd")
 
-# id / title / kind (0=chore, 1=fun, 2=store) / x / floor_y / minigame id / work
-# (Luke's delegation pace; DELEGATION mode only — his minigame runs at 2x this)
+# id / title / kind (0=chore, 1=fun) / x / floor_y / minigame id / work seconds
 const STATION_DEFS: Array = [
 	{"id": "laundry", "title": "Laundry", "kind": 0, "x": -560.0, "floor_y": -96.0, "game": "laundry", "work": 3.0},
 	{"id": "dishes", "title": "Dishes", "kind": 0, "x": -400.0, "floor_y": -96.0, "game": "dishes", "work": 2.5},
@@ -44,8 +41,6 @@ const STATION_DEFS: Array = [
 	{"id": "microwave", "title": "Microwave", "kind": 0, "x": -1600.0, "floor_y": -96.0, "game": "microwave", "work": 3.0},
 	{"id": "amazon_boxes", "title": "Amazon boxes", "kind": 0, "x": -750.0, "floor_y": -96.0, "game": "amazon_break", "work": 3.0},
 	{"id": "go_to_bed", "title": "Go to bed", "kind": 0, "x": 198.0, "floor_y": -346.0, "game": "", "work": 0.0},
-	# DELEGATION mode only: the Night Store as a station (see station.gd).
-	{"id": "__store__", "title": "Night Store", "kind": 2, "x": -700.0, "floor_y": -96.0, "work": 0.0},
 ]
 
 ## Modular station defs, appended at runtime via register_station_def().
@@ -73,13 +68,9 @@ static func register_station_def(def: Dictionary) -> bool:
 	extra_station_defs.append(def.duplicate())
 	return true
 
-# Walk-up store kiosk scripts for the modes that use them (DELEGATION uses a
-# Station instead).
+# Walk-up store kiosk scripts, one per mode.
 const STORE_SCRIPTS: Dictionary = {
 	0: "res://scripts/modes/store_cortisol.gd",     # Mode.CLASSIC (Cortisol Mode)
-	1: "res://scripts/modes/store_night_shift.gd",  # Mode.NIGHT_SHIFT
-	2: "res://scripts/modes/store_meltdown.gd",     # Mode.MELTDOWN
-	4: "res://scripts/modes/store_combo_mom.gd",    # Mode.COMBO_MOM
 	5: "res://scripts/modes/store_practice.gd",     # Mode.PRACTICE
 	6: "res://scripts/modes/store_dopamine.gd",     # Mode.DOPAMINE (same laptop + catalog as Cortisol)
 }
@@ -163,9 +154,6 @@ func _spawn_stations() -> void:
 	var spawns := get_node_or_null("Spawns")
 	for def in STATION_DEFS + extra_station_defs:
 		var kind: int = int(def["kind"])
-		# The __store__ station def only exists for DELEGATION mode.
-		if kind == 2 and ModeManager.current_mode != ModeManager.Mode.DELEGATION:
-			continue
 		var station: Station = STATION_SCRIPT.new()
 		station.station_id = String(def["id"])
 		station.title = String(def["title"])
@@ -190,8 +178,7 @@ func _station_spawn_pos(spawns: Node, def: Dictionary) -> Vector2:
 
 
 func _spawn_store() -> void:
-	# Walk-up kiosk stores: the laptop (CORTISOL / NIGHT_SHIFT) and the
-	# mode-specific shops (MELTDOWN / COMBO_MOM / PRACTICE).
+	# Walk-up laptop store, one script per mode (see STORE_SCRIPTS).
 	var path: String = String(STORE_SCRIPTS.get(ModeManager.current_mode, ""))
 	if path == "":
 		return

@@ -206,26 +206,7 @@ func _best_stat_line(mode: int) -> String:
 	## share save files, so one mode's progress can't clobber another's.
 	match mode:
 		ModeManager.Mode.PRACTICE:
-			return "All minigames open · zero cortisol · 5 one-time birds"
-		ModeManager.Mode.NIGHT_SHIFT:
-			var cfg := ConfigFile.new()
-			if cfg.load("user://nightshift_save.cfg") == OK:
-				var days := int(cfg.get_value("meta", "best_days", 0))
-				var score := int(cfg.get_value("meta", "best_score", 0))
-				if days > 0 or score > 0:
-					return "Best run: %d days · %d pts" % [days, score]
-			return "No runs yet — the laptop awaits"
-		ModeManager.Mode.MELTDOWN:
-			return "3 lives. No mercy. No save scumming."
-		ModeManager.Mode.DELEGATION:
-			return "Luke is still useless — for now"
-		ModeManager.Mode.COMBO_MOM:
-			var cfg := ConfigFile.new()
-			if cfg.load("user://combo_save.cfg") == OK:
-				var best := int(cfg.get_value("scores", "best_score", 0))
-				if best > 0:
-					return "Best score: %s" % _fmt_points(best)
-			return "No high score yet — go be a mommy"
+			return "All minigames open · zero cortisol · one bird to find"
 	return "The original Taylor experience"
 
 

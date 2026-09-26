@@ -1,5 +1,5 @@
 extends SceneTree
-## Headless integration test for the night-shift laptop rework (2026-09-18):
+## Headless integration test for the walk-up laptop (2026-09-18):
 ##  - laptop store exists, open at any hour, clock keeps ticking
 ##  - WORK: FIRE/HIRE costs 10 serotonin, pays $10, new email each press
 ##  - AMAZON: dollars buy one-per-game buffs
@@ -47,7 +47,7 @@ func _process(_delta: float) -> bool:
 func _boot() -> void:
 	GS = root.get_node("/root/GameState")
 	MM = root.get_node("/root/ModeManager")
-	MM.set_mode(1)  # NIGHT_SHIFT
+	MM.set_mode(0)  # CLASSIC
 	var old_hook = GS.get("mode_hook")
 	if old_hook != null:
 		GS.remove_child(old_hook)
@@ -57,7 +57,6 @@ func _boot() -> void:
 	GS.add_child(hook)
 	GS.set("mode_hook", hook)
 	hook.set("run_upgrades", {})
-	hook.set("owned_buffs", [])
 	GS.set("permanent_upgrades", {})
 	GS.set("savings", 0.0)
 	GS.set("dollars", 0.0)
@@ -87,7 +86,7 @@ func _run_tests() -> void:
 	var world = root.get_node("Main/World")
 	_check(world != null, "world exists")
 	var store = _find_store(world)
-	_check(store != null, "laptop store exists in night-shift world")
+	_check(store != null, "laptop store exists in the world")
 	var m = GS.get("mode_hook")
 
 	# Open at any hour (old store was 9pm-11pm).
