@@ -72,6 +72,10 @@ func _ready() -> void:
 	# Mode tag under the clock (empty in CLASSIC) and mode-specific widgets.
 	mode_tag.text = GameState.get_hud_tag()
 	_build_mode_widgets()
+	# Practice mode has zero cortisol all day: hide the bar and its label.
+	if ModeManager.current_mode == ModeManager.Mode.PRACTICE:
+		cortisol_bar.hide()
+		cortisol_label.hide()
 	# Permanent hint under the task list: what talking to Luke does.
 	var luke_hint := Label.new()
 	luke_hint.text = "Speaking to Luke will increase dopamine, serotonin, and cortisol levels."
