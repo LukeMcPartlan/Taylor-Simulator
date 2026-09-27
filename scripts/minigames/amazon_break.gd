@@ -1,9 +1,8 @@
 class_name AmazonBreak
 extends Minigame
-## Amazon boxes station — "Box Breaker". Brick-breaker: flatten the Amazon
-## boxes with the tape-gun paddle — or thread a ball through to the gold
-## JACKPOT LINE at the back for an instant win. 3 lost balls and the boxes
-## win. No timer — take as long as you need.
+## Amazon boxes station — "Box Breaker". Brick-breaker: flatten all the
+## Amazon boxes with the tape-gun paddle. 3 lost balls and the boxes win.
+## No timer — take as long as you need.
 ##
 ## Controls: A/D or Left/Right. The paddle stays where you leave it.
 
@@ -11,7 +10,6 @@ const BOX_COLS: int = 7
 const BOX_ROWS: int = 2
 const BOX_SIZE := Vector2(86, 36)
 const BOX_TOP: float = 150.0
-const JACKPOT_Y: float = 112.0  # ball touches this line: instant win
 const PADDLE_W: float = 120.0
 const PADDLE_SPEED: float = 480.0
 const BALL_R: float = 9.0
@@ -19,7 +17,7 @@ const BASE_BALL_SPEED: float = 400.0
 const MAX_LIVES: int = 3
 
 const TEX_BOX := preload("res://placeholder art/Sprites/amazon_box.png")
-const TEX_BALL := preload("res://placeholder art/Sprites/ball.png")
+const TEX_HAND := preload("res://placeholder art/Sprites/hand.png")  # placeholder: the "ball" is a hand
 
 var _boxes: Array = []  # BOX_ROWS x BOX_COLS of bool (true = still boxed)
 var _boxes_left: int = 0
@@ -57,7 +55,7 @@ func start() -> void:
 		extra += " %s!" % String((_UPGRADE_DEFS.def("extra_ball")["tiers"] as Array)[extra_tier - 1]["label"])
 	if paddle_tier > 0:
 		extra += " %s!" % String((_UPGRADE_DEFS.def("paddle")["tiers"] as Array)[paddle_tier - 1]["label"])
-	help_text = "Break the boxes — or thread a ball through to the GOLD LINE for an instant win! A/D or arrows. 3 missed balls = the boxes win.%s" % extra
+	help_text = "Break all the boxes! A/D or arrows. 3 missed balls = the boxes win.%s" % extra
 	_pw = PADDLE_W * _UPGRADE_DEFS.tier_fx("paddle", paddle_tier, "width_mult", 1.0)
 	_boxes.clear()
 	_boxes_left = 0
@@ -113,22 +111,11 @@ func _process(delta: float) -> void:
 	else:
 		for ball in _balls.duplicate():
 			ball["pos"] = (ball["pos"] as Vector2) + (ball["vel"] as Vector2) * delta * _speed
-			if _hit_jackpot(ball):
-				continue  # instant win: the run is over
 			if _bounce_walls(ball):
 				continue  # missed the paddle: ball is gone
 			_bounce_paddle(ball)
 			_hit_boxes(ball)
 	queue_redraw()
-
-
-## The gold line at the back: touch it with the ball and the run is won.
-func _hit_jackpot(ball: Dictionary) -> bool:
-	var pos: Vector2 = ball["pos"]
-	if pos.y - BALL_R <= JACKPOT_Y:
-		_end(true)
-		return true
-	return false
 
 
 ## Returns true if the ball missed the paddle (caller skips it).
@@ -211,22 +198,8 @@ func test_miss_ball() -> void:
 		_respawn_timer = 0.01
 
 
-func test_hit_jackpot() -> void:
-	# Park a ball on the jackpot line; the next _process frame wins the run.
-	if _balls.is_empty():
-		return
-	(_balls[0] as Dictionary)["pos"] = Vector2(size.x / 2.0, JACKPOT_Y)
-	(_balls[0] as Dictionary)["vel"] = Vector2.ZERO
-
-
 func _draw_game() -> void:
 	var font := ThemeDB.fallback_font
-	# Jackpot line at the back: touch it with the ball, win instantly.
-	var pulse := 0.55 + 0.45 * sin(Time.get_ticks_msec() / 180.0)
-	var gold := Color(1.0, 0.85, 0.3, pulse)
-	draw_line(Vector2(16.0, JACKPOT_Y), Vector2(size.x - 16.0, JACKPOT_Y), gold, 5.0)
-	draw_string(font, Vector2(16, JACKPOT_Y - 10), "JACKPOT LINE — touch it, win instantly",
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1.0, 0.85, 0.3))
 	# Amazon boxes: placeholder box art stretched over each cell.
 	for r in BOX_ROWS:
 		for c in BOX_COLS:
@@ -242,11 +215,11 @@ func _draw_game() -> void:
 	draw_rect(Rect2(_paddle_x - _pw / 2.0, py - 7, _pw, 14), Color(0.72, 0.53, 0.30))
 	draw_rect(Rect2(_paddle_x - _pw / 2.0, py - 7, _pw, 14), Color(0.35, 0.24, 0.12), false, 2.0)
 	draw_rect(Rect2(_paddle_x - 10, py - 26, 20, 20), Color(0.55, 0.55, 0.58))  # tape gun
-	# Balls.
+	# The "ball": a placeholder pixel hand, slapping boxes.
 	if _respawn_timer <= 0.0:
 		for ball in _balls:
 			var bpos: Vector2 = ball["pos"]
-			draw_texture(TEX_BALL, bpos - TEX_BALL.get_size() / 2.0)
+			draw_texture(TEX_HAND, bpos - TEX_HAND.get_size() / 2.0)
 	var balls := ""
 	for i in MAX_LIVES:
 		balls += "● " if i < _lives else "○ "

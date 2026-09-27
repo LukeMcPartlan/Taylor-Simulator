@@ -211,7 +211,7 @@ func _run_tests(mode_name: String) -> void:
 	_check(result2.has("ok") and not bool(result2["ok"]), "box breaker: 3 missed balls loses")
 	game2.queue_free()
 
-	# Jackpot line at the back wins the run instantly.
+	# Breaking every box wins the run (no more jackpot line).
 	var bbscr = load("res://scripts/minigames/amazon_break.gd")
 	_check(int(bbscr.BOX_ROWS) == 2, "box breaker: 2 rows of boxes")
 	var game3 = bbscr.new()
@@ -220,9 +220,9 @@ func _run_tests(mode_name: String) -> void:
 	var result3 := {}
 	game3.finished.connect(func(success: bool) -> void: result3["ok"] = success)
 	game3.start()
-	game3.test_hit_jackpot()
-	await create_timer(1.6).timeout  # banner beat, then the frame detects the line
-	_check(result3.has("ok") and bool(result3["ok"]), "box breaker: jackpot line wins instantly")
+	game3.test_break_all()
+	await create_timer(1.6).timeout  # banner beat, then the frame ends the run
+	_check(result3.has("ok") and bool(result3["ok"]), "box breaker: breaking all boxes wins")
 	game3.queue_free()
 
 	# --- FakeTok (phone) minigame ----------------------------------------------
