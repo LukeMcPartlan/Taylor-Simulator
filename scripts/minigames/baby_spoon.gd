@@ -11,6 +11,10 @@ const MAX_MISSES: int = 3
 const BAR_W: float = 460.0
 const ZONE_W: float = 110.0
 const _UPGRADE_DEFS = preload("res://scripts/upgrade_defs.gd")
+# Luke's baby photos (production assets, byte-for-byte in art/baby/):
+# the face photo is the baby, the mouth photo is the open mouth.
+const BABY_FACE := preload("res://art/baby/baby_face.png")
+const BABY_MOUTH := preload("res://art/baby/baby_mouth.png")
 
 
 func _zone_w() -> float:
@@ -94,11 +98,16 @@ func _draw_game() -> void:
 	# Marker.
 	var mx := _bar.position.x + _marker_t * BAR_W
 	draw_rect(Rect2(mx - 5, _bar.position.y - 10, 10, _bar.size.y + 20), Color(1.0, 0.9, 0.3))
-	# Baby: circle face + open mouth that grows happier per spoonful.
+	# Baby: the face photo + the mouth photo, which grows happier per spoonful.
 	var baby := Vector2(size.x / 2.0, size.y / 2.0 + 150.0)
-	draw_circle(baby, 44, Color(1.0, 0.85, 0.7))
-	var mouth_r := 6.0 + 3.0 * _spoonfuls
-	draw_circle(baby + Vector2(0, 12), mouth_r, Color(0.4, 0.15, 0.15))
+	var face_size := Vector2(BABY_FACE.get_size())
+	var face_drawn := face_size * (88.0 / maxf(face_size.x, face_size.y))
+	draw_texture_rect(BABY_FACE, Rect2(baby - face_drawn / 2.0, face_drawn), false)
+	var mouth_size := Vector2(BABY_MOUTH.get_size())
+	var mouth_d := 2.0 * (6.0 + 3.0 * _spoonfuls)
+	var mouth_drawn := mouth_size * (mouth_d / maxf(mouth_size.x, mouth_size.y))
+	var mouth_pos := baby + Vector2(0, 12)
+	draw_texture_rect(BABY_MOUTH, Rect2(mouth_pos - mouth_drawn / 2.0, mouth_drawn), false)
 	draw_string(font, Vector2(24, 120),
 		"Spoonfuls: %d/%d   Misses: %d/%d" % [_spoonfuls, WIN_SPOONFULS, _misses, MAX_MISSES],
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.9, 0.9, 0.9))
