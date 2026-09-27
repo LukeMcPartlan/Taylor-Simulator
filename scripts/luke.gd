@@ -7,8 +7,9 @@ extends CharacterBody2D
 ## - Smaller hitbox + a hop: if he pushes into a wall (stairs) or stops making
 ##   progress, he jumps to unstick himself.
 ## - Every so often he drifts to his game setup and starts gaming. That
-##   registers the "Remind Luke to get back to work" task. Nag him (E) to
-##   complete it; once nagged he stays off the games for the rest of the day.
+##   registers the "Remind Luke to get back to work" task. Remind him (E)
+##   to complete it; once reminded he stays off the games for the rest of
+##   the day.
 ## - Press E near him any time: he drops one of his unhinged voice lines and
 ##   Taylor's serotonin AND cortisol both jump +10. Equal parts joy and stress.
 ##
@@ -32,11 +33,9 @@ const LINES: Array[String] = [
 	"dude you would not belive what happened some dude in my discord got banned for CP",
 	"yo taylor i just signed us up for a marathon in quebec this december it seems like it might be fun",
 ]
-# Nag responses are new lines (not from the dictated list) — marked as such.
-const NAG_RESPONSES: Array[String] = [
-	"fine, FINE — i'm getting up. happy?",
-	"ok ok. one more match and then work. i mean— yes, work now.",
-	"you're right. you're right. putting the headset down.",
+# Reminder response: a new line (not from the dictated list) — marked as such.
+const REMINDER_RESPONSES: Array[String] = [
+	"Oh uhh yea I forgot about that",
 ]
 
 enum State { IDLE, WALK, GAMING, SLEEPING }
@@ -53,7 +52,7 @@ var _target_x: float = 0.0
 var _going_to_game: bool = false
 var _game_timer: float = 0.0
 var _game_cooldown: float = 20.0  # seconds before he may start gaming again
-var _nagged_today: bool = false
+var _reminded_today: bool = false
 var _player_near: bool = false
 var _stuck_timer: float = 0.0
 var _stuck_check_x: float = 0.0
@@ -144,7 +143,7 @@ func _physics_process(delta: float) -> void:
 				_arrive()
 		State.GAMING:
 			velocity.x = move_toward(velocity.x, 0.0, SPEED * 4.0 * delta)
-			# He games indefinitely until nagged — see _physics note in _pick_action.
+			# He games indefinitely until reminded — see _physics note in _pick_action.
 		State.SLEEPING:
 			# Out cold. The 6am wake-up (or 10pm bedtime walk) is the only
 			# thing that changes this.
@@ -177,9 +176,9 @@ func _talk() -> void:
 		if _task_open("wake_luke"):
 			_wake_up()
 		else:
-			GameState.say("LUKE", "zzz... five more minutes... zzz...")
+			GameState.say("LUKE", "zzz... wait let me do one more alarm....")
 		return
-	# 10pm: Taylor puts him to bed (wins over gaming, nagging, everything).
+	# 10pm: Taylor puts him to bed (wins over gaming, reminding, everything).
 	if _task_open("bed_luke"):
 		_send_to_bed()
 		return
@@ -188,19 +187,19 @@ func _talk() -> void:
 	GameState.interact_luke()
 	if _state == State.GAMING and _remind_task_active():
 		GameState.complete_task(String(GameState.REMIND_LUKE_TASK["id"]))
-		GameState.say("LUKE", NAG_RESPONSES[randi_range(0, NAG_RESPONSES.size() - 1)])
+		GameState.say("LUKE", REMINDER_RESPONSES[randi_range(0, REMINDER_RESPONSES.size() - 1)])
 		_stop_gaming()
 
 
 func _pick_action() -> void:
-	# He only starts gaming if he hasn't been nagged today and the cooldown
+	# He only starts gaming if he hasn't been reminded today and the cooldown
 	# has elapsed — otherwise he just wanders. Fresh out of bed he always
 	# heads east first.
 	if _wake_first:
 		_wake_first = false
 		_patrol_next(WANDER_MAX_X)
 		return
-	if not _nagged_today and _game_cooldown <= 0.0 and randf() < 0.45:
+	if not _reminded_today and _game_cooldown <= 0.0 and randf() < 0.45:
 		_going_to_game = true
 		_target_x = GAME_SETUP_X
 		_state = State.WALK
@@ -272,7 +271,7 @@ func _start_gaming() -> void:
 func _stop_gaming() -> void:
 	_state = State.IDLE
 	_idle_timer = 2.0
-	_nagged_today = true
+	_reminded_today = true
 	_game_cooldown = 40.0
 
 
@@ -296,7 +295,7 @@ func _wake_up() -> void:
 func _send_to_bed() -> void:
 	## Teleport, not walk: he gets stuck on the stairs too often to trust
 	## the trip, and the day is over anyway.
-	_nagged_today = true  # never got nagged; the day's over anyway
+	_reminded_today = true  # never got reminded; the day's over anyway
 	_going_to_game = false
 	global_position = _bed_pos
 	velocity = Vector2.ZERO
@@ -336,18 +335,18 @@ func _remind_task_active() -> bool:
 
 func _on_day_started(_day: int) -> void:
 	# A new day: back to bed, out cold, waiting on the 6am wake-up.
-	_nagged_today = false
+	_reminded_today = false
 	_go_to_sleep(true)
 
 
 func _on_tasks_changed(tasks: Array) -> void:
-	# A new day clears the task list — reset the nag flag so he can game again.
+	# A new day clears the task list — reset the remind flag so he can game again.
 	var found := false
 	for t in tasks:
 		if t["id"] == String(GameState.REMIND_LUKE_TASK["id"]):
 			found = true
 	if not found:
-		_nagged_today = false
+		_reminded_today = false
 		if _state == State.GAMING:
 			_state = State.IDLE
 			_idle_timer = 2.0
