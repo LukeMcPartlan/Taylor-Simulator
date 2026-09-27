@@ -3,7 +3,7 @@ extends SceneTree
 ##  - each real mode has one fixed species (MODE_BIRDS), active until found
 ##  - collect_bird() banks the species forever: second touch gives nothing
 ##  - found birds persist across day starts (no daily reset)
-##  - practice has one bird (the robin), active while uncollected
+##  - practice has one bird (the bluejay), active while uncollected
 ##  - GameState.product_progress() counts per-mode inventories
 ##
 ## Run: godot --headless --script tests/test_birds.gd
@@ -71,8 +71,8 @@ func _run() -> void:
 	MM.set_mode(MODE_CLASSIC)
 	_check(String(GS.MODE_BIRDS.get(0, "")) == "robin", "birds: classic's bird is the robin")
 	_check(GS.MODE_BIRDS.size() == 3, "birds: three modes have a fixed species")
-	_check(String(GS.MODE_BIRDS.get(6, "")) == "robin", "birds: dopamine's bird is the robin")
-	_check(String(GS.MODE_BIRDS.get(MODE_PRACTICE, "")) == "robin", "birds: practice's bird is the robin")
+	_check(String(GS.MODE_BIRDS.get(6, "")) == "crow", "birds: dopamine's bird is the crow")
+	_check(String(GS.MODE_BIRDS.get(MODE_PRACTICE, "")) == "bluejay", "birds: practice's bird is the bluejay")
 
 	# --- Active until found ----------------------------------------------------
 	_check(GS.call("bird_active_today", "robin"), "birds: classic's robin active before collection")
@@ -89,13 +89,21 @@ func _run() -> void:
 	_check(GS.call("bird_found", "robin"), "birds: robin marked found")
 	_check(not GS.call("bird_active_today", "robin"), "birds: found bird no longer active in its mode")
 
-	# --- Practice has one bird: the robin ---------------------------------------
+	# --- Dopamine has one bird: the crow --------------------------------------
+	_attach_mode_hook(MODE_DOPAMINE)
+	GS.set("birds_found", [])
+	_check(GS.call("bird_active_today", "crow"), "birds: dopamine's crow active before collection")
+	_check(not GS.call("bird_active_today", "robin"), "birds: other species inactive in dopamine")
+	_check(GS.call("collect_bird", "crow"), "birds: dopamine touch collects the crow")
+	_check(not GS.call("bird_active_today", "crow"), "birds: found crow no longer active in dopamine")
+
+	# --- Practice has one bird: the bluejay ------------------------------------
 	_attach_mode_hook(MODE_PRACTICE)
 	GS.set("birds_found", [])
-	_check(GS.call("bird_active_today", "robin"), "birds: practice's robin active before collection")
-	_check(not GS.call("bird_active_today", "crow"), "birds: other species inactive in practice")
-	_check(GS.call("collect_bird", "robin"), "birds: practice touch collects the robin")
-	_check(not GS.call("bird_active_today", "robin"), "birds: found robin no longer active in practice")
+	_check(GS.call("bird_active_today", "bluejay"), "birds: practice's bluejay active before collection")
+	_check(not GS.call("bird_active_today", "robin"), "birds: other species inactive in practice")
+	_check(GS.call("collect_bird", "bluejay"), "birds: practice touch collects the bluejay")
+	_check(not GS.call("bird_active_today", "bluejay"), "birds: found bluejay no longer active in practice")
 
 	# --- Product progress ----------------------------------------------------------
 	var pp: Array = GS.call("product_progress", MODE_PRACTICE)

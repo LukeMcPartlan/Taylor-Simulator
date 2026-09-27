@@ -217,9 +217,9 @@ var _cortisol_tick_t: float = 0.0
 ## bank). Touching a bird collects it once; afterwards it's yours forever.
 var birds_found: Array = []
 ## Each real game mode has one fixed bird species (its collectible).
-## PRACTICE (5) has the robin; DOPAMINE (6) shares the robin too.
+## CLASSIC (0) has the robin; PRACTICE (5) the bluejay; DOPAMINE (6) the crow.
 ## ModeManager.Mode ints: CLASSIC 0, PRACTICE 5, DOPAMINE 6.
-const MODE_BIRDS := {0: "robin", 5: "robin", 6: "robin"}
+const MODE_BIRDS := {0: "robin", 5: "bluejay", 6: "crow"}
 var sim_running: bool = true
 var day_pressure_mult: float = 1.0
 var day_serotonin_integral: float = 0.0
