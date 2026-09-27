@@ -428,7 +428,7 @@ func _make_bank_panel() -> CanvasLayer:
 	vbox.add_child(_bank_items)
 
 	var hint := Label.new()
-	hint.text = "Number keys buy · B or Esc closes"
+	hint.text = "Click BUY (or number keys) · B or Esc closes"
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.add_theme_font_override("font", PIXEL_FONT)
 	hint.add_theme_font_size_override("font_size", 10)
@@ -454,6 +454,7 @@ func _refresh_bank() -> void:
 		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		info.add_theme_constant_override("separation", 2)
 		var line := Label.new()
+		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		line.add_theme_font_override("font", PIXEL_FONT)
 		line.add_theme_font_size_override("font_size", 11)
 		line.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
@@ -482,6 +483,8 @@ func _refresh_bank() -> void:
 			var cost := float(buy_td["perm_cost"])
 			var buy := Button.new()
 			buy.text = "BUY $%d" % int(cost)
+			buy.custom_minimum_size = Vector2(110, 36)
+			buy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			buy.add_theme_font_override("font", PIXEL_FONT)
 			buy.add_theme_font_size_override("font_size", 10)
 			buy.disabled = GameState.savings < cost
