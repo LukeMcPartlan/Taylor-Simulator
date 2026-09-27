@@ -202,7 +202,7 @@ func _come_home() -> void:
 	_sprite.rotation = 0.0
 	_idle_timer = 0.5
 	_drop_timer = randf_range(2.0, 4.0)
-	GameState.say("CHRIS", "i'm HOME! ...what's for snack?")
+	GameState.say("CHRIS", "Yeooooo im home")
 	var world := get_parent()
 	if world.has_method("spawn_float_text"):
 		world.spawn_float_text(global_position + Vector2(0, -80),
