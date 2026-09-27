@@ -113,6 +113,18 @@ func _run_tests() -> void:
 	_check(luke.velocity.y < -100.0,
 		"npc: luke hops when stuck (vy=%.0f)" % luke.velocity.y)
 
+	# --- wake up heads east first -----------------------------------------------
+	# Fresh out of bed Luke patrols east (right) first, not toward the
+	# farther end. Synchronous: _wake_up arms it, _pick_action fires it.
+	luke.call("_go_to_sleep", true)
+	luke.call("_wake_up")
+	_check(bool(luke.get("_wake_first")), "npc: wake-up arms east-first patrol")
+	luke.call("_pick_action")
+	_check(int(luke.get("_state")) == 1, "npc: luke WALK after wake-up pick")
+	_check(absf(float(luke.get("_target_x")) - (-120.0)) < 0.01,
+		"npc: luke heads east first (target=%s)" % str(luke.get("_target_x")))
+	_check(not bool(luke.get("_wake_first")), "npc: east-first flag clears after one patrol")
+
 	# --- chris AWAY: not a wall ------------------------------------------------------
 	GS.call("register_task", "wake_chris", "Wake up Chris", 12.0)
 	chris.call("_wake_up")  # before 2:30pm -> AWAY (school)

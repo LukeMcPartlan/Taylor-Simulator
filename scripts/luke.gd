@@ -58,6 +58,7 @@ var _player_near: bool = false
 var _stuck_timer: float = 0.0
 var _stuck_check_x: float = 0.0
 var _jump_cooldown: float = 0.0
+var _wake_first: bool = false  # first patrol after waking heads east
 
 
 var _sprite: AnimatedSprite2D
@@ -193,7 +194,12 @@ func _talk() -> void:
 
 func _pick_action() -> void:
 	# He only starts gaming if he hasn't been nagged today and the cooldown
-	# has elapsed — otherwise he just wanders.
+	# has elapsed — otherwise he just wanders. Fresh out of bed he always
+	# heads east first.
+	if _wake_first:
+		_wake_first = false
+		_patrol_next(WANDER_MAX_X)
+		return
 	if not _nagged_today and _game_cooldown <= 0.0 and randf() < 0.45:
 		_going_to_game = true
 		_target_x = GAME_SETUP_X
@@ -204,13 +210,17 @@ func _pick_action() -> void:
 		_patrol_next()
 
 
-func _patrol_next() -> void:
+func _patrol_next(force_target: float = NAN) -> void:
 	## Back-and-forth across the first floor: head for whichever end is
-	## farther away, so every trip is a real traversal.
+	## farther away, so every trip is a real traversal. A forced target
+	## overrides (wake-up heads east first).
 	_going_to_game = false
-	_target_x = WANDER_MIN_X \
-		if absf(global_position.x - WANDER_MIN_X) > absf(global_position.x - WANDER_MAX_X) \
-		else WANDER_MAX_X
+	if is_nan(force_target):
+		_target_x = WANDER_MIN_X \
+			if absf(global_position.x - WANDER_MIN_X) > absf(global_position.x - WANDER_MAX_X) \
+			else WANDER_MAX_X
+	else:
+		_target_x = force_target
 	_state = State.WALK
 	_stuck_timer = 0.0
 	_stuck_check_x = global_position.x
@@ -276,6 +286,7 @@ func _task_open(task_id: String) -> bool:
 func _wake_up() -> void:
 	_state = State.IDLE
 	_idle_timer = 1.5
+	_wake_first = true  # first patrol heads east, not toward the farther end
 	_sprite.rotation = 0.0
 	GameState.complete_task("wake_luke")
 	GameState.say("LUKE", "ughhh i'm UP. 6am? who even does that.")
