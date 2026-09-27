@@ -3,7 +3,9 @@ extends CharacterBody2D
 ## Luke — the "pet retard" NPC (Luke's own words about himself).
 ##
 ## Behavior:
-## - Wanders the ground floor: idle, pick a spot, walk to it, repeat.
+## - Patrols the first floor back and forth: idle, walk to the far end, repeat.
+## - Smaller hitbox + a hop: if he pushes into a wall (stairs) or stops making
+##   progress, he jumps to unstick himself.
 ## - Every so often he drifts to his game setup and starts gaming. That
 ##   registers the "Remind Luke to get back to work" task. Nag him (E) to
 ##   complete it; once nagged he stays off the games for the rest of the day.
@@ -17,6 +19,7 @@ extends CharacterBody2D
 ##   the luke_said signal and shows the box. Luke never touches UI directly.
 
 const SPEED: float = 110.0
+const JUMP_VELOCITY: float = -300.0  # hops a 32px stair step, nothing fancy
 const WANDER_MIN_X: float = -1100.0
 const WANDER_MAX_X: float = -120.0  # stays on the flat ground, clear of the pond and tower
 const GAME_SETUP_X: float = -1050.0
@@ -52,7 +55,9 @@ var _game_timer: float = 0.0
 var _game_cooldown: float = 20.0  # seconds before he may start gaming again
 var _nagged_today: bool = false
 var _player_near: bool = false
-var _going_to_bed: bool = false
+var _stuck_timer: float = 0.0
+var _stuck_check_x: float = 0.0
+var _jump_cooldown: float = 0.0
 
 
 var _sprite: AnimatedSprite2D
@@ -84,7 +89,7 @@ func _ready() -> void:
 
 	var shape := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
-	circle.radius = 14.0
+	circle.radius = 12.0
 	shape.shape = circle
 	add_child(shape)
 
@@ -133,6 +138,7 @@ func _physics_process(delta: float) -> void:
 			var dir: float = signf(_target_x - global_position.x)
 			velocity.x = dir * SPEED
 			_sprite.flip_h = dir < 0.0
+			_tick_stuck_jump(delta)
 			if absf(_target_x - global_position.x) < 8.0:
 				_arrive()
 		State.GAMING:
@@ -192,26 +198,52 @@ func _pick_action() -> void:
 		_going_to_game = true
 		_target_x = GAME_SETUP_X
 		_state = State.WALK
+		_stuck_timer = 0.0
+		_stuck_check_x = global_position.x
 	else:
-		_going_to_game = false
-		_target_x = randf_range(WANDER_MIN_X, WANDER_MAX_X)
-		_state = State.WALK
+		_patrol_next()
+
+
+func _patrol_next() -> void:
+	## Back-and-forth across the first floor: head for whichever end is
+	## farther away, so every trip is a real traversal.
+	_going_to_game = false
+	_target_x = WANDER_MIN_X \
+		if absf(global_position.x - WANDER_MIN_X) > absf(global_position.x - WANDER_MAX_X) \
+		else WANDER_MAX_X
+	_state = State.WALK
+	_stuck_timer = 0.0
+	_stuck_check_x = global_position.x
+
+
+func _tick_stuck_jump(delta: float) -> void:
+	## Stairs and ledges: pushing into a wall or making no progress while
+	## trying to walk means hop. Cooldown keeps him from bunny-hopping.
+	_jump_cooldown -= delta
+	if not is_on_floor() or _jump_cooldown > 0.0:
+		return
+	if is_on_wall():
+		velocity.y = JUMP_VELOCITY
+		_jump_cooldown = 0.6
+		return
+	_stuck_timer += delta
+	if _stuck_timer >= 0.7:
+		if absf(global_position.x - _stuck_check_x) < 8.0:
+			velocity.y = JUMP_VELOCITY
+			_jump_cooldown = 0.6
+		_stuck_timer = 0.0
+		_stuck_check_x = global_position.x
 
 
 func _arrive() -> void:
 	velocity.x = 0.0
-	if _going_to_bed:
-		_going_to_bed = false
-		GameState.complete_task("bed_luke")
-		GameState.say("LUKE", "night. if the house is on fire, that's a tomorrow problem.")
-		_go_to_sleep(false)
-		return
 	if _going_to_game:
 		_going_to_game = false
 		_start_gaming()
 	else:
+		# Reached the far end: catch his breath, then head back.
 		_state = State.IDLE
-		_idle_timer = randf_range(1.0, 3.5)
+		_idle_timer = randf_range(1.0, 2.5)
 
 
 func _start_gaming() -> void:
@@ -251,20 +283,21 @@ func _wake_up() -> void:
 
 
 func _send_to_bed() -> void:
-	if _state == State.GAMING:
-		_nagged_today = true  # never got nagged; the day's over anyway
-	_going_to_bed = true
+	## Teleport, not walk: he gets stuck on the stairs too often to trust
+	## the trip, and the day is over anyway.
+	_nagged_today = true  # never got nagged; the day's over anyway
 	_going_to_game = false
-	_target_x = _bed_pos.x
-	_state = State.WALK
+	global_position = _bed_pos
+	velocity = Vector2.ZERO
+	GameState.complete_task("bed_luke")
 	GameState.say("LUKE", "fine, i'm going to bed. don't let chris eat my leftovers.")
+	_go_to_sleep(false)
 	_refresh_prompt()
 
 
 func _go_to_sleep(teleport: bool) -> void:
 	_state = State.SLEEPING
 	velocity = Vector2.ZERO
-	_going_to_bed = false
 	_going_to_game = false
 	if teleport:
 		global_position = _bed_pos

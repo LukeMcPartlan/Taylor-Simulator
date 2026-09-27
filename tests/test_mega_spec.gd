@@ -180,12 +180,11 @@ func _run_tests(mode_name: String) -> void:
 	gs.time_hours = 22.0
 	await _frames(3)
 	_check(_task_open("bed_luke"), "bed_luke clock task procs at 10pm")
-	luke.call("_talk")  # E while awake, bed_luke open -> walks to bed
-	_check(luke.get("_state") == 1, "luke walks to bed")  # Luke.State.WALK = 1
-	luke.global_position = Vector2(200, -140)  # near the new bed (x=275)
-	await _frames(120)
-	_check(luke.get("_state") == 3, "luke SLEEPING after reaching bed")
-	_check(not _task_open("bed_luke"), "bed_luke completes")
+	luke.call("_talk")  # E while awake, bed_luke open -> teleports to bed
+	_check(luke.get("_state") == 3, "luke SLEEPING right after put-to-bed")  # Luke.State.SLEEPING = 3
+	_check(not _task_open("bed_luke"), "bed_luke completes on teleport")
+	var bed_d: float = luke.global_position.distance_to(luke.get("_bed_pos"))
+	_check(bed_d < 2.0, "luke teleported to bed (d=%.1f)" % bed_d)
 
 	# --- Box Breaker minigame ------------------------------------------------
 	# (added to the tree: _finish uses a SceneTreeTimer before emitting)

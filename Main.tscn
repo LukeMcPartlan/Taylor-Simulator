@@ -844,7 +844,7 @@ scale = Vector2(2, 2)
 texture = ExtResource("31_preview")
 
 [node name="amazon_boxes" type="Marker2D" parent="World/Spawns" unique_id=12954132]
-position = Vector2(122, -137)
+position = Vector2(90, -169)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/amazon_boxes" unique_id=1143767422]
 position = Vector2(0, -32)

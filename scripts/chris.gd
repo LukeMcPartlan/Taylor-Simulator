@@ -6,14 +6,17 @@ extends CharacterBody2D
 ## - Starts the day ASLEEP in bed (west end of the ground floor).
 ## - 7am "Wake up Chris" clock task: Taylor wakes him (E) and he leaves for
 ##   the day (school).
-## - 2:30pm (14.5): he comes home through the east edge, then wanders the
-##   ground floor dropping garbage every few seconds.
+## - 2:30pm (14.5): he comes home through the east edge, then patrols the
+##   first floor back and forth dropping garbage every few seconds.
+## - Smaller hitbox + a hop: if he pushes into a wall (stairs, the basement)
+##   or stops making progress, he jumps to unstick himself.
 ## - Garbage (scripts/garbage.gd): walk over it to pick it up, -2 cortisol
 ##   each. Chris stops dropping when MAX_GARBAGE pieces are on the floor.
 ##
 ## If Taylor never wakes him, he sleeps through the whole day (no garbage).
 
 const SPEED: float = 95.0
+const JUMP_VELOCITY: float = -300.0  # hops a 32px stair step, nothing fancy
 # Chris's sleep/spawn spot: the Spawns/chris marker in Main.tscn (draggable
 # in the editor). He also walks back in at this Y when he comes home.
 const CHRIS_BED_FALLBACK := Vector2(-1700.0, -110.0)
@@ -42,9 +45,14 @@ var _idle_timer: float = 1.0
 var _target_x: float = 0.0
 var _drop_timer: float = 5.0
 var _player_near: bool = false
+var _stuck_timer: float = 0.0
+var _stuck_check_x: float = 0.0
+var _jump_cooldown: float = 0.0
 
 var _sprite: AnimatedSprite2D
 var _prompt: Label
+var _body_shape: CollisionShape2D
+var _area: Area2D
 
 
 func _ready() -> void:
@@ -69,21 +77,21 @@ func _ready() -> void:
 	_sprite.play(&"idle")
 	add_child(_sprite)
 
-	var shape := CollisionShape2D.new()
+	_body_shape = CollisionShape2D.new()
 	var circle := CircleShape2D.new()
-	circle.radius = 14.0
-	shape.shape = circle
-	add_child(shape)
+	circle.radius = 12.0
+	_body_shape.shape = circle
+	add_child(_body_shape)
 
-	var area := Area2D.new()
+	_area = Area2D.new()
 	var area_shape := CollisionShape2D.new()
 	var area_circle := CircleShape2D.new()
 	area_circle.radius = INTERACT_RADIUS
 	area_shape.shape = area_circle
-	area.add_child(area_shape)
-	add_child(area)
-	area.body_entered.connect(_on_body_entered)
-	area.body_exited.connect(_on_body_exited)
+	_area.add_child(area_shape)
+	add_child(_area)
+	_area.body_entered.connect(_on_body_entered)
+	_area.body_exited.connect(_on_body_exited)
 
 	_prompt = Label.new()
 	_prompt.position = Vector2(-40, -64)
@@ -114,11 +122,14 @@ func _physics_process(delta: float) -> void:
 				velocity.x = move_toward(velocity.x, 0.0, SPEED * 4.0 * delta)
 				_idle_timer -= delta
 				if _idle_timer <= 0.0:
-					_target_x = randf_range(WANDER_MIN_X, WANDER_MAX_X)
+					_target_x = _patrol_far_end()
+					_stuck_timer = 0.0
+					_stuck_check_x = global_position.x
 			else:
 				var dir: float = signf(_target_x - global_position.x)
 				velocity.x = dir * SPEED
 				_sprite.flip_h = dir < 0.0
+				_tick_stuck_jump(delta)
 				if absf(_target_x - global_position.x) < 8.0:
 					velocity.x = 0.0
 					_idle_timer = randf_range(1.0, 3.0)
@@ -177,11 +188,15 @@ func _wake_up() -> void:
 	else:
 		_state = State.AWAY
 		visible = false
+		_body_shape.set_deferred("disabled", true)
+		_area.set_deferred("monitoring", false)
 	_refresh_prompt()
 
 
 func _come_home() -> void:
 	visible = true
+	_body_shape.set_deferred("disabled", false)
+	_area.set_deferred("monitoring", true)
 	global_position = Vector2(HOME_EDGE_X, _bed_pos.y)
 	_state = State.WANDER
 	_sprite.rotation = 0.0
@@ -192,6 +207,33 @@ func _come_home() -> void:
 	if world.has_method("spawn_float_text"):
 		world.spawn_float_text(global_position + Vector2(0, -80),
 			"Chris is home", Color(1.0, 0.85, 0.4))
+
+
+func _patrol_far_end() -> float:
+	## Back-and-forth across the first floor: head for whichever end is
+	## farther away, so every trip is a real traversal.
+	if absf(global_position.x - WANDER_MIN_X) > absf(global_position.x - WANDER_MAX_X):
+		return WANDER_MIN_X
+	return WANDER_MAX_X
+
+
+func _tick_stuck_jump(delta: float) -> void:
+	## Stairs and ledges: pushing into a wall or making no progress while
+	## trying to walk means hop. Cooldown keeps him from bunny-hopping.
+	_jump_cooldown -= delta
+	if not is_on_floor() or _jump_cooldown > 0.0:
+		return
+	if is_on_wall():
+		velocity.y = JUMP_VELOCITY
+		_jump_cooldown = 0.6
+		return
+	_stuck_timer += delta
+	if _stuck_timer >= 0.7:
+		if absf(global_position.x - _stuck_check_x) < 8.0:
+			velocity.y = JUMP_VELOCITY
+			_jump_cooldown = 0.6
+		_stuck_timer = 0.0
+		_stuck_check_x = global_position.x
 
 
 func _drop_garbage() -> void:
@@ -215,6 +257,8 @@ func _go_to_sleep(teleport: bool) -> void:
 	_woke_today = false
 	velocity = Vector2.ZERO
 	visible = true
+	_body_shape.set_deferred("disabled", false)
+	_area.set_deferred("monitoring", true)
 	if teleport:
 		global_position = _bed_pos
 	_sprite.rotation = PI / 2.0
