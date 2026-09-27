@@ -292,6 +292,11 @@ func _update_prompt() -> void:
 		_prompt.text = "E — %s" % MinigameLauncher.display_name(minigame_id)
 		_prompt.modulate = Color(1, 1, 0.6)
 		_prompt.show()
+	elif station_id == "go_to_bed":
+		# Not bedtime yet: say when the bed opens instead of hiding.
+		_prompt.text = "🛏 Bed opens at %s" % GameState.format_hour(GameState.BEDTIME_HOUR)
+		_prompt.modulate = Color(0.7, 0.7, 0.7)
+		_prompt.show()
 	else:
 		_prompt.hide()
 

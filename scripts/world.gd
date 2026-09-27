@@ -120,6 +120,18 @@ func _place_player_at_spawn() -> void:
 		(player as CharacterBody2D).velocity = Vector2.ZERO
 
 
+func bed_position() -> Vector2:
+	## Where Taylor sleeps: the bed decor sprite, falling back to the
+	## go_to_bed spawn marker and then the hardcoded spot.
+	var bed := get_node_or_null("Decor/bed")
+	if bed is Node2D:
+		return (bed as Node2D).global_position
+	var marker := get_node_or_null("Spawns/go_to_bed")
+	if marker is Node2D:
+		return (marker as Node2D).global_position
+	return Vector2(198, -346)
+
+
 func spawn_float_text(world_pos: Vector2, text: String, color: Color) -> void:
 	## Little rising "+8 serotonin" style popups. Called by stations and Luke.
 	var label := Label.new()

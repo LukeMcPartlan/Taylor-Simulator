@@ -150,6 +150,41 @@ func _run_tests() -> void:
 	GS.set("time_hours", 23.5)
 	_check(String(GS.call("_format_time")) == "11:30 PM", "23.5 still formats as 11:30 PM")
 
+	# --- Nursery moved: crib + feed_baby one tile left, dresser half a tile ----
+	var crib = world.get_node_or_null("Decor/crib")
+	_check(crib is Node2D and absf((crib as Node2D).position.x - 381.0) < 0.01,
+		"crib moved one tile left (x=381)")
+	var feed_marker = world.get_node_or_null("Spawns/feed_baby")
+	_check(feed_marker is Node2D and absf((feed_marker as Node2D).position.x - 387.0) < 0.01,
+		"feed_baby marker moved one tile left (x=387)")
+	var dresser = world.get_node_or_null("Decor/dresser")
+	_check(dresser is Node2D and absf((dresser as Node2D).position.x - 480.0) < 0.01,
+		"dresser moved half a tile left (x=480)")
+
+	# --- Bed prompt before 9pm names the opening time --------------------------
+	GS.start_new_day()
+	await _frames(3)
+	GS.set("time_hours", 20.0)
+	await _frames(3)
+	_check(not _task_open("go_to_bed"), "go_to_bed task not open at 8pm")
+	if bed_station != null:
+		bed_station.set("_player_inside", true)
+		bed_station.call("_update_prompt")
+		var prompt_text: String = (bed_station.get("_prompt") as Label).text
+		_check("9:00 PM" in prompt_text,
+			"bed prompt shows opening time at 8pm (%s)" % prompt_text)
+		bed_station.set("_player_inside", false)
+		bed_station.call("_update_prompt")
+
+	# --- Day end teleports Taylor to bed ---------------------------------------
+	var taylor = get_nodes_in_group("player")[0]
+	(taylor as Node2D).global_position = Vector2(-1500, -100)
+	GS.call("_end_day")
+	await _frames(3)
+	var bed_pos: Vector2 = world.call("bed_position")
+	_check(((taylor as Node2D).global_position - bed_pos).length() < 2.0,
+		"day end teleports taylor to bed")
+
 	print("BEDTIME TEST: %d checks, %d failures" % [_checks, _failures.size()])
 	if _failures.is_empty():
 		print("ALL GREEN")

@@ -942,6 +942,14 @@ func _emit_clock_if_changed() -> void:
 
 
 func _end_day() -> void:
+	# Taylor turns in: wherever she was, the day ends with her in bed.
+	# (Root lookup, not current_scene: headless tests add Main without
+	# setting current_scene.)
+	var world := get_tree().root.get_node_or_null("Main/World")
+	var player := get_tree().get_first_node_in_group("player")
+	if player is CharacterBody2D and world != null and world.has_method("bed_position"):
+		(player as CharacterBody2D).global_position = world.bed_position()
+		(player as CharacterBody2D).velocity = Vector2.ZERO
 	# Dollars live in-run now: they carry across days and only sweep into
 	# savings when the whole run ends. (Losses wipe them first — see the
 	# _wipe_run_dollars() calls in _process.)
@@ -1002,8 +1010,9 @@ func retry_day() -> void:
 	_begin_day()
 
 
-func _format_time() -> String:
-	var total_minutes: int = int(round(time_hours * 60.0))
+static func format_hour(hour: float) -> String:
+	## "9:00 PM" for a clock hour — used by stations for open-time prompts.
+	var total_minutes: int = int(round(hour * 60.0))
 	var h24: int = (total_minutes / 60) % 24  # wrap past midnight (25:00 -> 1 AM)
 	var m: int = total_minutes % 60
 	var suffix: String = "AM" if h24 < 12 else "PM"
@@ -1011,3 +1020,7 @@ func _format_time() -> String:
 	if h12 == 0:
 		h12 = 12
 	return "%d:%02d %s" % [h12, m, suffix]
+
+
+func _format_time() -> String:
+	return GameState.format_hour(time_hours)

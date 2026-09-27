@@ -803,7 +803,7 @@ scale = Vector2(2, 2)
 texture = ExtResource("26_preview")
 
 [node name="feed_baby" type="Marker2D" parent="World/Spawns" unique_id=123268864]
-position = Vector2(419, -336)
+position = Vector2(387, -336)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/feed_baby" unique_id=992019796]
 position = Vector2(0, -32)
@@ -901,13 +901,13 @@ texture = ExtResource("18_decor")
 
 [node name="crib" type="Sprite2D" parent="World/Decor" unique_id=1317764616]
 z_index = -1
-position = Vector2(413.00003, -352)
+position = Vector2(381.00003, -352)
 scale = Vector2(2, 2)
 texture = ExtResource("20_decor")
 
 [node name="dresser" type="Sprite2D" parent="World/Decor" unique_id=18551336]
 z_index = -1
-position = Vector2(496, -350.00003)
+position = Vector2(480, -350.00003)
 scale = Vector2(2, 2)
 texture = ExtResource("21_decor")
 
