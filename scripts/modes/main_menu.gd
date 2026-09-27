@@ -1,7 +1,7 @@
 extends Control
-## Main menu: pick one of the 6 Taylor Simulator game modes. PRACTICE is the
-## front door (always unlocked); CLASSIC is bought in the practice laptop
-## store; every other mode is locked for now.
+## Main menu: pick one of the Taylor Simulator game modes. SEROTONIN (Practice)
+## is the front door (always unlocked); CLASSIC is bought in the serotonin
+## laptop store; every other mode is locked for now.
 ##
 ## Built in code (like the rest of the project's UI): title, five selectable
 ## mode cards with best-stat lines read from each mode's save file, keyboard
@@ -245,20 +245,38 @@ func _make_how_panel() -> CanvasLayer:
 	var lines := [
 		"HOW TO PLAY",
 		"",
-		"You are Taylor. The day runs 6:00 AM → 11:00 PM.",
+		"You are Taylor. One day runs 6:00 AM → 11:00 PM.",
+		"Finish chores, protect your meters, survive the day.",
 		"",
-		"• SEROTONIN (green): your happiness. Fun restores it —",
-		"  read the book, doomscroll TikTok on the phone.",
-		"• CORTISOL (red): your stress. Chores relieve it — laundry,",
-		"  dishes, baby, the basement toilet from hell…",
-		"• Open tasks you ignore push cortisol UP. Hit 100 and the day ends.",
+		"• SEROTONIN (green): happiness. Fun restores it — read the",
+		"  book, win tasks. The laptop's WORK tab spends it for dollars.",
+		"  Still up at 1 AM and it's wiped.",
+		"• CORTISOL (red): stress. Chores relieve it. Open tasks you",
+		"  ignore push it UP. Hit 100 and the day ends on the spot.",
+		"• DOPAMINE (purple): drains all day. Swipe TikToks on the",
+		"  phone (📱 button) to refill it. Hit 0 and the day ends.",
 		"",
-		"Walk to a station, press E to play its minigame.",
-		"Talk to Luke (E) for +10 joy AND +10 stress. Worth it.",
+		"A/D or arrows to move, W/Space to jump, E to interact.",
+		"Walk to a glowing station, press E to play its minigame.",
+		"Win = task done = less cortisol + more serotonin.",
 		"",
-		"🌱 New? Start in PRACTICE: zero cortisol, every minigame open,",
-		"5 one-time bird collectibles. Work the laptop for dollars,",
-		"then buy CLASSIC mode ($60) on the 🔓 UNLOCK tab.",
+		"LUKE: talk (E) for +10 serotonin, +3 cortisol, +5 dopamine.",
+		"Press E while he's gaming to remind him to get back to work.",
+		"Wake him at 6 AM, put him to bed at 10 PM.",
+		"CHRIS: wake at 7 AM. Home at 2:30 PM dropping garbage —",
+		"walk over it to pick it up (-2 cortisol each).",
+		"",
+		"BIRDS: one per mode. Touch it once and it's yours forever:",
+		"+50 max serotonin, kept across every run.",
+		"",
+		"LAPTOP (walk up, E): WORK tab — judge employee emails,",
+		"-10 serotonin / +$10 each. AMAZON tab — spend dollars on",
+		"upgrade tiers. Leftover dollars become SAVINGS at day end;",
+		"press B on this menu to buy permanent upgrades.",
+		"",
+		"MODES: ☀️ Serotonin is the free sandbox front door.",
+		"Buy 😰 Cortisol ($60, Serotonin laptop 🔓 UNLOCK tab),",
+		"then 📱 Dopamine ($100, Cortisol laptop 📦 AMAZON tab).",
 		"",
 		"Press H or Esc to close this.",
 	]

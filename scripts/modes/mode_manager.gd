@@ -30,14 +30,14 @@ const MODE_SCRIPT_PATHS: Dictionary = {
 const MODE_CARDS: Array = [
 	{
 		"mode": Mode.PRACTICE,
-		"name": "🌱 Practice Taylor",
+		"name": "☀️ Serotonin Mode",
 		"desc": "The safe sandbox. All minigames open, zero cortisol, one bird to find. Earn serotonin, work the laptop for dollars, buy Cortisol Mode.",
 	},
 	{
 		"mode": Mode.CLASSIC,
 		"name": "😰 Cortisol Mode",
 		"desc": "Complete your tasks as fast as possible to keep your cortisol down and finish the day.",
-		"locked_desc": "Locked — buy it for $60 at the practice laptop (🔓 UNLOCK tab).",
+		"locked_desc": "Locked — buy it for $60 from the laptop in Serotonin Mode (🔓 UNLOCK tab).",
 	},
 	{
 		"mode": Mode.DOPAMINE,
@@ -65,7 +65,7 @@ func create_mode() -> Node:
 func mode_name() -> String:
 	match current_mode:
 		Mode.PRACTICE:
-			return "Practice"
+			return "Serotonin"
 		Mode.DOPAMINE:
 			return "Dopamine"
 	return "Cortisol"

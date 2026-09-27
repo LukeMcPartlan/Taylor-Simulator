@@ -41,7 +41,7 @@ func mode_id() -> int:
 
 
 func hud_tag() -> String:
-	return "🌱 PRACTICE"
+	return "☀️ SEROTONIN"
 
 
 func start_cortisol() -> float:
