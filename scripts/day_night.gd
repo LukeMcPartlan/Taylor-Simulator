@@ -2,22 +2,26 @@ class_name DayNight
 extends Node2D
 ## Day/night cycle tint for the world canvas. A full-screen ColorRect overlay
 ## follows the camera and tints the world by the GameState clock (6am-1am):
-## warm dawn, clear day, orange sunset, cool night. The overlay lives in the
-## default canvas, so the HUD (CanvasLayer 1) and minigames (CanvasLayer 100)
-## always draw above it, crisp and untinted.
+## dark purple at day start, warming by 7, sunrise colors to 9, clear midday,
+## sunset warmth to 8pm, purple to 10pm, very dark to 1am. The overlay lives
+## in the default canvas, so the HUD (CanvasLayer 1) and minigames
+## (CanvasLayer 100) always draw above it, crisp and untinted.
 ##
 ## Keyframes are (hour, overlay color); the tint smooth-blends between them
 ## so phases melt into each other instead of snapping.
 
-# hour -> overlay ColorRect color. Alpha does the work: warm wash at dawn /
-# sunset, cool dark wash at night, transparent midday.
+# hour -> overlay ColorRect color. Alpha does the work: dark purple at day
+# start, warming by 7, sunrise colors to 9, clear midday, sunset warmth to
+# 8pm, purple to 10pm, very dark to 1am.
 const KEYFRAMES: Array = [
-	[6.0, Color(1.0, 0.55, 0.25, 0.14)],   # 6am: dawn warmth
-	[8.0, Color(0.0, 0.0, 0.0, 0.0)],      # 8am: clear day
-	[18.0, Color(0.0, 0.0, 0.0, 0.0)],     # 6pm: still clear
-	[19.5, Color(1.0, 0.45, 0.15, 0.18)],  # ~7:30pm: sunset peak
-	[20.5, Color(0.08, 0.12, 0.35, 0.38)], # 8:30pm: night settles in
-	[25.0, Color(0.05, 0.08, 0.28, 0.45)],  # 1am: late night, deepest
+	[6.0, Color(0.30, 0.08, 0.45, 0.50)],   # 6am: dark purple pre-dawn
+	[7.0, Color(0.85, 0.50, 0.25, 0.30)],   # 7am: warm
+	[8.0, Color(1.00, 0.60, 0.35, 0.25)],   # 8am: sunrise colors
+	[9.0, Color(0.0, 0.0, 0.0, 0.0)],       # 9am: clear
+	[18.0, Color(0.0, 0.0, 0.0, 0.0)],      # 6pm: still clear
+	[20.0, Color(1.00, 0.45, 0.20, 0.35)],  # 8pm: sunset warm peak
+	[22.0, Color(0.28, 0.08, 0.48, 0.50)],  # 10pm: purple
+	[25.0, Color(0.02, 0.02, 0.10, 0.65)],  # 1am: very dark
 ]
 
 var _rect: ColorRect

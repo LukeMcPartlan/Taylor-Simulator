@@ -1,6 +1,8 @@
 extends SceneTree
 ## Headless test for the day/night cycle (2026-09-26):
-##  - tint keyframes blend smoothly (dawn warm, day clear, sunset orange, night dark)
+##  - tint keyframes blend smoothly: dark purple at 6am, warm by 7, sunrise
+##    colors to 9, clear midday, sunset warmth to 8pm, purple to 10pm,
+##    very dark to 1am
 ##  - phase icons are readable per phase
 ##  - the DayNight node exists in the world and covers the camera view
 ##  - the HUD clock shows the phase icon
@@ -45,26 +47,34 @@ func _run_tests() -> void:
 	GS = root.get_node("/root/GameState")
 
 	# --- tint keyframes -------------------------------------------------------
-	var dawn: Color = DayNight.tint_for_hour(6.5)
-	_check(dawn.r > 0.7 and dawn.r > dawn.b and dawn.a > 0.05,
-		"daynight: 6:30am tint is warm (r=%.2f b=%.2f a=%.2f)" % [dawn.r, dawn.b, dawn.a])
+	var six: Color = DayNight.tint_for_hour(6.0)
+	_check(six.b > six.r and six.a > 0.3,
+		"daynight: 6am tint is dark purple (b=%.2f r=%.2f a=%.2f)" % [six.b, six.r, six.a])
+	var seven_am: Color = DayNight.tint_for_hour(7.0)
+	_check(seven_am.r > 0.7 and seven_am.r > seven_am.b,
+		"daynight: 7am tint is warm (r=%.2f b=%.2f)" % [seven_am.r, seven_am.b])
+	var eight: Color = DayNight.tint_for_hour(8.0)
+	_check(eight.r > 0.9 and eight.a > 0.1,
+		"daynight: 8am tint is sunrise colors (r=%.2f a=%.2f)" % [eight.r, eight.a])
 	var noon: Color = DayNight.tint_for_hour(12.0)
 	_check(noon.a < 0.01, "daynight: noon tint is transparent")
-	var sunset: Color = DayNight.tint_for_hour(19.5)
-	_check(sunset.r > 0.9 and sunset.b < 0.4 and sunset.a > 0.1,
-		"daynight: 7:30pm tint is orange (r=%.2f b=%.2f a=%.2f)" % [sunset.r, sunset.b, sunset.a])
-	var night: Color = DayNight.tint_for_hour(22.0)
-	_check(night.b > night.r and night.a > 0.3,
-		"daynight: 10pm tint is cool and dark (b=%.2f r=%.2f a=%.2f)" % [night.b, night.r, night.a])
-	# Smooth blend: 7am sits between dawn (6am) and clear (8am), not snapping.
-	var seven: Color = DayNight.tint_for_hour(7.0)
-	var dawn6: Color = DayNight.tint_for_hour(6.0)
-	_check(seven.a < dawn6.a and seven.a > noon.a,
-		"daynight: 7am blends between dawn and day (a=%.3f)" % seven.a)
-	# Never fully opaque: gameplay stays readable.
-	for h in [6.0, 12.0, 19.5, 22.0, 25.0]:
-		_check(DayNight.tint_for_hour(h).a < 0.5,
-			"daynight: tint at %.0fh stays subtle (a=%.2f)" % [h, DayNight.tint_for_hour(h).a])
+	var sunset: Color = DayNight.tint_for_hour(20.0)
+	_check(sunset.r > 0.9 and sunset.b < 0.4 and sunset.a > 0.2,
+		"daynight: 8pm tint is sunset warm (r=%.2f b=%.2f a=%.2f)" % [sunset.r, sunset.b, sunset.a])
+	var ten_pm: Color = DayNight.tint_for_hour(22.0)
+	_check(ten_pm.b > ten_pm.r and ten_pm.a > 0.3,
+		"daynight: 10pm tint is purple (b=%.2f r=%.2f a=%.2f)" % [ten_pm.b, ten_pm.r, ten_pm.a])
+	var one_am: Color = DayNight.tint_for_hour(25.0)
+	_check(one_am.r < 0.1 and one_am.g < 0.1 and one_am.b < 0.15 and one_am.a > 0.5,
+		"daynight: 1am tint is very dark (a=%.2f)" % one_am.a)
+	# Smooth blend: 6:30 sits between 6am purple and 7am warm, not snapping.
+	var six_thirty: Color = DayNight.tint_for_hour(6.5)
+	_check(six_thirty.a < six.a and six_thirty.a > seven_am.a,
+		"daynight: 6:30am blends between purple and warm (a=%.3f)" % six_thirty.a)
+	# Never fully opaque: gameplay stays readable even at 1am.
+	for h in [6.0, 12.0, 20.0, 22.0, 25.0]:
+		_check(DayNight.tint_for_hour(h).a < 0.7,
+			"daynight: tint at %.0fh stays below 0.7 (a=%.2f)" % [h, DayNight.tint_for_hour(h).a])
 
 	# --- phase icons -----------------------------------------------------------
 	_check(DayNight.phase_icon_for_hour(6.5) == "🌅", "daynight: dawn icon at 6:30am")
