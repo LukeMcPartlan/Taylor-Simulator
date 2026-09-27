@@ -97,14 +97,18 @@ func run_tier(id: String) -> int:
 
 
 func buy_run_upgrade(id: String) -> Dictionary:
-	## Spend DOLLARS on the next in-run tier. Lasts the run only.
+	## Spend DOLLARS on the next in-run tier. The tier is QUEUED, not
+	## activated: it takes effect when a Box Breaker win delivers it. The
+	## purchase opens the Amazon-box task (one task per any number of orders).
 	## (Mirrors Cortisol Mode's shelf — the practice laptop sells the same
 	## 6-product catalog.)
 	var gs := get_parent()
 	var def := _UPGRADE_DEFS.def(id)
 	if def.is_empty():
 		return {"ok": false, "msg": "Unknown item?!"}
-	var cur := run_tier(id)
+	# Pending (undelivered) tiers count toward progression: the next tier
+	# for sale is active + queued, so you can't order the same tier twice.
+	var cur := run_tier(id) + int(gs.call("pending_count", id))
 	if cur >= _UPGRADE_DEFS.max_tier():
 		return {"ok": false, "msg": "Already maxed!"}
 	var perm := 0
@@ -117,9 +121,15 @@ func buy_run_upgrade(id: String) -> Dictionary:
 	if gs.dollars < cost:
 		return {"ok": false, "msg": "Need $%d" % int(cost)}
 	gs.add_dollars(-cost)
-	run_upgrades[id] = cur + 1
+	gs.call("queue_order", id)
+	return {"ok": true, "msg": "Ordered! 📦 Break down the Amazon boxes to get your %s." % String(tier_def["label"])}
+
+
+func deliver_order(id: String) -> int:
+	## A Box Breaker win delivers one queued tier: it takes effect now.
+	run_upgrades[id] = int(run_upgrades.get(id, 0)) + 1
 	buffs_changed.emit()
-	return {"ok": true, "msg": "Delivered! %s" % String(tier_def["label"])}
+	return int(run_upgrades[id])
 
 
 func day_summary_extras() -> Dictionary:

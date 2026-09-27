@@ -8,7 +8,9 @@ extends ModeStoreBase
 ##   each one. Every press costs 10 serotonin and pays $10. New email each
 ##   press, forever. (F/H keys work too.)
 ## - AMAZON: spend dollars on upgrade tiers (3 each). In-run only — they last
-##   the run, not the save. Permanent versions are sold in the main menu.
+##   the run, not the save. Purchases are QUEUED, not instant: buying opens
+##   the Amazon-box task, and one Box Breaker win delivers every pending
+##   tier. Permanent versions are sold in the main menu.
 ##
 ## Per-mode subclasses (store_cortisol.gd, store_practice.gd, store_dopamine.gd)
 ## override _store_mode_id() and the catalog: the laptop is the same, but each
@@ -151,7 +153,10 @@ func _product_rows(m: Node, defs: Array, start_number: int = 0) -> Array:
 		var section := "UPGRADES — in-run tiers, last the run"
 		if String(def["kind"]) == "collectible":
 			section = "COLLECTIBLES — raise your serotonin cap"
-		var run_t := int(m.call("run_tier", id))
+		# Queued (undelivered) tiers count as progression: the shelf shows
+		# the tier AFTER active + pending, and flags what's on the truck.
+		var pending := GameState.pending_count(id)
+		var run_t := int(m.call("run_tier", id)) + pending
 		var perm_t := int(GameState.permanent_tier(id))
 		var maxed := run_t >= _UPGRADE_DEFS.max_tier()
 		var name := ""
@@ -172,6 +177,9 @@ func _product_rows(m: Node, defs: Array, start_number: int = 0) -> Array:
 			desc = String(next_td["desc"])
 			price = "$%d" % int(cost)
 			affordable = GameState.dollars >= cost
+		if pending > 0:
+			var pend_note := "📦 %d on the way" % pending
+			status = (status + " · " + pend_note) if status != "" else pend_note
 		if perm_t > 0:
 			var perm_note := "PERM T%d" % perm_t
 			status = (status + " · " + perm_note) if status != "" else perm_note
@@ -191,12 +199,10 @@ func buy_row(kind: String, id: String) -> Dictionary:
 		return {"ok": false, "msg": "The laptop bluescreens."}
 	if kind != "upgrade":
 		return {"ok": false, "msg": "Click a tab, boss."}
-	var res: Dictionary = m.buy_run_upgrade(id)
-	if bool(res.get("ok", false)) and id == "roomba":
-		var world := get_parent()
-		if world != null and world.has_method("spawn_roomba"):
-			world.spawn_roomba()
-	return res
+	# Queued delivery: the mode queues the tier and opens the Amazon task.
+	# Nothing takes effect here — not even the Roomba, which spawns when the
+	# Box Breaker win delivers it.
+	return m.buy_run_upgrade(id)
 
 
 func _mode() -> Node:

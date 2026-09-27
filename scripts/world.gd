@@ -93,6 +93,7 @@ func _ready() -> void:
 	_spawn_luke()
 	_spawn_chris()
 	spawn_roomba()
+	GameState.orders_delivered.connect(_on_orders_delivered)
 	_place_player_at_spawn()
 
 
@@ -240,9 +241,8 @@ const ROOMBA_SCRIPT: Script = preload("res://scripts/roomba.gd")
 
 
 func spawn_roomba() -> void:
-	## Amazon purchase (night-shift): the little guy patrols and vacuums
-	## garbage. Idempotent — buying twice is impossible, but day reloads call
-	## this too.
+	## Amazon delivery: the little guy patrols and vacuums garbage.
+	## Idempotent — one Roomba per run, but day reloads call this too.
 	if get_tree().get_nodes_in_group("roomba").size() > 0:
 		return
 	# Night-shift Roomba: spawn if any effective tier is owned.
@@ -251,3 +251,11 @@ func spawn_roomba() -> void:
 	var roomba = ROOMBA_SCRIPT.new()
 	roomba.add_to_group("roomba")
 	add_child(roomba)
+
+
+func _on_orders_delivered(ids: Array) -> void:
+	## A Box Breaker win delivered queued Amazon orders: immediate effects
+	## land now. (The Roomba is the only one that spawns a node; every other
+	## tier is read live from upgrade_tier().)
+	if "roomba" in ids:
+		spawn_roomba()

@@ -202,6 +202,13 @@ func _on_minigame_done(success: bool, _elapsed_seconds: float = 0.0) -> void:
 		var relief := _task_relief(station_id)
 		if GameState.complete_task(station_id):
 			_notify("-%d cortisol  +%d serotonin" % [int(relief), int(GameState.TASK_COMPLETION_SEROTONIN)], Color(0.5, 0.9, 1.0))
+		# Amazon delivery: a Box Breaker WIN delivers every queued order at
+		# once (even if the task was already done, e.g. practice sandbox).
+		# A loss returns above — orders stay pending.
+		if station_id == "amazon_boxes":
+			var delivered: Array = GameState.deliver_pending_orders()
+			if not delivered.is_empty():
+				_notify("📦 Delivered %d order(s)!" % delivered.size(), Color(1.0, 0.85, 0.4))
 		_notify_award()
 	# Clear-time bonus hook (a mode may score fast clears). Called AFTER
 	# complete_task()/add_serotonin().

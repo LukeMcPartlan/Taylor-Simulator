@@ -107,17 +107,21 @@ func _run_tests() -> void:
 	var prog: Array = GS.call("product_progress", 0)
 	_check(int(prog[0]) == 0 and int(prog[1]) == 6, "product progress 0/6 before buying")
 
-	# Buying in-run tiers with dollars.
+	# Buying in-run tiers with dollars — queued until Box Breaker delivers.
 	GS.set("dollars", 500.0)
 	var r1: Dictionary = store.call("buy_row", "upgrade", "good_drops")
 	_check(bool(r1.get("ok", false)), "bought Lucky Diapers T1")
-	_check(int(m.call("run_tier", "good_drops")) == 1, "good_drops run tier 1")
+	_check(int(m.call("run_tier", "good_drops")) == 0, "good_drops not active before delivery")
+	_check(GS.pending_count("good_drops") == 1, "good_drops T1 queued")
 	_check(absf(float(GS.get("dollars")) - 460.0) < 0.01, "good_drops T1 cost $40")
 	var r2: Dictionary = store.call("buy_row", "upgrade", "green_zone")
 	_check(bool(r2.get("ok", false)), "bought Steady Hands T1")
+	_check(int(GS.call("upgrade_tier", "green_zone")) == 0, "effective tier 0 before delivery")
+	var delivered: Array = GS.call("deliver_pending_orders")
+	_check(delivered.size() == 2, "one win delivers both queued tiers")
 	_check(int(GS.call("upgrade_tier", "green_zone")) == 1, "effective tier via GameState")
 	var prog2: Array = GS.call("product_progress", 0)
-	_check(int(prog2[0]) == 2, "product progress 2/6 after buying two")
+	_check(int(prog2[0]) == 2, "product progress 2/6 after delivery")
 
 	# Permanent tiers apply in EVERY mode (bought in the main-menu savings shop).
 	GS.set("savings", 1000.0)

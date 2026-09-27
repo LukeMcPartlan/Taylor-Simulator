@@ -81,6 +81,13 @@ func _find_store(world: Node):
 	return null
 
 
+func _is_task_open(id: String) -> bool:
+	for t in GS.get("tasks"):
+		if String(t.get("id", "")) == id and not bool(t.get("done", false)):
+			return true
+	return false
+
+
 func _run_tests() -> void:
 	await _frames(10)
 	var world = root.get_node("Main/World")
@@ -109,23 +116,26 @@ func _run_tests() -> void:
 	store._do_work("FIRED")
 	_check(absf(float(GS.get("dollars")) - d0) < 0.01, "work: blocked under 10 serotonin")
 
-	# UPGRADE tab: tiered purchases with dollars — in-run only.
+	# UPGRADE tab: tiered purchases with dollars — QUEUED, not activated.
+	# In-run tiers take effect when a Box Breaker win delivers them.
 	GS.add_dollars(200.0)
 	var d1: float = GS.get("dollars")
 	var res: Dictionary = store.buy_row("upgrade", "sponge")
 	_check(bool(res.get("ok", false)), "upgrade: bought sponge T1")
-	_check(int(m.call("run_tier", "sponge")) == 1, "upgrade: sponge run tier 1")
+	_check(int(m.call("run_tier", "sponge")) == 0, "upgrade: sponge not active before delivery")
+	_check(GS.pending_count("sponge") == 1, "upgrade: sponge T1 queued")
 	_check(absf(float(GS.get("dollars")) - (d1 - 30.0)) < 0.01, "upgrade: $30 deducted")
-	# Tiers 2 ($60) and 3 ($120), then maxed.
+	_check(_is_task_open("amazon_boxes"), "upgrade: purchase opened the amazon task")
+	# Tiers 2 ($60) and 3 ($120) queue up; then maxed (pending counts).
 	var res2: Dictionary = store.buy_row("upgrade", "sponge")
 	_check(bool(res2.get("ok", false)), "upgrade: bought sponge T2")
-	_check(int(m.call("run_tier", "sponge")) == 2, "upgrade: sponge run tier 2")
+	_check(GS.pending_count("sponge") == 2, "upgrade: sponge T2 queued")
 	GS.add_dollars(200.0)
 	var res3: Dictionary = store.buy_row("upgrade", "sponge")
 	_check(bool(res3.get("ok", false)), "upgrade: bought sponge T3")
-	_check(int(m.call("run_tier", "sponge")) == 3, "upgrade: sponge run tier 3")
+	_check(GS.pending_count("sponge") == 3, "upgrade: sponge T3 queued")
 	var res4: Dictionary = store.buy_row("upgrade", "sponge")
-	_check(not bool(res4.get("ok", false)), "upgrade: T3 is maxed")
+	_check(not bool(res4.get("ok", false)), "upgrade: T3 is maxed (pending counts)")
 
 	# Buy the rest of the gadget inventory at T1.
 	for id in ["moon_shoes", "extra_ball", "pipes", "paddle", "hamper"]:
@@ -134,8 +144,18 @@ func _run_tests() -> void:
 	GS.add_dollars(100.0)
 	var rr: Dictionary = store.buy_row("upgrade", "roomba")
 	_check(bool(rr.get("ok", false)), "upgrade: bought the roomba")
+	_check(GS.pending_count("roomba") == 1, "upgrade: roomba queued, not active")
 	await _frames(5)
 	var roombas: Array = world.get_tree().get_nodes_in_group("roomba")
+	_check(roombas.size() == 0, "no roomba before delivery")
+	# One Box Breaker win delivers every pending tier at once.
+	var delivered: Array = GS.deliver_pending_orders()
+	_check(delivered.size() == 9, "delivery: all 9 queued tiers delivered")
+	_check(int(m.call("run_tier", "sponge")) == 3, "delivery: sponge at T3")
+	_check(int(m.call("run_tier", "roomba")) == 1, "delivery: roomba active")
+	_check(GS.pending_count("sponge") == 0, "delivery: queue emptied")
+	await _frames(5)
+	roombas = world.get_tree().get_nodes_in_group("roomba")
 	_check(roombas.size() == 1, "roomba spawned in the world")
 
 	# Roomba vacuums garbage on touch (no cortisol relief for robots).
@@ -183,11 +203,13 @@ func _run_tests() -> void:
 	_check(absf(float(taylor.call("_charged_jump_velocity", 1.0)) - (-640.0)) < 0.01,
 		"moon shoes: full charge T1 -> -640")
 
-	# Collectibles raise the serotonin cap.
+	# Collectibles raise the serotonin cap — after delivery, not at purchase.
 	_check(absf(float(GS.call("get_serotonin_cap")) - 200.0) < 0.01, "cap: base 200")
 	GS.add_dollars(100.0)
 	var rc: Dictionary = store.buy_row("upgrade", "raquaza")
 	_check(bool(rc.get("ok", false)), "upgrade: bought the shiny raquaza card")
+	_check(absf(float(GS.call("get_serotonin_cap")) - 200.0) < 0.01, "cap: still 200 before delivery")
+	GS.call("deliver_pending_orders")
 	_check(absf(float(GS.call("get_serotonin_cap")) - 250.0) < 0.01, "cap: raquaza T1 -> 250")
 	GS.set("serotonin", 0.0)
 	GS.add_serotonin(500.0)
@@ -215,9 +237,10 @@ func _run_tests() -> void:
 	_check(absf(float(GS.get("dollars"))) < 0.01, "sweep: dollars zeroed")
 	_check(absf(float(GS.get("savings")) - (s0 + 37.0)) < 0.01, "sweep: savings grew by $37")
 
-	# New run wipes run tiers; permanent tiers survive.
+	# New run wipes run tiers AND the order queue; permanent tiers survive.
 	GS.call("new_run")
 	_check(int(m.call("run_tier", "sponge")) == 0, "new run: run tiers wiped")
+	_check(GS.pending_count("sponge") == 0, "new run: order queue wiped")
 	_check(int(GS.call("permanent_tier", "sponge")) == 1, "new run: permanent tiers kept")
 	_check(int(GS.call("upgrade_tier", "sponge")) == 1, "new run: effective falls back to permanent")
 

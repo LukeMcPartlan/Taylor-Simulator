@@ -53,6 +53,7 @@ signal luke_said(speaker: String, line: String)
 ## Arcade/extended hooks. Emitted in every mode; only some modes listen.
 signal task_completed(task_id: String, cortisol_relief: float, by: String)
 signal fun_used(amount: float)
+signal orders_delivered(ids: Array)
 signal day_started(day: int)
 signal minigame_failed
 ## Emitted when a chore procs (becomes active) during the day.
@@ -158,8 +159,10 @@ const TASK_DEFS: Array = [
 	{"id": "basement_toilet", "label": "Clean the basement toilet", "relief": 20.0, "day_min": 1, "max_procs": 3},
 	{"id": "take_out_trash", "label": "Take out the trash", "relief": 8.0, "day_min": 3, "max_procs": 3},
 	{"id": "microwave", "label": "Clean the microwave", "relief": 10.0, "day_min": 2, "max_procs": 3},
-	{"id": "amazon_boxes", "label": "Break down the Amazon boxes", "relief": 12.0, "day_min": 1, "max_procs": 3},
+	{"id": "amazon_boxes", "label": "Break down the Amazon boxes", "relief": 12.0, "day_min": 1, "max_procs": 0},
 ]
+## amazon_boxes never procs randomly (max_procs 0): the task only opens when
+## an Amazon order is placed, and one Box Breaker win delivers everything.
 const REMIND_LUKE_TASK: Dictionary = {
 	"id": "remind_luke", "label": "Remind Luke to get back to work", "relief": 12.0,
 }
@@ -170,6 +173,10 @@ var cortisol: float = START_CORTISOL
 var dopamine: float = START_DOPAMINE
 var oxytocin: float = START_OXYTOCIN
 var dollars: float = 0.0  # earned at the work laptop; swept into savings at day end
+## Amazon order queue: upgrade ids, one entry per purchased tier, awaiting
+## delivery. Buying spends dollars and queues WITHOUT activating — one Box
+## Breaker win delivers every pending tier at once. Cleared each run.
+var pending_orders: Array = []
 ## Savings account: global, persists across days AND runs. Leftover dollars
 ## sweep here at day end; spent in the main-menu shop on permanent upgrades.
 var savings: float = 0.0
@@ -745,6 +752,50 @@ func permanent_tier(id: String) -> int:
 	return int(permanent_upgrades.get(id, 0))
 
 
+## --- Amazon order queue ---------------------------------------------------
+## Buying an upgrade spends dollars and queues the tier — it does NOT take
+## effect until a Box Breaker win delivers it. One win delivers everything
+## pending; a loss (or instant exit) leaves the orders queued.
+
+func pending_count(id: String) -> int:
+	var n := 0
+	for oid in pending_orders:
+		if String(oid) == id:
+			n += 1
+	return n
+
+
+func queue_order(id: String) -> void:
+	pending_orders.append(id)
+	activate_amazon_task()
+
+
+func activate_amazon_task() -> void:
+	## Open the "Break down the Amazon boxes" task (no-op if already open).
+	## Called on every purchase — one task covers any number of orders.
+	for def in task_defs:
+		if String(def.get("id", "")) == "amazon_boxes":
+			_activate_task(def)
+			return
+
+
+func deliver_pending_orders() -> Array:
+	## Hand every queued tier to the mode hook (which applies the tiers and
+	## their immediate effects, e.g. the Roomba spawn). Returns the ids that
+	## were delivered; a loss or exit never calls this, so orders survive.
+	var m := mode_node()
+	if m == null or not m.has_method("deliver_order"):
+		return []
+	var delivered: Array = pending_orders.duplicate()
+	if delivered.is_empty():
+		return delivered
+	pending_orders.clear()
+	for id in delivered:
+		m.call("deliver_order", String(id))
+	orders_delivered.emit(delivered)
+	return delivered
+
+
 ## Purchased-product progress for a mode's main-menu card: [owned, total].
 ## Counts from the per-mode inventory in UpgradeDefs.products_for_mode().
 ## Shared-catalog products count as owned if any tier is held (permanent or
@@ -932,6 +983,10 @@ func _begin_day() -> void:
 	var all_open = _hook("open_all_tasks_at_dawn")
 	if all_open is bool and bool(all_open):
 		for def in task_defs:
+			# The Amazon task only ever opens on a purchase — never from the
+			# dawn checklist (no order, no boxes).
+			if String(def.get("id", "")) == "amazon_boxes":
+				continue
 			_activate_task(def)
 	# Birds are one-time collectibles now: no daily reset. Each mode's own
 	# unfound species appears.
@@ -1052,6 +1107,7 @@ func new_run() -> void:
 	day_number = 0
 	# Run over: sweep any leftover dollars into savings, then reset.
 	sweep_to_savings()
+	pending_orders.clear()
 	_hook("reset_run")
 	start_new_day()
 

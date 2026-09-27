@@ -81,9 +81,16 @@ func _run_tests() -> void:
 	_check(int(GS.get("PROC_MAX_PER_DAY")) == 3, "PROC_MAX_PER_DAY == 3")
 	var all_three := true
 	for def in GS.get("task_defs"):
-		if int(def.get("max_procs", 0)) != 3:
+		var did := String(def.get("id", ""))
+		# amazon_boxes never procs (max_procs 0): it only opens on purchase.
+		if did != "amazon_boxes" and int(def.get("max_procs", 0)) != 3:
 			all_three = false
-	_check(all_three, "every TASK_DEF has max_procs == 3")
+	_check(all_three, "every proccing TASK_DEF has max_procs == 3")
+	var amazon_def: Dictionary = {}
+	for def in GS.get("task_defs"):
+		if String(def.get("id", "")) == "amazon_boxes":
+			amazon_def = def
+	_check(int(amazon_def.get("max_procs", -1)) == 0, "amazon_boxes has max_procs == 0 (never procs)")
 
 	# --- 9pm: "Go to bed" clock task fires ------------------------------------
 	GS.set("time_hours", 21.0)

@@ -193,12 +193,16 @@ func _test_store_unlock() -> void:
 	for r in p_rows:
 		_check(not (String(r.get("kind", "")) == "unlock" and String(r.get("id", "")) == "dopamine"),
 			"practice store does not sell the dopamine unlock")
-	# ...and the practice catalog is actually buyable (in-run tiers on the
-	# practice hook's own shelf).
+	# ...and the practice catalog is actually buyable (queued on the
+	# practice hook's own shelf, activated on delivery).
 	GS.set("dollars", 0.0)
 	GS.add_dollars(30.0)
 	var pb: Dictionary = pstore.buy_row("upgrade", "sponge")
 	_check(bool(pb.get("ok", false)), "practice store sells sponge T1")
+	_check(int(GS.mode_node().call("run_tier", "sponge")) == 0,
+		"practice tier queued, not active")
+	_check(GS.pending_count("sponge") == 1, "practice order queued")
+	GS.call("deliver_pending_orders")
 	_check(int(GS.mode_node().call("run_tier", "sponge")) == 1,
 		"practice run tier recorded on the practice hook")
 	pstore.free()
