@@ -39,6 +39,7 @@ extends Node
 # --- Signals ----------------------------------------------------------------
 signal meters_changed(serotonin: float, cortisol: float)
 signal dopamine_changed(value: float)
+signal oxytocin_changed(value: float)
 signal dollars_changed(dollars: float)
 signal savings_changed(savings: float)
 signal clock_changed(time_string: String)
@@ -80,6 +81,14 @@ const TASK_COMPLETION_SEROTONIN: float = 8.0
 const START_DOPAMINE: float = 100.0
 const MAX_DOPAMINE: float = 100.0
 const DOPAMINE_DRAIN_PER_HOUR: float = 4.0
+## Oxytocin (Oxytocin Mode only): starts at 50, drains at dopamine's rate.
+## Talking to Luke gives +10; sending him to do a chore costs 10. The day
+## ends on the spot at zero OR at max — too little or too much love.
+const START_OXYTOCIN: float = 50.0
+const MAX_OXYTOCIN: float = 100.0
+const OXYTOCIN_DRAIN_PER_HOUR: float = 4.0
+const OXYTOCIN_TALK_GAIN: float = 10.0
+const OXYTOCIN_CHORE_COST: float = 10.0
 ## A run is 7 in-game days. Day 7's end completes the run: leftover dollars
 ## sweep to savings and the run-over screen shows. (Practice opts out via
 ## the endless_run hook — the sandbox never ends.)
@@ -159,6 +168,7 @@ const REMIND_LUKE_TASK: Dictionary = {
 var serotonin: float = START_SEROTONIN
 var cortisol: float = START_CORTISOL
 var dopamine: float = START_DOPAMINE
+var oxytocin: float = START_OXYTOCIN
 var dollars: float = 0.0  # earned at the work laptop; swept into savings at day end
 ## Savings account: global, persists across days AND runs. Leftover dollars
 ## sweep here at day end; spent in the main-menu shop on permanent upgrades.
@@ -186,6 +196,8 @@ func is_mode_unlocked(mode: int) -> bool:
 		return mode in unlocked_modes
 	if mode == ModeManager.Mode.DOPAMINE:
 		return mode in unlocked_modes
+	if mode == ModeManager.Mode.OXYTOCIN:
+		return mode in unlocked_modes
 	return false
 
 
@@ -200,7 +212,8 @@ const _UPGRADE_DEFS = preload("res://scripts/upgrade_defs.gd")
 var time_hours: float = DAY_START_HOUR
 var day_number: int = 0
 # Task dicts: {id, label, cortisol_relief, done, delegated, completed_by}.
-# `delegated`/`completed_by` are inert data (kept for save compatibility).
+# `delegated` is true when someone other than Taylor did the work (Luke's
+# Q-key chore duty in Oxytocin Mode); the HUD shows those rows with 🔧.
 var tasks: Array = []
 ## All known task defs: built-in TASK_DEFS plus anything added at runtime via
 ## register_task_def(). The proc scheduler only manages defs listed here;
@@ -217,9 +230,10 @@ var _cortisol_tick_t: float = 0.0
 ## bank). Touching a bird collects it once; afterwards it's yours forever.
 var birds_found: Array = []
 ## Each real game mode has one fixed bird species (its collectible).
-## CLASSIC (0) has the robin; PRACTICE (5) the bluejay; DOPAMINE (6) the crow.
-## ModeManager.Mode ints: CLASSIC 0, PRACTICE 5, DOPAMINE 6.
-const MODE_BIRDS := {0: "robin", 5: "bluejay", 6: "crow"}
+## CLASSIC (0) has the robin; PRACTICE (5) the bluejay; DOPAMINE (6) the
+## crow; OXYTOCIN (7) the pigeon.
+## ModeManager.Mode ints: CLASSIC 0, PRACTICE 5, DOPAMINE 6, OXYTOCIN 7.
+const MODE_BIRDS := {0: "robin", 5: "bluejay", 6: "crow", 7: "pigeon"}
 var sim_running: bool = true
 var day_pressure_mult: float = 1.0
 var day_serotonin_integral: float = 0.0
@@ -304,6 +318,21 @@ func _process(delta: float) -> void:
 		_wipe_run_dollars()
 		_end_day()
 		return
+	# Oxytocin (Oxytocin Mode only): drains at dopamine's base rate. Talking
+	# to Luke (+10) tops it up; chore duty (-10) spends it. Either extreme —
+	# zero or max — ends the day on the spot.
+	if _hook("oxytocin_enabled"):
+		if oxytocin >= MAX_OXYTOCIN:
+			_day_end_reason = "oxytocin_max"
+			_wipe_run_dollars()
+			_end_day()
+			return
+		oxytocin = clampf(oxytocin - OXYTOCIN_DRAIN_PER_HOUR * game_hours, 0.0, MAX_OXYTOCIN)
+		if oxytocin <= 0.0:
+			_day_end_reason = "oxytocin_zero"
+			_wipe_run_dollars()
+			_end_day()
+			return
 	day_serotonin_integral += serotonin * game_hours
 
 	_meter_emit_cooldown -= delta
@@ -311,6 +340,7 @@ func _process(delta: float) -> void:
 		_meter_emit_cooldown = METER_EMIT_THROTTLE
 		meters_changed.emit(serotonin, cortisol)
 		dopamine_changed.emit(dopamine)
+		oxytocin_changed.emit(oxytocin)
 
 
 # --- Mode hook queries (base defaults; mode nodes override) -----------------
@@ -331,6 +361,18 @@ func _dopamine_drain_mult() -> float:
 	## else drains at the base rate.
 	var v = _hook("dopamine_drain_mult")
 	return float(v) if v != null else 1.0
+
+
+func oxytocin_enabled() -> bool:
+	## True only in Oxytocin Mode: the meter drains and can end the day.
+	var v = _hook("oxytocin_enabled")
+	return bool(v) if v != null else false
+
+
+func luke_chore_duty_enabled() -> bool:
+	## True only in Oxytocin Mode: Q near Luke sends him to do a chore.
+	var v = _hook("luke_chore_duty")
+	return bool(v) if v != null else false
 
 
 func get_neglect_cortisol_rate() -> float:
@@ -621,7 +663,7 @@ func complete_task(id: String, by: String = "taylor") -> bool:
 	for t in tasks:
 		if t["id"] == id and not t["done"]:
 			t["done"] = true
-			t["delegated"] = false
+			t["delegated"] = by != "taylor"
 			t["completed_by"] = by
 			var relief: float = float(t["cortisol_relief"]) * get_task_relief_mult()
 			cortisol = clampf(cortisol - relief, 0.0, METER_MAX)
@@ -654,6 +696,13 @@ func add_dopamine(amount: float) -> void:
 	## The phone's whole job: tops up the dopamine bar (clamped 0..MAX).
 	dopamine = clampf(dopamine + amount, 0.0, MAX_DOPAMINE)
 	dopamine_changed.emit(dopamine)
+
+
+func add_oxytocin(amount: float) -> void:
+	## Oxytocin moves: talking to Luke (+10) or chore duty (-10).
+	## Clamped 0..MAX; the drain tick decides if an extreme ends the day.
+	oxytocin = clampf(oxytocin + amount, 0.0, MAX_OXYTOCIN)
+	oxytocin_changed.emit(oxytocin)
 
 
 func add_cortisol(amount: float) -> void:
@@ -713,9 +762,9 @@ func product_progress(mode: int) -> Array:
 
 
 func _product_owned(mode: int, pid: String) -> bool:
-	# ModeManager.Mode ints: CLASSIC 0, PRACTICE 5, DOPAMINE 6.
+	# ModeManager.Mode ints: CLASSIC 0, PRACTICE 5, DOPAMINE 6, OXYTOCIN 7.
 	match mode:
-		0, 6:  # CLASSIC / DOPAMINE: any tier held (permanent or this run).
+		0, 6, 7:  # CLASSIC / DOPAMINE / OXYTOCIN: any tier held (permanent or this run).
 			return upgrade_tier(pid) > 0
 		5:  # PRACTICE: the two mode unlocks.
 			if pid == "classic_unlock":
@@ -842,10 +891,11 @@ func bird_found(bird_id: String) -> bool:
 
 
 func interact_luke() -> void:
-	## Talking to Luke: +10 serotonin, +3 cortisol, +5 dopamine.
+	## Talking to Luke: +10 serotonin, +3 cortisol, +5 dopamine, +10 oxytocin.
 	add_serotonin(10.0)
 	add_cortisol(3.0)
 	add_dopamine(5.0)
+	add_oxytocin(OXYTOCIN_TALK_GAIN)
 
 
 
@@ -867,6 +917,7 @@ func _begin_day() -> void:
 	serotonin = get_start_serotonin()
 	cortisol = get_start_cortisol()
 	dopamine = START_DOPAMINE
+	oxytocin = START_OXYTOCIN
 	_day_end_reason = ""
 	day_pressure_mult = 1.0 + 0.15 * float(day_number - 1)
 	day_serotonin_integral = 0.0
@@ -890,6 +941,7 @@ func _begin_day() -> void:
 	task_list_changed.emit(tasks)
 	meters_changed.emit(serotonin, cortisol)
 	dopamine_changed.emit(dopamine)
+	oxytocin_changed.emit(oxytocin)
 	day_started.emit(day_number)
 
 

@@ -163,11 +163,59 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey):
 		return
 	var key_event := event as InputEventKey
-	if key_event.keycode != KEY_E or not key_event.pressed or key_event.echo:
+	if not key_event.pressed or key_event.echo:
 		return
 	if not _player_near:
 		return
-	_talk()
+	if key_event.keycode == KEY_E:
+		_talk()
+	elif key_event.keycode == KEY_Q:
+		# Oxytocin Mode: send Luke to do a chore (teleport, costs oxytocin).
+		_send_to_chore()
+
+
+func _send_to_chore() -> void:
+	## Oxytocin Mode only: Luke teleports to the nearest open chore station
+	## and does it. Costs 10 oxytocin; the task completes as HIS work, so
+	## Taylor gets no serotonin for it. Does nothing outside Oxytocin Mode.
+	if not GameState.luke_chore_duty_enabled():
+		return
+	if _state == State.SLEEPING:
+		GameState.say("TAYLOR", "He's asleep. Let him dream.")
+		return
+	if _task_open("bed_luke"):
+		return  # 10pm bedtime wins over everything.
+	var best_id := ""
+	var best_pos := Vector2.ZERO
+	var best_d := INF
+	for t in GameState.tasks:
+		if bool(t["done"]):
+			continue
+		var tid := String(t["id"])
+		for n in get_tree().get_nodes_in_group("stations"):
+			var st := n as Station
+			if st == null:
+				continue
+			if st.station_id != tid or st.kind != Station.Kind.CHORE:
+				continue
+			var d := global_position.distance_to((st as Node2D).global_position)
+			if d < best_d:
+				best_d = d
+				best_id = tid
+				best_pos = (st as Node2D).global_position
+	if best_id == "":
+		GameState.say("TAYLOR", "No open chores for Luke right now.")
+		return
+	global_position = best_pos + Vector2(40, 0)
+	velocity = Vector2.ZERO
+	_state = State.IDLE
+	_idle_timer = 1.0
+	_going_to_game = false
+	GameState.add_oxytocin(-GameState.OXYTOCIN_CHORE_COST)
+	GameState.complete_task(best_id, "luke")
+	var world := get_parent()
+	if world != null and world.has_method("spawn_done_text"):
+		world.call("spawn_done_text", global_position + Vector2(0, -110))
 
 
 func _talk() -> void:

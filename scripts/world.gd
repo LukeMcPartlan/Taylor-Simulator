@@ -73,6 +73,7 @@ const STORE_SCRIPTS: Dictionary = {
 	0: "res://scripts/modes/store_cortisol.gd",     # Mode.CLASSIC (Cortisol Mode)
 	5: "res://scripts/modes/store_practice.gd",     # Mode.PRACTICE
 	6: "res://scripts/modes/store_dopamine.gd",     # Mode.DOPAMINE (same laptop + catalog as Cortisol)
+	7: "res://scripts/modes/store_oxytocin.gd",     # Mode.OXYTOCIN (same laptop + catalog as Cortisol)
 }
 const STORE_POS := Vector2(-700.0, -96.0)
 

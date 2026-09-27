@@ -160,6 +160,8 @@ static func products_for_mode(mode: int) -> Array:
 			return out0
 		6:  # DOPAMINE (Dopamine Mode) — same 6-product catalog as Cortisol.
 			return products_for_mode(0)
+		7:  # OXYTOCIN (Oxytocin Mode) — same 6-product catalog as Cortisol.
+			return products_for_mode(0)
 		5:  # PRACTICE — the two mode unlocks
 			return [
 				{"id": "classic_unlock", "name": "Cortisol Mode"},

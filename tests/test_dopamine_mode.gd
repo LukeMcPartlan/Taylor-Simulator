@@ -216,8 +216,8 @@ func _test_store_unlock() -> void:
 
 
 func _test_dopamine_catalog() -> void:
-	# Same laptop hardware and 6-product catalog as cortisol mode — and NO
-	# next-mode unlock row (there is no mode after dopamine yet).
+	# Same laptop hardware and 6-product catalog as cortisol mode — plus the
+	# next-mode unlock row: OXYTOCIN MODE ($150).
 	var store = load("res://scripts/modes/store_dopamine.gd").new()
 	_check(store._store_mode_id() == 6, "dopamine store gates on mode 6")
 	_set_mode(6)
@@ -225,7 +225,8 @@ func _test_dopamine_catalog() -> void:
 	_set_mode(0)
 	var cortisol_store = load("res://scripts/modes/store_cortisol.gd").new()
 	var c_rows: Array = cortisol_store.get_rows()
-	_check(d_rows.size() == 6, "dopamine store sells 6 products, no unlock row")
+	_check(d_rows.size() == 7, "dopamine store sells 6 products + the oxytocin unlock")
+	_check(String(d_rows[6].get("id", "")) == "oxytocin", "dopamine store's unlock row is oxytocin")
 	_check(c_rows.size() == 7, "cortisol store sells 6 products + the dopamine unlock")
 	var same := true
 	for i in 6:
@@ -245,8 +246,8 @@ func _test_bird_per_mode() -> void:
 	_check(birds.has(6), "mode 6 has a bird mapping")
 	_set_mode(6)
 	GS.get("birds_found").clear()
-	_check(GS.bird_active_today("robin"), "robin active in dopamine mode")
-	_check(not GS.bird_active_today("crow"), "crow not active in dopamine mode")
+	_check(GS.bird_active_today("crow"), "crow active in dopamine mode")
+	_check(not GS.bird_active_today("robin"), "robin not active in dopamine mode")
 	_set_mode(0)
 	_check(GS.bird_active_today("robin"), "robin active in classic mode")
 	_check(not GS.bird_active_today("owl"), "owl not active in classic mode")

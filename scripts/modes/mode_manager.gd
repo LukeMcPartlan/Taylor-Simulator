@@ -1,5 +1,5 @@
 extends Node
-## ModeManager — picks which of the 3 Taylor Simulator game modes is active.
+## ModeManager — picks which of the 4 Taylor Simulator game modes is active.
 ##
 ## This is an Autoload singleton (registered in project.godot BEFORE GameState,
 ## so GameState can read the chosen mode in its own _ready()). The main menu
@@ -13,7 +13,7 @@ extends Node
 ## nothing, so it behaves exactly like the original game.
 
 ## Mode IDs are persisted in save files — never reuse or shift them.
-enum Mode { CLASSIC = 0, PRACTICE = 5, DOPAMINE = 6 }
+enum Mode { CLASSIC = 0, PRACTICE = 5, DOPAMINE = 6, OXYTOCIN = 7 }
 
 ## The mode currently selected. The main menu sets this before loading Main.
 var current_mode: int = Mode.CLASSIC
@@ -22,6 +22,7 @@ const MODE_SCRIPT_PATHS: Dictionary = {
 	Mode.CLASSIC: "res://scripts/modes/mode_cortisol.gd",
 	Mode.PRACTICE: "res://scripts/modes/mode_practice.gd",
 	Mode.DOPAMINE: "res://scripts/modes/mode_dopamine.gd",
+	Mode.OXYTOCIN: "res://scripts/modes/mode_oxytocin.gd",
 }
 
 ## Display data for the main menu cards (in selection order). PRACTICE is
@@ -44,6 +45,12 @@ const MODE_CARDS: Array = [
 		"name": "📱 Dopamine Mode",
 		"desc": "Cortisol Mode, but dopamine drains 5x faster. The phone is life support — keep swiping or the day ends early.",
 		"locked_desc": "Locked — buy it for $100 at the cortisol laptop (📦 AMAZON tab).",
+	},
+	{
+		"mode": Mode.OXYTOCIN,
+		"name": "💞 Oxytocin Mode",
+		"desc": "Cortisol Mode with an oxytocin meter. Press Q near Luke to teleport him to a chore (-10 oxytocin); talking to him gives +10. Day ends at 0 or 100.",
+		"locked_desc": "Locked — buy it for $150 at the dopamine laptop (📦 AMAZON tab).",
 	},
 ]
 
@@ -68,6 +75,8 @@ func mode_name() -> String:
 			return "Serotonin"
 		Mode.DOPAMINE:
 			return "Dopamine"
+		Mode.OXYTOCIN:
+			return "Oxytocin"
 	return "Cortisol"
 
 

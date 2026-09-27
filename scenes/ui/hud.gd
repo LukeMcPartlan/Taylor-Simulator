@@ -19,6 +19,8 @@ extends CanvasLayer
 @onready var serotonin_label: Label = $TopLeft/Panel/Margin/VBox/SerotoninLabel
 @onready var cortisol_label: Label = $TopLeft/Panel/Margin/VBox/CortisolLabel
 @onready var dopamine_label: Label = $TopLeft/Panel/Margin/VBox/DopamineLabel
+@onready var oxytocin_bar: ProgressBar = $TopLeft/Panel/Margin/VBox/OxytocinBar
+@onready var oxytocin_label: Label = $TopLeft/Panel/Margin/VBox/OxytocinLabel
 @onready var phone_button: Button = $PhoneButton
 @onready var dollars_label: Label = $TopLeft/Panel/Margin/VBox/DollarsLabel
 @onready var clock_label: Label = $ClockLabel
@@ -49,6 +51,7 @@ var _phone_low_latched: bool = false
 func _ready() -> void:
 	GameState.meters_changed.connect(_on_meters_changed)
 	GameState.dopamine_changed.connect(_on_dopamine_changed)
+	GameState.oxytocin_changed.connect(_on_oxytocin_changed)
 	GameState.dollars_changed.connect(_on_dollars_changed)
 	GameState.clock_changed.connect(_on_clock_changed)
 	GameState.task_list_changed.connect(_on_task_list_changed)
@@ -64,6 +67,7 @@ func _ready() -> void:
 	# Pull the current state instead of waiting for the next signal tick.
 	_on_meters_changed(GameState.serotonin, GameState.cortisol)
 	_on_dopamine_changed(GameState.dopamine)
+	_on_oxytocin_changed(GameState.oxytocin)
 	_on_dollars_changed(GameState.dollars)
 	_on_clock_changed(GameState.get_time_string())
 	_on_task_list_changed(GameState.tasks)
@@ -76,9 +80,16 @@ func _ready() -> void:
 	if ModeManager.current_mode == ModeManager.Mode.PRACTICE:
 		cortisol_bar.hide()
 		cortisol_label.hide()
+	# The oxytocin bar only exists in Oxytocin Mode.
+	if ModeManager.current_mode != ModeManager.Mode.OXYTOCIN:
+		oxytocin_bar.hide()
+		oxytocin_label.hide()
 	# Permanent hint under the task list: what talking to Luke does.
 	var luke_hint := Label.new()
-	luke_hint.text = "Speaking to Luke will increase dopamine, serotonin, and cortisol levels."
+	if ModeManager.current_mode == ModeManager.Mode.OXYTOCIN:
+		luke_hint.text = "Speaking to Luke gives oxytocin too. Press Q near him to send him to do a chore (-10 oxytocin)."
+	else:
+		luke_hint.text = "Speaking to Luke will increase dopamine, serotonin, and cortisol levels."
 	luke_hint.add_theme_font_size_override("font_size", 12)
 	luke_hint.add_theme_color_override("font_color", Color(0.65, 0.65, 0.65))
 	luke_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -155,7 +166,11 @@ func _on_meters_changed(serotonin: float, cortisol: float) -> void:
 func _on_dopamine_changed(value: float) -> void:
 	dopamine_bar.value = value
 	dopamine_label.text = "DOPAMINE %d" % int(value)
-	# The phone demands attention: when dopamine dips below the line the
+
+
+func _on_oxytocin_changed(value: float) -> void:
+	oxytocin_bar.value = value
+	oxytocin_label.text = "OXYTOCIN %d" % int(value)	# The phone demands attention: when dopamine dips below the line the
 	# FakeTok game opens on its own. Latched so it fires once per dip;
 	# the latch clears when dopamine climbs back above the line.
 	if value >= PHONE_AUTO_OPEN_DOPAMINE:
@@ -245,6 +260,10 @@ func _on_day_ended() -> void:
 		day_over_label.text = "Day %d cut short — cortisol maxed out!" % int(summary["day"])
 	elif String(summary.get("end_reason", "")) == "dopamine":
 		day_over_label.text = "Day %d cut short — dopamine hit zero!" % int(summary["day"])
+	elif String(summary.get("end_reason", "")) == "oxytocin_zero":
+		day_over_label.text = "Day %d cut short — oxytocin hit zero!" % int(summary["day"])
+	elif String(summary.get("end_reason", "")) == "oxytocin_max":
+		day_over_label.text = "Day %d cut short — oxytocin maxed out!" % int(summary["day"])
 	elif String(summary.get("end_reason", "")) == "past_bedtime":
 		day_over_label.text = "Day %d cut short — up past 1 AM, serotonin wiped!" % int(summary["day"])
 	elif String(summary.get("end_reason", "")) == "bedtime":

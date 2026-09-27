@@ -72,6 +72,7 @@ var _prompt: Label
 
 
 func _ready() -> void:
+	add_to_group("stations")  # Luke's Q-key chore duty scans this group.
 	var shape := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
 	circle.radius = INTERACT_RADIUS

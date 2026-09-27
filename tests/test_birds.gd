@@ -70,8 +70,9 @@ func _run() -> void:
 	# --- Fixed species per mode ------------------------------------------------
 	MM.set_mode(MODE_CLASSIC)
 	_check(String(GS.MODE_BIRDS.get(0, "")) == "robin", "birds: classic's bird is the robin")
-	_check(GS.MODE_BIRDS.size() == 3, "birds: three modes have a fixed species")
+	_check(GS.MODE_BIRDS.size() == 4, "birds: four modes have a fixed species")
 	_check(String(GS.MODE_BIRDS.get(6, "")) == "crow", "birds: dopamine's bird is the crow")
+	_check(String(GS.MODE_BIRDS.get(7, "")) == "pigeon", "birds: oxytocin's bird is the pigeon")
 	_check(String(GS.MODE_BIRDS.get(MODE_PRACTICE, "")) == "bluejay", "birds: practice's bird is the bluejay")
 
 	# --- Active until found ----------------------------------------------------
