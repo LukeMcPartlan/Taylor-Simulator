@@ -3,7 +3,7 @@ extends CharacterBody2D
 ## Chris — the kid NPC. Placeholder art: Luke's sprite tinted all black.
 ##
 ## Daily loop:
-## - Starts the day ASLEEP in bed (west end of the ground floor).
+## - Starts the day ASLEEP on the cot (blue room, basement).
 ## - 7am "Wake up Chris" clock task: Taylor wakes him (E) and he leaves for
 ##   the day (school).
 ## - 2:30pm (14.5): he comes home through the east edge, then patrols the
@@ -21,10 +21,10 @@ const JUMP_VELOCITY: float = -300.0  # hops a 32px stair step, nothing fancy
 # in the editor). He also walks back in at this Y when he comes home.
 const CHRIS_BED_FALLBACK := Vector2(-1700.0, -110.0)
 var _bed_pos: Vector2 = CHRIS_BED_FALLBACK
-const HOME_EDGE_X: float = -120.0   # east edge: where he walks in at 2:30pm
+const HOME_EDGE_X: float = 570.0   # east edge: where he walks in at 2:30pm
 const HOME_HOUR: float = 14.5       # 2:30 PM
-const WANDER_MIN_X: float = -1600.0
-const WANDER_MAX_X: float = -150.0
+const WANDER_MIN_X: float = 133.0
+const WANDER_MAX_X: float = 570.0
 const INTERACT_RADIUS: float = 72.0
 const DROP_MIN_SECS: float = 4.0
 const DROP_MAX_SECS: float = 7.0

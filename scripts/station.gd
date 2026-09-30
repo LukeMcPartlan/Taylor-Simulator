@@ -43,7 +43,7 @@ const DIMMED := Color(0.4, 0.4, 0.4)
 ## the old colored box.
 const STATION_SPRITES := {
 	"laundry": "res://art/furniture/washer.png",
-	"dishes": "res://art/furniture/kitchen_sink.png",
+	"dishes": "res://art/ToBeAdded/sink.png",
 	"book": "res://art/furniture/bookshelf.png",
 	"basement_toilet": "res://art/furniture/toilet.png",
 	"take_out_trash": "res://art/furniture/trash_can.png",

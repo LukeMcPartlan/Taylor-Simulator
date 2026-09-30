@@ -98,18 +98,18 @@ func _amazon_defs() -> Array:
 func _ready() -> void:
 	super._ready()
 	# The laptop is a small sprite now (was a stack of ColorRects) — it sits
-	# on the floor at the marker, much smaller than before.
+	# on the desk decor at the marker, much smaller than before.
 	_marker.hide()
 	var spr := Sprite2D.new()
-	spr.texture = load("res://placeholder art/Sprites/laptop.png")
-	spr.position = Vector2(0, -14)
+	spr.texture = load("res://art/ToBeAdded/Laptop.png")
+	spr.position = Vector2(0, -80)
 	add_child(spr)
 	_new_email()
 	# Pull the title/prompt down to sit just above the little laptop.
 	if _title_label != null:
-		_title_label.position = Vector2(-90, -58)
+		_title_label.position = Vector2(-90, -124)
 	if _prompt != null:
-		_prompt.position = Vector2(-110, -88)
+		_prompt.position = Vector2(-110, -154)
 
 
 func store_title() -> String:

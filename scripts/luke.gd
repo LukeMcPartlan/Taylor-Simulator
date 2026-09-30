@@ -21,9 +21,9 @@ extends CharacterBody2D
 
 const SPEED: float = 110.0
 const JUMP_VELOCITY: float = -300.0  # hops a 32px stair step, nothing fancy
-const WANDER_MIN_X: float = -1100.0
-const WANDER_MAX_X: float = -120.0  # stays on the flat ground, clear of the pond and tower
-const GAME_SETUP_X: float = -1050.0
+const WANDER_MIN_X: float = 133.0
+const WANDER_MAX_X: float = 570.0  # first-floor patrol bounds
+const GAME_SETUP_X: float = 240.0  # gaming spot, by the TV/couch
 const INTERACT_RADIUS: float = 72.0
 
 # Luke's voice lines — verbatim, as dictated. Do not "fix" the spelling.

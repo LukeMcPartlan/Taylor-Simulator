@@ -11,7 +11,7 @@ extends Node2D
 ##   interior, so the design was adapted: the leaking toilet flooded the low
 ##   yard, and Taylor cleans it up there.
 ##
-## Walk-up laptop stores (x=-700 on the ground floor, open any time):
+## Walk-up laptop stores (upstairs, on the desk, open any time):
 ##   CLASSIC / DOPAMINE: Taylor's laptop — WORK emails for dollars + the
 ##     6-product AMAZON catalog (scripts/modes/store_cortisol.gd,
 ##     store_dopamine.gd). CLASSIC's store also sells the Dopamine Mode

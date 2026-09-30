@@ -36,6 +36,9 @@
 [ext_resource type="Texture2D" uid="uid://gqq8ji31cj0k" path="res://parralaxing placeholders/mountains.png" id="37_mountains"]
 [ext_resource type="Texture2D" uid="uid://ct2cjjpc8odtn" path="res://parralaxing placeholders/hills.png" id="38_hills"]
 [ext_resource type="Texture2D" uid="uid://d4vfceaarhci" path="res://parralaxing placeholders/forest.png" id="39_forest"]
+[ext_resource type="Texture2D" uid="uid://dgh4xc4inf21f" path="res://art/ToBeAdded/Dining Table.png" id="41_dining"]
+[ext_resource type="Texture2D" uid="uid://coqys62xv8thn" path="res://art/ToBeAdded/desk.png" id="42_desk"]
+[ext_resource type="Texture2D" uid="uid://bs0yt3s6hok6" path="res://art/ToBeAdded/cot.png" id="43_cot"]
 [ext_resource type="PackedScene" path="res://StairExamples.tscn" id="40_stairs"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_trn2v"]
@@ -691,6 +694,7 @@ tile_set = SubResource("TileSet_cm0pq")
 [node name="HUD" parent="." unique_id=516852715 instance=ExtResource("7_hud0")]
 
 [node name="ParallaxBG" type="ParallaxBackground" parent="." unique_id=421904337]
+layer = -100
 
 [node name="Sky" type="ParallaxLayer" parent="ParallaxBG" unique_id=782341190]
 motion_scale = Vector2(0, 1)
@@ -786,7 +790,7 @@ sprite_texture = ExtResource("14_bird")
 position = Vector2(203, -359)
 
 [node name="laundry" type="Marker2D" parent="World/Spawns" unique_id=396638129]
-position = Vector2(161, 32)
+position = Vector2(353, 32)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/laundry" unique_id=1988564448]
 position = Vector2(0, -32)
@@ -794,7 +798,7 @@ scale = Vector2(2, 2)
 texture = ExtResource("24_preview")
 
 [node name="dishes" type="Marker2D" parent="World/Spawns" unique_id=1960801292]
-position = Vector2(532, -119)
+position = Vector2(628, -119)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/dishes" unique_id=1825061004]
 position = Vector2(0, -32)
@@ -827,7 +831,7 @@ scale = Vector2(2, 2)
 position = Vector2(156, -392)
 
 [node name="basement_toilet" type="Marker2D" parent="World/Spawns" unique_id=245199559]
-position = Vector2(371, 45)
+position = Vector2(499, 45)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/basement_toilet" unique_id=1149848017]
 position = Vector2(0, -32)
@@ -873,7 +877,7 @@ texture = SubResource("AtlasTexture_gojo_luke")
 position = Vector2(198, -346)
 
 [node name="chris" type="Marker2D" parent="World/Spawns" unique_id=1676780021]
-position = Vector2(290, 30)
+position = Vector2(200, 32)
 
 [node name="Preview" type="Sprite2D" parent="World/Spawns/chris" unique_id=1896849335]
 modulate = Color(0, 0, 0, 1)
@@ -920,9 +924,27 @@ texture = ExtResource("21_decor")
 
 [node name="Dryer" type="Sprite2D" parent="World/Decor" unique_id=1659192805]
 z_index = -1
-position = Vector2(236, 0)
+position = Vector2(428, 0)
 scale = Vector2(2, 2)
 texture = ExtResource("22_decor")
+
+[node name="dining_table" type="Sprite2D" parent="World/Decor" unique_id=1104202501]
+z_index = -1
+position = Vector2(532, -119)
+scale = Vector2(2, 2)
+texture = ExtResource("41_dining")
+
+[node name="desk" type="Sprite2D" parent="World/Decor" unique_id=1104202502]
+z_index = -1
+position = Vector2(655, -353)
+scale = Vector2(2, 2)
+texture = ExtResource("42_desk")
+
+[node name="cot" type="Sprite2D" parent="World/Decor" unique_id=1104202503]
+z_index = -1
+position = Vector2(200, 32)
+scale = Vector2(2, 2)
+texture = ExtResource("43_cot")
 
 [node name="Killbox" type="Area2D" parent="World" unique_id=1908236843]
 position = Vector2(-900, 700)

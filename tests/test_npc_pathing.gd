@@ -80,19 +80,19 @@ func _run_tests() -> void:
 		"npc: chris hitbox radius 12")
 
 	# --- back-and-forth patrol: target the farther end --------------------------
-	luke.global_position = Vector2(-1100, -110)
+	luke.global_position = Vector2(133, -110)
 	luke.call("_patrol_next")
-	_check(float(luke.get("_target_x")) == -120.0,
+	_check(float(luke.get("_target_x")) == 570.0,
 		"npc: luke at west end patrols to east end")
-	luke.global_position = Vector2(-200, -110)
+	luke.global_position = Vector2(500, -110)
 	luke.call("_patrol_next")
-	_check(float(luke.get("_target_x")) == -1100.0,
+	_check(float(luke.get("_target_x")) == 133.0,
 		"npc: luke near east end patrols back west")
-	chris.global_position = Vector2(-1600, -110)
-	_check(float(chris.call("_patrol_far_end")) == -150.0,
+	chris.global_position = Vector2(133, 32)
+	_check(float(chris.call("_patrol_far_end")) == 570.0,
 		"npc: chris at west end patrols to east end")
-	chris.global_position = Vector2(-300, -110)
-	_check(float(chris.call("_patrol_far_end")) == -1600.0,
+	chris.global_position = Vector2(500, 32)
+	_check(float(chris.call("_patrol_far_end")) == 133.0,
 		"npc: chris near east end patrols back west")
 
 	# --- stuck -> jump ------------------------------------------------------------
@@ -121,7 +121,7 @@ func _run_tests() -> void:
 	_check(bool(luke.get("_wake_first")), "npc: wake-up arms east-first patrol")
 	luke.call("_pick_action")
 	_check(int(luke.get("_state")) == 1, "npc: luke WALK after wake-up pick")
-	_check(absf(float(luke.get("_target_x")) - (-120.0)) < 0.01,
+	_check(absf(float(luke.get("_target_x")) - 570.0) < 0.01,
 		"npc: luke heads east first (target=%s)" % str(luke.get("_target_x")))
 	_check(not bool(luke.get("_wake_first")), "npc: east-first flag clears after one patrol")
 
