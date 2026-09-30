@@ -9,6 +9,23 @@ extends Node2D
 ##
 ## Keyframes are (hour, overlay color); the tint smooth-blends between them
 ## so phases melt into each other instead of snapping.
+##
+## INSPECTOR TEST CONTROLS: select the DayNight node (World/DayNight, or in
+## the Remote scene tree while playing) and open "Inspector test controls":
+## turn on "preview time", drag the hour slider, and tweak the phase colors
+## live. When you like a look, copy the color values into KEYFRAMES below.
+
+@export_group("Inspector test controls")
+@export var preview_time := false
+@export_range(6.0, 25.0, 0.1, "suffix:h") var preview_hour := 12.0
+@export var preview_predawn := Color(0.30, 0.08, 0.45, 0.50)
+@export var preview_warm := Color(0.85, 0.50, 0.25, 0.30)
+@export var preview_sunrise := Color(1.00, 0.60, 0.35, 0.25)
+@export var preview_midday := Color(0.0, 0.0, 0.0, 0.0)
+@export var preview_evening := Color(0.0, 0.0, 0.0, 0.0)
+@export var preview_sunset := Color(1.00, 0.45, 0.20, 0.35)
+@export var preview_night := Color(0.28, 0.08, 0.48, 0.50)
+@export var preview_late := Color(0.02, 0.02, 0.10, 0.65)
 
 # hour -> overlay ColorRect color. Alpha does the work: dark purple at day
 # start, warming by 7, sunrise colors to 9, clear midday, sunset warmth to
@@ -29,7 +46,12 @@ var _rect: ColorRect
 
 static func tint_for_hour(h: float) -> Color:
 	## Overlay color for a clock hour. Smooth-blends between keyframes.
-	var frames: Array = KEYFRAMES
+	return _blend(KEYFRAMES, h)
+
+
+static func _blend(frames: Array, h: float) -> Color:
+	## Smooth-blend helper shared by the shipped keyframes and the
+	## inspector preview colors.
 	if h <= float(frames[0][0]):
 		return frames[0][1]
 	for i in range(frames.size() - 1):
@@ -40,6 +62,19 @@ static func tint_for_hour(h: float) -> Color:
 			t = t * t * (3.0 - 2.0 * t)  # smoothstep: melt, don't snap
 			return (frames[i][1] as Color).lerp(frames[i + 1][1] as Color, t)
 	return frames[frames.size() - 1][1]
+
+
+func _preview_frames() -> Array:
+	return [
+		[6.0, preview_predawn],
+		[7.0, preview_warm],
+		[8.0, preview_sunrise],
+		[9.0, preview_midday],
+		[18.0, preview_evening],
+		[20.0, preview_sunset],
+		[22.0, preview_night],
+		[25.0, preview_late],
+	]
 
 
 static func phase_icon_for_hour(h: float) -> String:
@@ -73,5 +108,7 @@ func _process(_delta: float) -> void:
 		_rect.global_position = Vector2.ZERO
 	_rect.size = view_size
 	var gs := get_node_or_null("/root/GameState")
-	if gs != null:
+	if preview_time:
+		_rect.color = DayNight._blend(_preview_frames(), preview_hour)
+	elif gs != null:
 		_rect.color = DayNight.tint_for_hour(float(gs.get("time_hours")))

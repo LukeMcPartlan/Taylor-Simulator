@@ -12,8 +12,8 @@ const _CORTISOL_IDS: Array = [
 	"extra_ball", "sponge", "pipes", "good_drops", "green_zone", "moon_shoes",
 ]
 
-const DOPAMINE_PRICE: float = 100.0
-const OXYTOCIN_PRICE: float = 150.0
+const DOPAMINE_PRICE: float = 500.0
+const OXYTOCIN_PRICE: float = 500.0
 
 
 func _store_mode_id() -> int:
@@ -31,9 +31,9 @@ func _amazon_defs() -> Array:
 
 func get_rows() -> Array:
 	## The 6 products, plus — only in the REAL Cortisol store — the next
-	## mode unlock: DOPAMINE MODE ($100). The REAL Dopamine store (this
+	## mode unlock: DOPAMINE MODE ($500). The REAL Dopamine store (this
 	## script reporting _store_mode_id() == DOPAMINE) sells the one after
-	## that: OXYTOCIN MODE ($150). (StoreDopamine/StoreOxytocin inherit
+	## that: OXYTOCIN MODE ($500). (StoreDopamine/StoreOxytocin inherit
 	## this script but never sell their own unlock.)
 	var rows: Array = super.get_rows()
 	var m := _mode()

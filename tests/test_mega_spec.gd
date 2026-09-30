@@ -163,6 +163,9 @@ func _run_tests(mode_name: String) -> void:
 			await _frames(30)
 			fall_waited += 30
 		var player = get_nodes_in_group("player")[0]
+		# Give cortisol something to relieve: days start at 0 now, and the
+		# wake_chris relief may have zeroed the neglect buildup.
+		gs.cortisol = 20.0
 		var c_before: float = gs.cortisol
 		player.global_position = g.global_position
 		# A mid-air teleport keeps the player's momentum; kill it so the

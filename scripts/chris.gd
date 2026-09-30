@@ -159,13 +159,22 @@ func _unhandled_input(event: InputEvent) -> void:
 	var key_event := event as InputEventKey
 	if key_event.keycode != KEY_E or not key_event.pressed or key_event.echo:
 		return
-	if not _player_near or _state != State.SLEEPING:
-		# Wandering Chris just chats.
-		if _player_near and _state == State.WANDER:
-			GameState.say("CHRIS", LINES[randi_range(0, LINES.size() - 1)])
+	if not GameState.sim_running:
+		return  # end-of-day overlay: interacts locked
+	if not _player_near:
 		return
-	if _task_open("wake_chris"):
-		_wake_up()
+	if _state == State.SLEEPING:
+		# Waking Chris is an NPC chore action — outranks looping talk, but
+		# never outranks a chore station (see GameState.queue_interact).
+		if _task_open("wake_chris"):
+			GameState.queue_interact(GameState.INTERACT_NPC_CHORE, _wake_up)
+	elif _state == State.WANDER:
+		# Wandering Chris just chats.
+		GameState.queue_interact(GameState.INTERACT_CASUAL, _chat)
+
+
+func _chat() -> void:
+	GameState.say("CHRIS", LINES[randi_range(0, LINES.size() - 1)])
 
 
 func _task_open(task_id: String) -> bool:

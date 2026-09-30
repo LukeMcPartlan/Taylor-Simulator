@@ -124,9 +124,9 @@ func _run_tests() -> void:
 	_check(bool(res.get("ok", false)), "upgrade: bought sponge T1")
 	_check(int(m.call("run_tier", "sponge")) == 0, "upgrade: sponge not active before delivery")
 	_check(GS.pending_count("sponge") == 1, "upgrade: sponge T1 queued")
-	_check(absf(float(GS.get("dollars")) - (d1 - 30.0)) < 0.01, "upgrade: $30 deducted")
+	_check(absf(float(GS.get("dollars")) - (d1 - 15.0)) < 0.01, "upgrade: $15 deducted")
 	_check(_is_task_open("amazon_boxes"), "upgrade: purchase opened the amazon task")
-	# Tiers 2 ($60) and 3 ($120) queue up; then maxed (pending counts).
+	# Tiers 2 ($30) and 3 ($60) queue up; then maxed (pending counts).
 	var res2: Dictionary = store.buy_row("upgrade", "sponge")
 	_check(bool(res2.get("ok", false)), "upgrade: bought sponge T2")
 	_check(GS.pending_count("sponge") == 2, "upgrade: sponge T2 queued")
@@ -220,7 +220,7 @@ func _run_tests() -> void:
 	var bp: Dictionary = GS.call("buy_permanent_upgrade", "sponge")
 	_check(bool(bp.get("ok", false)), "permanent: bought sponge T1 with savings")
 	_check(int(GS.call("permanent_tier", "sponge")) == 1, "permanent: sponge tier 1")
-	_check(absf(float(GS.get("savings")) - 400.0) < 0.01, "permanent: $100 spent")
+	_check(absf(float(GS.get("savings")) - 440.0) < 0.01, "permanent: $60 spent")
 	_check(int(GS.call("upgrade_tier", "sponge")) == 3, "effective: run T3 beats perm T1")
 	_check(int(GS.call("upgrade_tier", "hamper")) == 1, "effective: run-only hamper T1")
 	# Permanent T2 hamper covers run T1: buying run T2 is pointless, blocked.

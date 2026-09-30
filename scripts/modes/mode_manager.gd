@@ -38,19 +38,19 @@ const MODE_CARDS: Array = [
 		"mode": Mode.CLASSIC,
 		"name": "😰 Cortisol Mode",
 		"desc": "Complete your tasks as fast as possible to keep your cortisol down and finish the day.",
-		"locked_desc": "Locked — buy it for $60 from the laptop in Serotonin Mode (🔓 UNLOCK tab).",
+		"locked_desc": "Locked — buy it for $500 from the laptop in Serotonin Mode (🔓 UNLOCK tab).",
 	},
 	{
 		"mode": Mode.DOPAMINE,
 		"name": "📱 Dopamine Mode",
 		"desc": "Cortisol Mode, but dopamine drains 5x faster. The phone is life support — keep swiping or the day ends early.",
-		"locked_desc": "Locked — buy it for $100 at the cortisol laptop (📦 AMAZON tab).",
+		"locked_desc": "Locked — buy it for $500 at the cortisol laptop (📦 AMAZON tab).",
 	},
 	{
 		"mode": Mode.OXYTOCIN,
 		"name": "💞 Oxytocin Mode",
 		"desc": "Cortisol Mode with an oxytocin meter. Press Q near Luke to teleport him to a chore (-10 oxytocin); talking to him gives +10. Day ends at 0 or 100.",
-		"locked_desc": "Locked — buy it for $150 at the dopamine laptop (📦 AMAZON tab).",
+		"locked_desc": "Locked — buy it for $500 at the dopamine laptop (📦 AMAZON tab).",
 	},
 ]
 

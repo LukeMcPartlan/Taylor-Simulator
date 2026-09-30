@@ -167,8 +167,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if not _player_near:
 		return
+	if not GameState.sim_running:
+		return  # end-of-day overlay: interacts locked
 	if key_event.keycode == KEY_E:
-		_talk()
+		# One E press = one action (see GameState.queue_interact): chore
+		# stations outrank NPC chore actions, which outrank looping talk.
+		if _state == State.SLEEPING and _task_open("wake_luke"):
+			GameState.queue_interact(GameState.INTERACT_NPC_CHORE, _talk)
+		elif _task_open("bed_luke"):
+			GameState.queue_interact(GameState.INTERACT_NPC_CHORE, _talk)
+		elif _state == State.GAMING and _remind_task_active():
+			GameState.queue_interact(GameState.INTERACT_NPC_CHORE, _talk)
+		else:
+			GameState.queue_interact(GameState.INTERACT_CASUAL, _talk)
 	elif key_event.keycode == KEY_Q:
 		# Oxytocin Mode: send Luke to do a chore (teleport, costs oxytocin).
 		_send_to_chore()

@@ -282,9 +282,9 @@ func _make_how_panel() -> CanvasLayer:
 		"SAVINGS at day end; press B on this menu for permanent upgrades.",
 		"",
 		"MODES: ☀️ Serotonin is the free sandbox front door.",
-		"Buy 😰 Cortisol ($60, Serotonin laptop 🔓 UNLOCK tab),",
-		"then 📱 Dopamine ($100, Cortisol laptop 📦 AMAZON tab),",
-		"then 💞 Oxytocin ($150, Dopamine laptop 📦 AMAZON tab).",
+		"Buy 😰 Cortisol ($500, Serotonin laptop 🔓 UNLOCK tab),",
+		"then 📱 Dopamine ($500, Cortisol laptop 📦 AMAZON tab),",
+		"then 💞 Oxytocin ($500, Dopamine laptop 📦 AMAZON tab).",
 		"",
 		"Press H or Esc to close this.",
 	]

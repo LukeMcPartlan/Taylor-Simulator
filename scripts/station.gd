@@ -150,11 +150,27 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if key_event.keycode != KEY_E:
 		return
+	if not GameState.sim_running:
+		return  # end-of-day overlay: interacts locked
 	if kind == Kind.FUN:
-		if _cooldown_left <= 0.0 and minigame_id != "":
-			MinigameLauncher.open(minigame_id, _on_minigame_done)
-	elif kind == Kind.CHORE:
-		_on_chore_e_pressed()
+		GameState.queue_interact(GameState.INTERACT_CASUAL, _on_fun_e_pressed)
+	elif kind == Kind.CHORE and _would_start_chore():
+		# Only claim the press if E would actually do something — a chore
+		# station with no open task must not swallow E meant for Luke.
+		GameState.queue_interact(GameState.INTERACT_CHORE, _on_chore_e_pressed)
+
+
+func _would_start_chore() -> bool:
+	if station_id == "go_to_bed":
+		return _own_task_open()
+	if GameState.minigames_always_open():
+		return minigame_id != ""
+	return _own_task_open() and minigame_id != ""
+
+
+func _on_fun_e_pressed() -> void:
+	if _cooldown_left <= 0.0 and minigame_id != "":
+		MinigameLauncher.open(minigame_id, _on_minigame_done)
 
 
 func _on_chore_e_pressed() -> void:

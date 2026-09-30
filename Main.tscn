@@ -855,7 +855,7 @@ scale = Vector2(2, 2)
 texture = ExtResource("32_preview")
 
 [node name="laptop" type="Marker2D" parent="World/Spawns" unique_id=1879629612]
-position = Vector2(687, -353)
+position = Vector2(655, -353)
 
 [node name="luke" type="Marker2D" parent="World/Spawns" unique_id=487209044]
 position = Vector2(275, -340)

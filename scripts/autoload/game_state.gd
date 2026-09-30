@@ -14,7 +14,6 @@ extends Node
 ##   neglect_serotonin_rate() -> float     default 3.0
 ##   baseline_decay_rate() -> float        default 1.0
 ##   cortisol_gain_mult() -> float         default 1.0
-##   start_cortisol() -> float             default START_CORTISOL (practice: 0)
 ##   minigames_always_open() -> bool       default false (practice: stations
 ##     always playable, never dim)
 ##   minigame_speed_mult() -> float        default 1.0
@@ -231,6 +230,9 @@ var task_defs: Array = TASK_DEFS.duplicate(true)
 var _proc_state: Dictionary = {}
 ## Countdown (real seconds) to the next global proc tick.
 var _next_proc_in_s: float = 0.0
+## When each task was last finished: id -> {"day": int, "hour": float}. A
+## chore can't proc again within one game-hour of being finished.
+var _last_finished: Dictionary = {}
 ## Accumulator (real seconds) for the discrete cortisol pressure ticks.
 var _cortisol_tick_t: float = 0.0
 ## One-time bird collectibles: species ids found EVER (persisted in the
@@ -274,6 +276,9 @@ func mode_node() -> Node:
 
 
 func _process(delta: float) -> void:
+	# Interact arbitration runs even when the sim is frozen: one E press =
+	# one action, decided by priority (see queue_interact).
+	_flush_interact_intents()
 	if not sim_running:
 		return
 
@@ -400,19 +405,6 @@ func get_baseline_decay_rate() -> float:
 func get_cortisol_gain_mult() -> float:
 	var v = _hook("cortisol_multiplier")
 	return float(v) if v != null else 1.0
-
-
-func get_start_cortisol() -> float:
-	## Practice mode starts the day at 0 cortisol instead of START_CORTISOL.
-	var v = _hook("start_cortisol")
-	return float(v) if v != null else START_CORTISOL
-
-
-func get_start_serotonin() -> float:
-	## Practice mode starts the day at 0 serotonin instead of
-	## START_SEROTONIN — earn it before working the laptop.
-	var v = _hook("start_serotonin")
-	return float(v) if v != null else START_SEROTONIN
 
 
 func minigames_always_open() -> bool:
@@ -600,6 +592,7 @@ func _reset_proc_state() -> void:
 	_proc_state.clear()
 	for def in task_defs:
 		_proc_state[String(def["id"])] = 0
+	_last_finished.clear()
 	_next_proc_in_s = randf_range(PROC_TICK_MIN_S, PROC_TICK_MAX_S)
 
 
@@ -621,6 +614,11 @@ func _update_task_procs(delta: float) -> void:
 		if int(_proc_state.get(id, 0)) >= int(def.get("max_procs", PROC_MAX_PER_DAY)):
 			continue
 		if _is_task_open(id):
+			continue
+		# A chore can't spawn within one game-hour of being finished.
+		var lf: Dictionary = _last_finished.get(id, {})
+		if int(lf.get("day", -1)) == day_number \
+				and time_hours - float(lf.get("hour", -99.0)) < 1.0:
 			continue
 		# Optional mode hook: fully automated chores never proc.
 		var auto = _hook("task_auto_covered", [id])
@@ -676,6 +674,8 @@ func complete_task(id: String, by: String = "taylor") -> bool:
 			cortisol = clampf(cortisol - relief, 0.0, METER_MAX)
 			if by == "taylor":
 				add_serotonin(TASK_COMPLETION_SEROTONIN)
+			# A finished chore can't proc again for one game-hour.
+			_last_finished[id] = {"day": day_number, "hour": time_hours}
 			task_list_changed.emit(tasks)
 			meters_changed.emit(serotonin, cortisol)
 			task_completed.emit(id, relief, by)
@@ -949,6 +949,34 @@ func interact_luke() -> void:
 	add_oxytocin(OXYTOCIN_TALK_GAIN)
 
 
+# --- Interact arbitration ---------------------------------------------------
+## One E press = one action. Stations and NPCs register an intent during the
+## input phase; GameState runs the highest-priority intent in _process and
+## drops the rest — so a single E can never both start a minigame and wake
+## Luke. Priority: chore stations > NPC chore actions (wake/bed/remind) >
+## walk-up stores > fun stations and looping conversations.
+const INTERACT_CHORE: int = 30
+const INTERACT_NPC_CHORE: int = 20
+const INTERACT_STORE: int = 15
+const INTERACT_CASUAL: int = 10
+var _interact_intents: Array = []
+
+
+func queue_interact(priority: int, action: Callable) -> void:
+	_interact_intents.append({"priority": priority, "action": action})
+
+
+func _flush_interact_intents() -> void:
+	if _interact_intents.is_empty():
+		return
+	var best: Dictionary = _interact_intents[0]
+	for intent in _interact_intents:
+		if int(intent["priority"]) > int(best["priority"]):
+			best = intent
+	_interact_intents.clear()
+	(best["action"] as Callable).call()
+
+
 
 func apply_minigame_fail() -> void:
 	var penalty: float = get_minigame_fail_cortisol()
@@ -965,8 +993,9 @@ func start_new_day() -> void:
 
 func _begin_day() -> void:
 	time_hours = DAY_START_HOUR
-	serotonin = get_start_serotonin()
-	cortisol = get_start_cortisol()
+	# Both meters reset to zero at the start of every day — no carryover.
+	serotonin = 0.0
+	cortisol = 0.0
 	dopamine = START_DOPAMINE
 	oxytocin = START_OXYTOCIN
 	_day_end_reason = ""

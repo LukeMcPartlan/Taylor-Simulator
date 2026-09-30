@@ -167,15 +167,15 @@ func _test_store_unlock() -> void:
 	var rows: Array = store.get_rows()
 	_check(rows.size() == 7, "cortisol store lists 6 products + the dopamine unlock")
 	_check(String(rows[6]["id"]) == "dopamine" and String(rows[6]["kind"]) == "unlock" \
-		and String(rows[6]["price"]) == "$100",
-		"row 7 is dopamine mode $100")
+		and String(rows[6]["price"]) == "$500",
+		"row 7 is dopamine mode $500")
 	var broke: Dictionary = store.buy_row("unlock", "dopamine")
 	_check(not bool(broke.get("ok", false)), "dopamine unlock refused when broke")
-	GS.add_dollars(100.0)
+	GS.add_dollars(500.0)
 	var bought: Dictionary = store.buy_row("unlock", "dopamine")
-	_check(bool(bought.get("ok", false)), "dopamine unlock bought for $100 in the cortisol store")
+	_check(bool(bought.get("ok", false)), "dopamine unlock bought for $500 in the cortisol store")
 	_check(GS.is_mode_unlocked(6), "dopamine unlocked after purchase")
-	_check(absf(GS.get("dollars")) < 0.01, "purchase took the $100")
+	_check(absf(GS.get("dollars")) < 0.01, "purchase took the $500")
 	var again: Dictionary = store.buy_row("unlock", "dopamine")
 	_check(not bool(again.get("ok", false)), "dopamine unlock not re-buyable")
 	store.free()
@@ -210,7 +210,7 @@ func _test_store_unlock() -> void:
 	# Classic unlock still works and is independent.
 	_set_mode(5)
 	GS.set("dollars", 0.0)
-	GS.add_dollars(60.0)
+	GS.add_dollars(500.0)
 	var classic: Dictionary = load("res://scripts/modes/store_practice.gd").new().buy_row("unlock", "classic")
 	_check(bool(classic.get("ok", false)), "classic unlock still buyable")
 	_check(GS.is_mode_unlocked(0), "classic unlocked too")
@@ -221,7 +221,7 @@ func _test_store_unlock() -> void:
 
 func _test_dopamine_catalog() -> void:
 	# Same laptop hardware and 6-product catalog as cortisol mode — plus the
-	# next-mode unlock row: OXYTOCIN MODE ($150).
+	# next-mode unlock row: OXYTOCIN MODE ($500).
 	var store = load("res://scripts/modes/store_dopamine.gd").new()
 	_check(store._store_mode_id() == 6, "dopamine store gates on mode 6")
 	_set_mode(6)

@@ -6,7 +6,7 @@ extends SceneTree
 ##    completes it as his work (delegated), costs 10 oxytocin
 ##  - chore duty does nothing outside Oxytocin Mode
 ##  - day ends at oxytocin 0 ("oxytocin_zero") or 100 ("oxytocin_max")
-##  - menu card exists (locked $150); dopamine store sells the unlock;
+##  - menu card exists (locked $500); dopamine store sells the unlock;
 ##    oxytocin store sells products only
 ##  - oxytocin's bird is the pigeon
 ##
@@ -149,8 +149,8 @@ func _run_tests() -> void:
 		if String(r.get("kind", "")) == "unlock" and String(r.get("id", "")) == "oxytocin":
 			oxy_row = r
 	_check(not oxy_row.is_empty(), "dopamine store sells the oxytocin unlock")
-	_check(String(oxy_row.get("price", "")).find("150") >= 0,
-		"oxytocin unlock costs $150")
+	_check(String(oxy_row.get("price", "")).find("500") >= 0,
+		"oxytocin unlock costs $500")
 	gs.set("dollars", 1000.0)
 	var res: Dictionary = dop_store.buy_row("unlock", "oxytocin")
 	_check(bool(res.get("ok", false)), "buying the oxytocin unlock works")
@@ -168,8 +168,8 @@ func _run_tests() -> void:
 		if int(c["mode"]) == MODE_OXYTOCIN:
 			card = c
 	_check(not card.is_empty(), "oxytocin has a main-menu card")
-	_check(String(card.get("locked_desc", "")).find("150") >= 0,
-		"oxytocin card mentions the $150 price")
+	_check(String(card.get("locked_desc", "")).find("500") >= 0,
+		"oxytocin card mentions the $500 price")
 	_check(MM.call("mode_name") == "Oxytocin",
 		"mode_name() is Oxytocin in oxytocin mode")
 
