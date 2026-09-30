@@ -3,7 +3,7 @@ extends StoreLaptop
 ## WORK tab turns serotonin into dollars (-10 serotonin, +$10 per verdict,
 ## a new deranged email every press) — but the shop tab is an AMAZON order
 ## page selling exactly ONE mode unlock plus the 6-product catalog:
-##   1. CLASSIC MODE unlock ($60) — Cortisol Mode, forever.
+##   1. CLASSIC MODE unlock ($500) — Cortisol Mode, forever.
 ##   2-7. The same 6 in-run upgrade products Cortisol Mode sells
 ##      (extra_ball, sponge, pipes, good_drops, green_zone, moon_shoes).
 ##
@@ -11,7 +11,7 @@ extends StoreLaptop
 ## store's laptop instead. Buying the classic unlock puts Cortisol Mode on
 ## the main menu forever (saved in the bank file).
 
-const CLASSIC_PRICE: float = 60.0
+const CLASSIC_PRICE: float = 500.0
 
 ## Same ids as StoreCortisol._CORTISOL_IDS (kept in sync manually).
 const _CORTISOL_IDS: Array = [

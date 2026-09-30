@@ -39,6 +39,15 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity += get_gravity() * delta
 
+	if not GameState.sim_running:
+		# End-of-day overlay (or menu): Taylor is frozen — no movement or
+		# jump input until the next day starts.
+		_jump_charge = 0.0
+		_was_jump_held = false
+		velocity.x = move_toward(velocity.x, 0, SPEED)
+		move_and_slide()
+		return
+
 	# Jump: HOLD to charge (Moon Shoes), RELEASE to leap. A quick tap is an
 	# uncharged jump — exactly the old hop. W/Space/Enter all count as jump.
 	var jump_held := Input.is_action_pressed("ui_accept") or Input.is_key_pressed(KEY_W)

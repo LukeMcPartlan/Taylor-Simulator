@@ -99,6 +99,8 @@ func _input(event: InputEvent) -> void:
 	var key_event := event as InputEventKey
 	if not key_event.pressed or key_event.echo:
 		return
+	if not GameState.sim_running:
+		return  # end-of-day overlay: interacts locked
 
 	if key_event.keycode == KEY_E:
 		if not is_open():

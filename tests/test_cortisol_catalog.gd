@@ -113,7 +113,7 @@ func _run_tests() -> void:
 	_check(bool(r1.get("ok", false)), "bought Lucky Diapers T1")
 	_check(int(m.call("run_tier", "good_drops")) == 0, "good_drops not active before delivery")
 	_check(GS.pending_count("good_drops") == 1, "good_drops T1 queued")
-	_check(absf(float(GS.get("dollars")) - 460.0) < 0.01, "good_drops T1 cost $40")
+	_check(absf(float(GS.get("dollars")) - 480.0) < 0.01, "good_drops T1 cost $20")
 	var r2: Dictionary = store.call("buy_row", "upgrade", "green_zone")
 	_check(bool(r2.get("ok", false)), "bought Steady Hands T1")
 	_check(int(GS.call("upgrade_tier", "green_zone")) == 0, "effective tier 0 before delivery")

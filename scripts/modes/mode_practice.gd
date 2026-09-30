@@ -12,7 +12,7 @@ extends Node
 ##   serotonin cap, banked forever).
 ## - THE LAPTOP (scripts/modes/store_practice.gd): WORK tab turns serotonin
 ##   into dollars (-10 serotonin, +$10 per verdict, same as night-shift);
-##   the AMAZON tab sells the CLASSIC MODE unlock ($60) plus the same
+##   the AMAZON tab sells the CLASSIC MODE unlock ($500) plus the same
 ##   6-product catalog as Cortisol Mode. Buying the unlock puts it on the
 ##   main menu forever.
 ## - ALL TASKS OPEN AT DAWN: every chore task opens the moment the day
@@ -42,17 +42,6 @@ func mode_id() -> int:
 
 func hud_tag() -> String:
 	return "☀️ SEROTONIN"
-
-
-func start_cortisol() -> float:
-	# Practice starts calm and stays calm.
-	return 0.0
-
-
-func start_serotonin() -> float:
-	# Practice starts at 0 serotonin — earn it (birds, fun) before the
-	# laptop's WORK tab can turn it into dollars.
-	return 0.0
 
 
 func neglect_cortisol_rate() -> float:
