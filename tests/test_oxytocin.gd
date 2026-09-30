@@ -98,6 +98,14 @@ func _run_tests() -> void:
 	_check(absf(float(gs.get("oxytocin")) - 50.0) < 0.01,
 		"talking to Luke gives +10 oxytocin")
 
+	# --- Talk reward is gated to Oxytocin Mode ---------------------------------
+	_set_mode(MODE_CLASSIC)
+	gs.set("oxytocin", 40.0)
+	gs.call("interact_luke")
+	_check(absf(float(gs.get("oxytocin")) - 40.0) < 0.01,
+		"talking to Luke gives no oxytocin outside Oxytocin Mode")
+	_set_mode(MODE_OXYTOCIN)
+
 	# --- Clamps ----------------------------------------------------------------
 	gs.set("oxytocin", 95.0)
 	gs.call("add_oxytocin", 50.0)

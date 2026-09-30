@@ -942,11 +942,13 @@ func bird_found(bird_id: String) -> bool:
 
 
 func interact_luke() -> void:
-	## Talking to Luke: +10 serotonin, +3 cortisol, +5 dopamine, +10 oxytocin.
+	## Talking to Luke: +10 serotonin, +3 cortisol, +5 dopamine — plus +10
+	## oxytocin, but only in Oxytocin Mode.
 	add_serotonin(10.0)
 	add_cortisol(3.0)
 	add_dopamine(5.0)
-	add_oxytocin(OXYTOCIN_TALK_GAIN)
+	if ModeManager.current_mode == ModeManager.Mode.OXYTOCIN:
+		add_oxytocin(OXYTOCIN_TALK_GAIN)
 
 
 # --- Interact arbitration ---------------------------------------------------
